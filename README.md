@@ -12,4 +12,5 @@ YOUR introduction here.
 - Github ID: Aether0623     QMID: 231220839 (Member)
 - Github ID: DLZDC          QMID: 231220046(Member)
 - Github ID: Anoyo36        QMID: 231220596(Member)
+- Github ID: sha7dow18      QMID: 231221294(Member)
 - Info of others
