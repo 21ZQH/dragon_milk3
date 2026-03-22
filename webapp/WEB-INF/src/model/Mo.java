@@ -9,4 +9,5 @@ public class Mo extends User {
     public String getRole() { 
         return role; 
     }
+    
 }
