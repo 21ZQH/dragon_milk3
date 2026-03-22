@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TA Recruitment System</title>
+    <style>
+        body {
+            background: #f5f5f5;
+            font-family: 'Segoe UI', 'Arial', 'Helvetica Neue', Arial, sans-serif;
+        }
+        .container {
+            width: 500px;
+            margin: 40px auto;
+            background: #fff;
+            border: 2px solid #222;
+            border-radius: 12px;
+            padding: 40px 30px;
+            box-shadow: 0 0 16px #ccc;
+        }
+        .title {
+            font-size: 38px;
+            text-align: center;
+            margin-bottom: 40px;
+            font-weight: bold;
+            color: #1a2a4f;
+        }
+        .input-box {
+            width: 100%;
+            font-size: 22px;
+            padding: 14px;
+            margin-bottom: 28px;
+            border: 2px solid #bfc4cc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        .button {
+            width: 100%;
+            font-size: 26px;
+            padding: 14px;
+            margin-bottom: 24px;
+            border: none;
+            border-radius: 6px;
+            background: #e6ecfa;
+            color: #1a2a4f;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .button:hover {
+            background: #d0daf5;
+        }
+        .tip {
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 18px;
+            color: #555;
+        }
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0; top: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.3);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #fff;
+            padding: 30px 40px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 16px #aaa;
+        }
+        .role-btn {
+            display: block;
+            width: 100%;
+            margin: 16px 0;
+            padding: 14px;
+            font-size: 22px;
+            border: none;
+            border-radius: 6px;
+            background: #e6ecfa;
+            color: #1a2a4f;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .role-btn:hover {
+            background: #d0daf5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="title">TA Recruitment System</div>
+        <form id="mainForm" action="http://localhost:8081/SE/account" method="post">
+            <input class="input-box" type="email" name="email" placeholder="Email" required>
+            <input class="input-box" type="password" name="password" placeholder="Password" required>
+            <input type="hidden" name="role" id="roleInput">
+            <!-- <input type="hidden" name="action" id="actionInput"> -->
+            <button class="button" type="button" id="registerBtn">Register</button>
+            <div class="tip">If you already have an account</div>
+            <button class="button" type="submit" name="action" value="Login">Log in to your account</button>
+        </form>
+    </div>
+
+    <!-- Modal for role selection -->
+    <div class="modal" id="roleModal">
+        <div class="modal-content">
+            <div style="font-size: 24px; margin-bottom: 20px;">Select your role</div>
+            <button class="role-btn" data-role="TA">TA</button>
+            <button class="role-btn" data-role="MO">MO</button>
+            <button class="role-btn" data-role="Admin">Admin</button>
+        </div>
+    </div>
+
+    <script>
+        const registerBtn = document.getElementById('registerBtn');
+        const roleModal = document.getElementById('roleModal');
+        const roleInput = document.getElementById('roleInput');
+        const mainForm = document.getElementById('mainForm');
+        // Intercept Register button
+        registerBtn.onclick = function() {
+            // Validate email and password
+            const email = mainForm.email.value.trim();
+            const password = mainForm.password.value.trim();
+            // if (!email || !password) {
+            //     alert("Please enter email and password.");
+            //     return;
+            // }
+            if (!mainForm.checkValidity()) {
+            mainForm.reportValidity(); // This will show the browser's native validation popup
+            return;
+        }
+            // Show role selection modal
+            roleModal.style.display = 'flex';
+        };
+        // Role selection
+        document.querySelectorAll('.role-btn').forEach(btn => {
+            btn.onclick = function() {
+                roleInput.value = this.getAttribute('data-role');
+                // create action field
+                let actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = 'action';
+                actionInput.value = 'Register';
+                mainForm.appendChild(actionInput);
+                // Hide modal
+                roleModal.style.display = 'none';
+                // Submit form
+                mainForm.submit();
+            }
+        });
+        // Close modal when clicking outside
+        roleModal.onclick = function(e) {
+            if (e.target === roleModal) {
+                roleModal.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
