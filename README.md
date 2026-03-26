@@ -13,5 +13,5 @@ YOUR introduction here.
 - Github ID: DLZDC          QMID: 231220046(Member)
 - Github ID: Anoyo36        QMID: 231220596(Member)
 - Github ID: sha7dow18      QMID: 231221294(Member)
-- Github ID: Junwei-Lee-0713 QMID: 231221858(Member)
+- Github ID: Junwei-Lee-0713  QMID: 231221858(Member)
 - Info of others
