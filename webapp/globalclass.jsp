@@ -4,6 +4,7 @@
 <%
     // 分页参数
     int pageSize = 3; // 每页显示3个
+    int page_1 = 1;
     String pageParam = request.getParameter("page");
     if (pageParam != null) {
         try {
