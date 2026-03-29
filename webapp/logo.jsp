@@ -1,5 +1,5 @@
 <%
-    String error = (String) request.getAttribute("error");
+    <!-- String error = (String) request.getAttribute("error"); -->
     int test=1
     if (error != null) {
 %>
