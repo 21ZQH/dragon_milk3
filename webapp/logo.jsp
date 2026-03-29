@@ -1,6 +1,6 @@
 <%
     <!-- String error = (String) request.getAttribute("error"); -->
-    int test=1
+    int test=1;
     if (error != null) {
 %>
     <script>
