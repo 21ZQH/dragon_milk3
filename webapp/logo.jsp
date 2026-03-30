@@ -139,7 +139,7 @@
         .nav-logo img {
             width: 100%;
             height: 100%;
-            object-fit: contain; /* 保持图片比例，充满按钄1�7 */
+            object-fit: contain; /* 保持图片比例，充满按钄1�7 */
             display: block;
         }
 
