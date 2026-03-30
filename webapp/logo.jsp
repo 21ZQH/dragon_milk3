@@ -22,7 +22,7 @@
 <html>
 <head>
     <title>Main Page for TA</title>
-    <style> 
+    <style>
         body {
             background: #f7f7f9;
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -139,7 +139,7 @@
         .nav-logo img {
             width: 100%;
             height: 100%;
-            object-fit: contain; /* 保持图片比例，充满按钄1�7 */
+            object-fit: contain; /* 保持图片比例，充满按钮 */
             display: block;
         }
 
@@ -164,12 +164,13 @@
             Welcome to the TA management system! Here you can find job opportunities, manage your profile, and more.
         </div>
          <div class="nav-row">
-          
-        <a class="nav-btn" href="findJob.jsp">Find a Job</a>
-        <a class="nav-btn" href="personalCentre.jsp">Personal centre</a>
-        <form action="logout" method="post" style="display:inline;">
-            <button class="nav-btn" type="submit">Log out</button>
+     <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find a Job</a>
+
+        <a class="nav-btn" href="<%= response.encodeURL("personalCentre.jsp") %>">Personal centre</a>
+        <form action="<%= response.encodeURL("logout") %>" method="post" style="display:inline;">
+        <button class="nav-btn" type="submit">Log out</button>
         </form>
+
         <a class="nav-btn nav-logo" href="#">
             <img src="images/logo.png" alt="Logo" />
         </a>
