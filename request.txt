@@ -1,0 +1,5 @@
+request:
+
+1. modify the AcoountController so when is The mo login in.register, skip to the MO_dashbroad jsp
+2. implement the MOclassController, achieve the function
+3. in dashbroad, the mo can create class or deal with applicant information, when go in to the applicant information page, TA can choose who to go and who leave
