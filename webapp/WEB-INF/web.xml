@@ -23,4 +23,13 @@ http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd"
 <url-pattern>/TAclasscontroller</url-pattern>
 </servlet-mapping>
 
+<servlet>
+ <servlet-name>MOclasscontroller</servlet-name>
+ <servlet-class>chain.MOclasscontroller</servlet-class>
+</servlet>
+<servlet-mapping>
+<servlet-name>MOclasscontroller</servlet-name>
+<url-pattern>/MOclasscontroller</url-pattern>
+</servlet-mapping>
+
 </web-app>

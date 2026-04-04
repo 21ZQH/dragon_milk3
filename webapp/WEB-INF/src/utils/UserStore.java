@@ -7,7 +7,7 @@ import model.User;
 import java.io.*;
 
 public class UserStore {
-    private static final String FILE_PATH = "G:\\Tomcat\\webapps\\SE\\WEB-INF\\file\\users.txt";
+    private static final String FILE_PATH = "C:\\Tomcat11\\webapps\\webapp\\WEB-INF\\file\\users.txt";
 
     public static void saveUser(User user) {
         String line = user.getName() + "," + user.getPassword() + "," + user.getRole()+ "," + user.getEmail();

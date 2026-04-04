@@ -45,7 +45,13 @@ public class AccountController extends HttpServlet {
                 request.getSession().setAttribute("user", user);
                 request.setAttribute("name", name);
                 request.setAttribute("email", email);
+                // 根据角色跳转到不同的页面
+                if ("Mo".equalsIgnoreCase(role)) {
+                 request.getRequestDispatcher("/MO_dashboard.jsp").forward(request, response);
+                } else {
+                // TA 和 Admin 暂时默认跳回原有的 logo.jsp
                 request.getRequestDispatcher("/logo.jsp").forward(request, response);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 response.sendError(500, "Registration failed");
@@ -57,7 +63,13 @@ public class AccountController extends HttpServlet {
                     request.getSession().setAttribute("user", user);
                     request.setAttribute("name", name);
                     request.setAttribute("email", email);
+                     // 根据角色跳转到不同的页面
+                    if ("Mo".equalsIgnoreCase(role)) {
+                    request.getRequestDispatcher("/MO_dashboard.jsp").forward(request, response);
+                    } else {
+                    // TA 和 Admin 暂时默认跳回原有的 logo.jsp
                     request.getRequestDispatcher("/logo.jsp").forward(request, response);
+                    }
                 } else {
                     request.setAttribute("error", "Invalid password and email");
                     request.getRequestDispatcher("/logo.jsp").forward(request, response);
