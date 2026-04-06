@@ -1,7 +1,8 @@
 @echo off
 setlocal
 
-set "SOURCE_WEBAPP=C:\Users\21ZQH\.codex\worktrees\695e\BUPT-TA-Recruitment-Group33\webapp"
+set "SCRIPT_DIR=%~dp0"
+set "SOURCE_WEBAPP=%SCRIPT_DIR%webapp"
 set "TARGET_DIR=G:\Tomcat\webapps\SE"
 set "BACKUP_DIR=%TEMP%\SE_file_backup"
 set "TOMCAT_EXE=G:\Tomcat\bin\Tomcat11.exe"

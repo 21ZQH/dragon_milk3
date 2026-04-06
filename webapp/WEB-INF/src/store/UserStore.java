@@ -1,9 +1,11 @@
 package store;
 
 import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 import model.Admin;
 import model.Mo;
@@ -11,14 +13,20 @@ import model.TA;
 import model.User;
 
 public class UserStore {
-    private static final String FILE_PATH =
-            System.getProperty("catalina.base") + File.separator +
-            "webapps" + File.separator + "SE" + File.separator +
-            "WEB-INF" + File.separator + "file" + File.separator + "users.txt";
+    public static final String FILE_PATH_PROPERTY = "user.store.path";
 
     public static void saveUser(User user) {
         String line = user.getName() + "," + user.getPassword() + "," + user.getRole() + "," + user.getEmail();
-        try (FileWriter fw = new FileWriter(FILE_PATH, true)) {
+        Path filePath = resolveFilePath();
+
+        try {
+            ensureParentDirectoryExists(filePath);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        try (FileWriter fw = new FileWriter(filePath.toFile(), true)) {
             fw.write(line + "\n");
         } catch (Exception e) {
             e.printStackTrace();
@@ -26,16 +34,22 @@ public class UserStore {
     }
 
     public static User validateUser(String password, String role, String email) {
-        try (BufferedReader br = new BufferedReader(new FileReader(FILE_PATH))) {
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            return null;
+        }
+
+        try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length == 4) {
+                    String name = parts[0];
                     String p = parts[1];
                     String r = parts[2];
                     String e = parts[3];
                     if (p.equals(password) && r.equals(role) && e.equals(email)) {
-                        return buildUser(r, p, e);
+                        return buildUser(name, r, p, e);
                     }
                 }
             }
@@ -46,16 +60,22 @@ public class UserStore {
     }
 
     public static User validateUser(String password, String email) {
-        try (BufferedReader br = new BufferedReader(new FileReader(FILE_PATH))) {
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            return null;
+        }
+
+        try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
                 if (parts.length == 4) {
+                    String name = parts[0];
                     String p = parts[1];
                     String r = parts[2];
                     String e = parts[3];
                     if (p.equals(password) && e.equals(email)) {
-                        return buildUser(r, p, e);
+                        return buildUser(name, r, p, e);
                     }
                 }
             }
@@ -66,7 +86,12 @@ public class UserStore {
     }
 
     public static boolean isEmailRegistered(String email) {
-        try (BufferedReader br = new BufferedReader(new FileReader(FILE_PATH))) {
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            return false;
+        }
+
+        try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
@@ -83,16 +108,41 @@ public class UserStore {
         return false;
     }
 
-    private static User buildUser(String role, String password, String email) {
+    private static User buildUser(String name, String role, String password, String email) {
+        User user = null;
         if ("Admin".equals(role)) {
-            return new Admin(password, email);
+            user = new Admin(password, email);
         }
         if ("TA".equals(role)) {
-            return new TA(password, email);
+            user = new TA(password, email);
         }
         if ("Mo".equals(role)) {
-            return new Mo(password, email);
+            user = new Mo(password, email);
         }
-        return null;
+        if (user != null && name != null && !name.isBlank()) {
+            user.setName(name);
+        }
+        return user;
+    }
+
+    private static Path resolveFilePath() {
+        String overridePath = System.getProperty(FILE_PATH_PROPERTY);
+        if (overridePath != null && !overridePath.isBlank()) {
+            return Paths.get(overridePath);
+        }
+
+        String catalinaBase = System.getProperty("catalina.base");
+        if (catalinaBase != null && !catalinaBase.isBlank()) {
+            return Paths.get(catalinaBase, "webapps", "SE", "WEB-INF", "file", "users.txt");
+        }
+
+        return Paths.get(System.getProperty("user.dir"), "webapp", "WEB-INF", "file", "users.txt");
+    }
+
+    private static void ensureParentDirectoryExists(Path filePath) throws IOException {
+        Path parentPath = filePath.getParent();
+        if (parentPath != null) {
+            Files.createDirectories(parentPath);
+        }
     }
 }
