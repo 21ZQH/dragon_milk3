@@ -39,12 +39,10 @@ public class TA extends User {
         this.appliedClasses = (appliedClasses == null) ? new ArrayList<>() : appliedClasses;
     }
 
-    //非必要
     public void setResumes(List<String> resumes) {
         this.resumes = (resumes == null) ? new ArrayList<>() : resumes;
     }
 
-    //非iteration1
     public void addResume(String resumeName, String resume) {
         resumeNames.add(resumeName);
         resumes.add(resume);
