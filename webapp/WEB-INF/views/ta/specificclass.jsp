@@ -87,7 +87,10 @@
         <div class="title">Specific Class Information</div>
         <% if (success != null) { %>
             <div class="success-box"><%= success %></div>
-        <% } %>
+        <% } %>\
+
+
+        
         <% if (course != null) { %>
             <div class="detail-box">
                 <div class="label">Course Name</div>
