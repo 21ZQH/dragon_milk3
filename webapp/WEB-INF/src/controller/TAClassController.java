@@ -6,9 +6,9 @@ import store.CourseStore;
 
 import java.util.*;
 import java.io.*;
-import jakarta.servlet.*;
-import jakarta.servlet.annotation.MultipartConfig;
-import jakarta.servlet.http.*;
+import javax.servlet.*;
+import javax.servlet.annotation.MultipartConfig;
+import javax.servlet.http.*;
 
 @MultipartConfig
 public class TAClassController extends HttpServlet {
