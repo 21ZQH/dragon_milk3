@@ -1,5 +1,8 @@
 package model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Course {
     private String courseName;
     private String jobTitle;
@@ -10,6 +13,9 @@ public class Course {
     private String jobDescription;
     private String jobRequirement;
 
+    private List<TA> taApplicants;
+    private List<String> applicantResumes;
+
    
     public Course(String courseName, String jobTitle, String workingHours, String salary, String jobDescription, String jobRequirement) {
         this.courseName = courseName;
@@ -18,6 +24,8 @@ public class Course {
         this.salary = salary;
         this.jobDescription = jobDescription;
         this.jobRequirement = jobRequirement;
+        this.taApplicants = new ArrayList<>();
+        this.applicantResumes = new ArrayList<>();
     }
 
     
@@ -39,4 +47,12 @@ public class Course {
 
     public String getJobRequirement() { return jobRequirement; }
     public void setJobRequirement(String jobRequirement) { this.jobRequirement = jobRequirement; }
+    
+    public List<TA> getTaApplicants() { return taApplicants; }
+    public List<String> getApplicantResumes() { return applicantResumes; }
+
+    public void addApplication(TA ta, String resume) {
+        taApplicants.add(ta);
+        applicantResumes.add(resume);
+    }
 }
