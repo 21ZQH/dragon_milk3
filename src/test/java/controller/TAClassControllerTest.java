@@ -62,4 +62,50 @@ class TAClassControllerTest {
         assertEquals("Software Engineering", courses.get(0).getCourseName());
         verify(dispatcher).forward(request, response);
     }
+
+    @Test
+    void showAllInformationSetsSelectedCourseAndForwards() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        List<Course> courses = List.of(
+                new Course("Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"),
+                new Course("Java Programming", "TA", "8 hours/week", "TBD", "Mark labs", "Java basics"));
+
+        when(request.getParameter("action")).thenReturn("show_all_information");
+        when(request.getParameter("courseIndex")).thenReturn("1");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("courseList")).thenReturn(courses);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/specificclass.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute(eq("selectedCourse"), eq(courses.get(1)));
+        verify(request).setAttribute("courseIndex", "1");
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void showAllInformationRedirectsWhenCourseIndexMissing() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        List<Course> courses = List.of(
+                new Course("Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+
+        when(request.getParameter("action")).thenReturn("show_all_information");
+        when(request.getParameter("courseIndex")).thenReturn(null);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("courseList")).thenReturn(courses);
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doGet(request, response);
+
+        verify(response).sendRedirect("/SE/TAclasscontroller?action=view_information");
+    }
 }

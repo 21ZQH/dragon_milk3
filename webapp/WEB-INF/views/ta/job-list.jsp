@@ -57,6 +57,15 @@
             background: #f5f7fa;
             box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
+        .course-link {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+        }
+        .course-link:hover .course-box {
+            border-color: #2d3651;
+            box-shadow: 0 4px 14px rgba(45,54,81,0.12);
+        }
         .course-name {
             font-size: 1.2em;
             font-weight: bold;
@@ -102,13 +111,15 @@
                     for (int i = start; i < end; i++) {
                         Course c = courseList.get(i);
             %>
-                <div class="course-box">
-                    <div class="course-name"><%= c.getCourseName() %></div>
-                    <div class="course-info">
-                        <%= c.getJobTitle() %> | <%= c.getWorkingHours() %>
-                        <% if (c.getSalary() != null) { %> | <%= c.getSalary() %> <% } %>
+                <a class="course-link" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + i) %>">
+                    <div class="course-box">
+                        <div class="course-name"><%= c.getCourseName() %></div>
+                        <div class="course-info">
+                            <%= c.getJobTitle() %> | <%= c.getWorkingHours() %>
+                            <% if (c.getSalary() != null) { %> | <%= c.getSalary() %> <% } %>
+                        </div>
                     </div>
-                </div>
+                </a>
             <%
                     }
                 } else {
