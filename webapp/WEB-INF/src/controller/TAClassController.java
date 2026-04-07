@@ -37,12 +37,12 @@ public class TAClassController extends HttpServlet {
     }
 
     private void view_information(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // 读取Course列表
+        // Load all courses.
         List<Course> courseList = CourseStore.getCourseList();
-        // 存入session
+        // Cache list in session.
         request.getSession().setAttribute("courseList", courseList);
 
-        // 转发到JSP
+        // Forward to TA list page.
     request.getRequestDispatcher("/WEB-INF/views/ta/job-list.jsp").forward(request, response);
     }
 
