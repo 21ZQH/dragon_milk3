@@ -57,6 +57,15 @@
             background: #f5f7fa;
             box-shadow: 0 1px 3px rgba(0,0,0,0.04);
         }
+        .course-link {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+        }
+        .course-link:hover .course-box {
+            border-color: #2d3651;
+            box-shadow: 0 4px 14px rgba(45,54,81,0.12);
+        }
         .course-name {
             font-size: 1.2em;
             font-weight: bold;
@@ -102,14 +111,17 @@
                     for (int i = start; i < end; i++) {
                         Course c = courseList.get(i);
             %>
-                <div class="course-box">
-                    <div class="course-name"><%= c.getCourseName() %></div>
-                    <div class="course-info">
-                        <%= c.getJobTitle() %> | <%= c.getWorkingHours() %>
-                        <% if (c.getSalary() != null) { %> | <%= c.getSalary() %> <% } %>
+                <a class="course-link" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + i) %>">
+                    <div class="course-box">
+                        <div class="course-name"><%= c.getCourseName() %></div>
+                        <div class="course-info">
+                            <%= c.getJobTitle() %> | <%= c.getWorkingHours() %>
+                            <% if (c.getSalary() != null) { %> | <%= c.getSalary() %> <% } %>
+                        </div>
                     </div>
-                </div>
+                </a>
             <%
+            
                     }
                 } else {
             %>
@@ -120,17 +132,17 @@
         </div>
         <div class="pagination">
             <% if (page_1 > 1) { %>
-                <a href="globalclass.jsp?page=<%= page_1-1 %>">&laquo; Prev</a>
+                <a href="<%= response.encodeURL("TAclasscontroller?action=view_information&page=" + (page_1 - 1)) %>">&laquo; Prev</a>
             <% } %>
             <% for (int p = 1; p <= totalPages; p++) { %>
                 <% if (p == page_1) { %>
                     <span class="current"><%= p %></span>
                 <% } else { %>
-                    <a href="globalclass.jsp?page=<%= p %>"><%= p %></a>
+                    <a href="<%= response.encodeURL("TAclasscontroller?action=view_information&page=" + p) %>"><%= p %></a>
                 <% } %>
             <% } %>
             <% if (page_1 < totalPages) { %>
-                <a href="globalclass.jsp?page=<%= page_1+1 %>">Next &raquo;</a>
+                <a href="<%= response.encodeURL("TAclasscontroller?action=view_information&page=" + (page_1 + 1)) %>">Next &raquo;</a>
             <% } %>
         </div>
     </div>

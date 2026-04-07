@@ -6,7 +6,7 @@ http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd"
  version="2.4"> 
 <servlet>
  <servlet-name>AccountController</servlet-name>
- <servlet-class>chain.AccountController</servlet-class>
+ <servlet-class>controller.AccountController</servlet-class>
 </servlet>
 <servlet-mapping>
 <servlet-name>AccountController</servlet-name>
@@ -15,12 +15,21 @@ http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd"
 
 
 <servlet>
- <servlet-name>TAclasscontroller</servlet-name>
- <servlet-class>chain.TAclasscontroller</servlet-class>
+ <servlet-name>TAClassController</servlet-name>
+ <servlet-class>controller.TAClassController</servlet-class>
 </servlet>
 <servlet-mapping>
-<servlet-name>TAclasscontroller</servlet-name>
+<servlet-name>TAClassController</servlet-name>
 <url-pattern>/TAclasscontroller</url-pattern>
+</servlet-mapping>
+
+<servlet>
+ <servlet-name>MOClassController</servlet-name>
+ <servlet-class>controller.MOClassController</servlet-class>
+</servlet>
+<servlet-mapping>
+<servlet-name>MOClassController</servlet-name>
+<url-pattern>/MOclasscontroller</url-pattern>
 </servlet-mapping>
 
 </web-app>
