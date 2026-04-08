@@ -24,7 +24,7 @@ public class CourseStore {
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",");
+                String[] parts = line.split(",", 6);
                 if (parts.length == 6) {
                     String courseName = parts[0];
                     String jobTitle = parts[1];
@@ -42,12 +42,7 @@ public class CourseStore {
     }
 
     public static void saveCourse(Course course) {
-        String line = course.getCourseName() + ","
-                + course.getJobTitle() + ","
-                + course.getWorkingHours() + ","
-                + course.getSalary() + ","
-                + course.getJobDescription() + ","
-                + course.getJobRequirement();
+        String line = buildCourseLine(course);
 
         Path filePath = resolveFilePath();
         try {
@@ -62,6 +57,44 @@ public class CourseStore {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public static void updateCourse(int courseIndex, Course updatedCourse) {
+        List<Course> courseList = getCourseList();
+        if (courseIndex < 0 || courseIndex >= courseList.size()) {
+            return;
+        }
+
+        courseList.set(courseIndex, updatedCourse);
+
+        List<String> linesToWrite = new ArrayList<>();
+        for (Course course : courseList) {
+            linesToWrite.add(buildCourseLine(course));
+        }
+
+        Path filePath = resolveFilePath();
+        try {
+            ensureParentDirectoryExists(filePath);
+            Files.write(filePath, linesToWrite);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static String buildCourseLine(Course course) {
+        return safe(course.getCourseName()) + ","
+                + safe(course.getJobTitle()) + ","
+                + safe(course.getWorkingHours()) + ","
+                + safe(course.getSalary()) + ","
+                + safe(course.getJobDescription()) + ","
+                + safe(course.getJobRequirement());
+    }
+
+    private static String safe(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace(",", " ");
     }
 
     private static Path resolveFilePath() {
