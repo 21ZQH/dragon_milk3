@@ -12,7 +12,8 @@ public class Course {
     // Additional fields for posting details
     private String jobDescription;
     private String jobRequirement;
-    
+    private List<TA> taApplicants;
+    private List<String> applicantResumes;
    
     public Course(String courseName, String jobTitle, String workingHours, String salary, String jobDescription, String jobRequirement) {
         this.courseName = courseName;
