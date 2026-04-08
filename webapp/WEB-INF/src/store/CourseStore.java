@@ -27,10 +27,6 @@ public class CourseStore {
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
-<<<<<<< HEAD
-                String[] parts = line.split(",", 6);
-                if (parts.length == 6) {
-=======
                 String[] parts = line.split(",", -1);
                 if (parts.length == 7) {
                     String courseId = parts[0];
@@ -43,7 +39,6 @@ public class CourseStore {
                     courseList.add(new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement));
                 } else if (parts.length == 6) {
                     String courseId = buildLegacyCourseId(line);
->>>>>>> cf45567 (update the save logic)
                     String courseName = parts[0];
                     String jobTitle = parts[1];
                     String workingHours = parts[2];
@@ -62,17 +57,7 @@ public class CourseStore {
     }
 
     public static void saveCourse(Course course) {
-<<<<<<< HEAD
         String line = buildCourseLine(course);
-=======
-        String line = course.getId() + ","
-                + course.getCourseName() + ","
-                + course.getJobTitle() + ","
-                + course.getWorkingHours() + ","
-                + course.getSalary() + ","
-                + course.getJobDescription() + ","
-                + course.getJobRequirement();
->>>>>>> cf45567 (update the save logic)
 
         Path filePath = resolveFilePath();
         try {
@@ -112,7 +97,8 @@ public class CourseStore {
     }
 
     private static String buildCourseLine(Course course) {
-        return safe(course.getCourseName()) + ","
+        return safe(course.getId()) + ","
+                + safe(course.getCourseName()) + ","
                 + safe(course.getJobTitle()) + ","
                 + safe(course.getWorkingHours()) + ","
                 + safe(course.getSalary()) + ","

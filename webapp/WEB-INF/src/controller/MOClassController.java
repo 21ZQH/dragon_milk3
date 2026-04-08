@@ -2,6 +2,7 @@ package controller;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -43,30 +44,19 @@ public class MOClassController extends HttpServlet {
             String workingHours = request.getParameter("workingHours");
             String jobDescription = request.getParameter("jobDescription");
             String jobRequirement = request.getParameter("jobRequirement");
-<<<<<<< HEAD
 
             String salary = "TBD";
+            String courseId = UUID.randomUUID().toString();
 
             Course newCourse = new Course(
+                    courseId,
                     courseName,
                     jobTitle,
                     workingHours,
                     salary,
                     jobDescription,
-                    jobRequirement
-            );
+                    jobRequirement);
 
-=======
-            
-            // Default salary placeholder.
-            String salary = "TBD"; // To Be Determined
-            String courseId = UUID.randomUUID().toString();
-            
-            // Build a course entity.
-            Course newCourse = new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
-            
-            // Persist to storage.
->>>>>>> cf45567 (update the save logic)
             CourseStore.saveCourse(newCourse);
             request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
 
@@ -152,19 +142,18 @@ public class MOClassController extends HttpServlet {
             String salary = oldCourse.getSalary() == null ? "TBD" : oldCourse.getSalary();
 
             Course updatedCourse = new Course(
+                    oldCourse.getId(),
                     courseName,
                     jobTitle,
                     workingHours,
                     salary,
                     jobDescription,
-                    jobRequirement
-            );
+                    jobRequirement);
 
             CourseStore.updateCourse(courseIndex, updatedCourse);
 
             response.sendRedirect(
-                    request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex=" + courseIndex + "&success=1"
-            );
+                    request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex=" + courseIndex + "&success=1");
 
         } catch (NumberFormatException e) {
             response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");

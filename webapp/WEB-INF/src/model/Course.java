@@ -15,11 +15,7 @@ public class Course {
     private String jobRequirement;
     private List<TA> taApplicants;
     private List<String> applicantResumes;
-<<<<<<< HEAD
-   
-=======
 
->>>>>>> 5d4cf0b (update small error)
     public Course(String courseName, String jobTitle, String workingHours, String salary, String jobDescription, String jobRequirement) {
         this(UUID.randomUUID().toString(), courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
     }
