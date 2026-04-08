@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.UUID;
 
 import model.Course;
+import model.TA;
 
 public class CourseStore {
     public static final String FILE_PATH_PROPERTY = "course.store.path";
@@ -55,6 +56,8 @@ public class CourseStore {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        populateApplicants(courseList);
         return courseList;
     }
 
@@ -147,5 +150,19 @@ public class CourseStore {
 
     private static String buildLegacyCourseId(String line) {
         return "legacy-" + UUID.nameUUIDFromBytes(line.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void populateApplicants(List<Course> courseList) {
+        if (courseList.isEmpty()) {
+            return;
+        }
+
+        List<TA> taUsers = UserStore.getTaUsersForCourses(courseList);
+        for (TA ta : taUsers) {
+            for (Course appliedCourse : ta.getAppliedClasses()) {
+                String resumeDirectory = ta.getResumeDirectoryForCourse(appliedCourse.getId());
+                appliedCourse.addApplication(ta, resumeDirectory);
+            }
+        }
     }
 }

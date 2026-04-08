@@ -44,6 +44,8 @@ public class UserStore {
             return null;
         }
 
+        List<Course> availableCourses = CourseStore.getCourseList();
+
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -56,7 +58,7 @@ public class UserStore {
                     String appliedCourseIds = parts.length >= 5 ? parts[4] : "";
                     String resumeMappings = parts.length >= 6 ? parts[5] : "";
                     if (p.equals(password) && r.equals(role) && e.equals(email)) {
-                        return buildUser(name, r, p, e, appliedCourseIds, resumeMappings);
+                        return buildUser(name, r, p, e, appliedCourseIds, resumeMappings, availableCourses);
                     }
                 }
             }
@@ -72,6 +74,8 @@ public class UserStore {
             return null;
         }
 
+        List<Course> availableCourses = CourseStore.getCourseList();
+
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
@@ -84,7 +88,7 @@ public class UserStore {
                     String appliedCourseIds = parts.length >= 5 ? parts[4] : "";
                     String resumeMappings = parts.length >= 6 ? parts[5] : "";
                     if (p.equals(password) && e.equals(email)) {
-                        return buildUser(name, r, p, e, appliedCourseIds, resumeMappings);
+                        return buildUser(name, r, p, e, appliedCourseIds, resumeMappings, availableCourses);
                     }
                 }
             }
@@ -155,7 +159,39 @@ public class UserStore {
         }
     }
 
-    private static User buildUser(String name, String role, String password, String email, String appliedCourseIds, String resumeMappings) {
+    static List<TA> getTaUsersForCourses(List<Course> availableCourses) {
+        List<TA> taUsers = new ArrayList<>();
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            return taUsers;
+        }
+
+        try (BufferedReader br = Files.newBufferedReader(filePath)) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",", -1);
+                if (parts.length >= 4 && "TA".equals(parts[2])) {
+                    String name = parts[0];
+                    String password = parts[1];
+                    String email = parts[3];
+                    String appliedCourseIds = parts.length >= 5 ? parts[4] : "";
+                    String resumeMappings = parts.length >= 6 ? parts[5] : "";
+
+                    User user = buildUser(name, "TA", password, email, appliedCourseIds, resumeMappings, availableCourses);
+                    if (user instanceof TA ta) {
+                        taUsers.add(ta);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return taUsers;
+    }
+
+    private static User buildUser(String name, String role, String password, String email, String appliedCourseIds, String resumeMappings,
+            List<Course> availableCourses) {
         User user = null;
         if ("Admin".equals(role)) {
             user = new Admin(password, email);
@@ -170,10 +206,10 @@ public class UserStore {
             user.setName(name);
         }
         if (user instanceof TA ta && appliedCourseIds != null && !appliedCourseIds.isBlank()) {
-            ta.setAppliedClasses(resolveCourses(appliedCourseIds));
+            ta.setAppliedClasses(resolveCourses(appliedCourseIds, availableCourses));
         }
         if (user instanceof TA ta && resumeMappings != null && !resumeMappings.isBlank()) {
-            ta.setResumeSubmissions(resolveResumeSubmissions(resumeMappings));
+            ta.setResumeSubmissions(resolveResumeSubmissions(resumeMappings, availableCourses));
         }
         return user;
     }
@@ -221,8 +257,7 @@ public class UserStore {
                 .collect(Collectors.joining("|"));
     }
 
-    private static List<Course> resolveCourses(String appliedCourseIds) {
-        List<Course> availableCourses = CourseStore.getCourseList();
+    private static List<Course> resolveCourses(String appliedCourseIds, List<Course> availableCourses) {
         List<Course> resolvedCourses = new ArrayList<>();
         for (String courseId : appliedCourseIds.split("\\|")) {
             if (courseId == null || courseId.isBlank()) {
@@ -238,8 +273,7 @@ public class UserStore {
         return resolvedCourses;
     }
 
-    private static List<ResumeSubmission> resolveResumeSubmissions(String resumeMappings) {
-        List<Course> availableCourses = CourseStore.getCourseList();
+    private static List<ResumeSubmission> resolveResumeSubmissions(String resumeMappings, List<Course> availableCourses) {
         List<ResumeSubmission> submissions = new ArrayList<>();
         for (String mapping : resumeMappings.split("\\|")) {
             if (mapping == null || mapping.isBlank()) {
