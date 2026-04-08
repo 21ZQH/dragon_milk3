@@ -5,6 +5,8 @@ import java.util.List;
 
 public class TA extends User {
     private String role = "TA";
+    private String college;
+    private String skill;
     private List<Course> appliedClasses = new ArrayList<>();
     private List<ResumeSubmission> resumeSubmissions = new ArrayList<>();
 
@@ -15,6 +17,22 @@ public class TA extends User {
     @Override
     public String getRole() {
         return role;
+    }
+
+    public String getCollege() {
+        return college;
+    }
+
+    public void setCollege(String college) {
+        this.college = college;
+    }
+
+    public String getSkill() {
+        return skill;
+    }
+
+    public void setSkill(String skill) {
+        this.skill = skill;
     }
 
     public List<Course> getAppliedClasses() {

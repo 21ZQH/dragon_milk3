@@ -230,7 +230,7 @@ class TAClassControllerTest {
         StoreTestSupport.writeLines(
                 courseFile,
                 "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
-        StoreTestSupport.writeLines(usersFile, "Alice,secret123,TA,ta@example.com,,");
+        StoreTestSupport.writeLines(usersFile, "Alice,secret123,TA,ta@example.com,School of Software,Java,,");
 
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -241,6 +241,8 @@ class TAClassControllerTest {
 
         TA ta = new TA("secret123", "ta@example.com");
         ta.setName("Alice");
+        ta.setCollege("School of Software");
+        ta.setSkill("Java");
         List<Course> courses = List.of(course);
 
         when(request.getParameter("action")).thenReturn("upload_resume");
@@ -264,7 +266,7 @@ class TAClassControllerTest {
                 tempDir.resolve("webapps").resolve("SE").resolve("WEB-INF").resolve("file").resolve("resume").resolve("course-1").toString(),
                 ta.getResumeDirectoryForCourse("course-1"));
         assertEquals(
-                "Alice,secret123,TA,ta@example.com,course-1,course-1@" + ta.getResumeDirectoryForCourse("course-1"),
+                "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@" + ta.getResumeDirectoryForCourse("course-1"),
                 Files.readAllLines(usersFile).get(0));
         verify(dispatcher).forward(request, response);
     }

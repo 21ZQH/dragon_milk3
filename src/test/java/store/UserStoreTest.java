@@ -65,6 +65,8 @@ class UserStoreTest {
         assertEquals("TA", user.getRole());
         assertEquals("Alice", user.getName());
         TA ta = (TA) user;
+        assertEquals("", ta.getCollege());
+        assertEquals("", ta.getSkill());
         assertEquals(1, ta.getAppliedClasses().size());
         assertEquals("course-1", ta.getAppliedClasses().get(0).getId());
         assertEquals(0, ta.getResumeSubmissions().size());
@@ -81,12 +83,14 @@ class UserStoreTest {
 
         TA ta = new TA("pass123", "alice@example.com");
         ta.setName("Alice");
+        ta.setCollege("School of Software");
+        ta.setSkill("Java");
         ta.addClass(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
 
         UserStore.updateAppliedCourseIds(ta);
 
         List<String> lines = Files.readAllLines(usersFile);
-        assertEquals("Alice,pass123,TA,alice@example.com,course-1,", lines.get(0));
+        assertEquals("Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,", lines.get(0));
     }
 
     @Test
@@ -104,6 +108,27 @@ class UserStoreTest {
         ResumeSubmission submission = ta.getResumeSubmissions().get(0);
         assertEquals("course-1", submission.getCourse().getId());
         assertEquals("D:\\resume\\course-1", submission.getResumeDirectory());
+    }
+
+    @Test
+    void validateUserRestoresTaProfileFieldsFromNewFormat() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1");
+
+        TA ta = (TA) UserStore.validateUser("pass123", "alice@example.com");
+
+        assertEquals("Alice", ta.getName());
+        assertEquals("School of Software", ta.getCollege());
+        assertEquals("Java", ta.getSkill());
+        assertEquals(1, ta.getAppliedClasses().size());
+        assertEquals("course-1", ta.getAppliedClasses().get(0).getId());
+        assertEquals("D:\\resume\\course-1", ta.getResumeDirectoryForCourse("course-1"));
     }
 
     @Test
