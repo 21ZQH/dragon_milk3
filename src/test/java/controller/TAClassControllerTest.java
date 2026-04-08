@@ -2,11 +2,14 @@ package controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -215,5 +218,54 @@ class TAClassControllerTest {
         controller.doPost(request, response);
 
         verify(response).sendRedirect("/SE/TAclasscontroller?action=view_information");
+    }
+
+    @Test
+    void uploadResumeStoresResumeDirectoryAgainstCourseAndPersistsUserData() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        System.setProperty("catalina.base", tempDir.toString());
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(usersFile, "Alice,secret123,TA,ta@example.com,,");
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Part resumePart = mock(Part.class);
+
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.setName("Alice");
+        List<Course> courses = List.of(course);
+
+        when(request.getParameter("action")).thenReturn("upload_resume");
+        when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("courseList")).thenReturn(courses);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getPart("resumeFile")).thenReturn(resumePart);
+        when(resumePart.getSize()).thenReturn(128L);
+        when(resumePart.getSubmittedFileName()).thenReturn("resume.pdf");
+        doNothing().when(resumePart).write(org.mockito.ArgumentMatchers.anyString());
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        assertEquals(1, ta.getAppliedClasses().size());
+        assertEquals(1, ta.getResumeSubmissions().size());
+        assertEquals(course, ta.getResumeSubmissions().get(0).getCourse());
+        assertNotNull(ta.getResumeDirectoryForCourse("course-1"));
+        assertEquals(
+                tempDir.resolve("webapps").resolve("SE").resolve("WEB-INF").resolve("file").resolve("resume").resolve("course-1").toString(),
+                ta.getResumeDirectoryForCourse("course-1"));
+        assertEquals(
+                "Alice,secret123,TA,ta@example.com,course-1,course-1@" + ta.getResumeDirectoryForCourse("course-1"),
+                Files.readAllLines(usersFile).get(0));
+        verify(dispatcher).forward(request, response);
     }
 }

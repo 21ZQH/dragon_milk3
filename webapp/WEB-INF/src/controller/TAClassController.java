@@ -103,26 +103,28 @@ public class TAClassController extends HttpServlet {
         String normalizedEmail = (ta.getEmail() == null || ta.getEmail().trim().isEmpty())
                 ? "unknown"
                 : ta.getEmail().replaceAll("[^a-zA-Z0-9._-]", "_");
-        String normalizedCourseName = (course.getCourseName() == null || course.getCourseName().trim().isEmpty())
-                ? "unknown"
-                : course.getCourseName().replaceAll("[^a-zA-Z0-9._-]", "_");
+        String courseDirectoryName = (course.getId() == null || course.getId().trim().isEmpty())
+                ? "unknown-course"
+                : course.getId();
 
         String safeFileName = normalizedEmail + ".pdf";
-        String uploadDirectoryPath = resolveResumeUploadDirectory() + File.separator + normalizedCourseName;
+        String uploadDirectoryPath = resolveResumeUploadDirectory() + File.separator + courseDirectoryName;
         File uploadDirectory = new File(uploadDirectoryPath);
         if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
             throw new IOException("Failed to create upload directory.");
         }
 
         File targetFile = new File(uploadDirectory, safeFileName);
+        if (targetFile.exists() && !targetFile.delete()) {
+            throw new IOException("Failed to replace existing resume file.");
+        }
         resumePart.write(targetFile.getAbsolutePath());
 
         String resumeName = submittedFileName;
-        String resume = targetFile.getAbsolutePath();
+        String resumeDirectory = uploadDirectory.getAbsolutePath();
 
-        ta.addResume(resumeName, resume);
-        course.addApplication(ta, resume);
-        ta.addClass(course);
+        ta.addOrUpdateResume(course, resumeDirectory);
+        course.addApplication(ta, resumeDirectory);
         UserStore.updateAppliedCourseIds(ta);
 
         session.setAttribute("user", ta);

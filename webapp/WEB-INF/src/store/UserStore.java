@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 import model.Admin;
 import model.Course;
 import model.Mo;
+import model.ResumeSubmission;
 import model.TA;
 import model.User;
 
@@ -53,8 +54,9 @@ public class UserStore {
                     String r = parts[2];
                     String e = parts[3];
                     String appliedCourseIds = parts.length >= 5 ? parts[4] : "";
+                    String resumeMappings = parts.length >= 6 ? parts[5] : "";
                     if (p.equals(password) && r.equals(role) && e.equals(email)) {
-                        return buildUser(name, r, p, e, appliedCourseIds);
+                        return buildUser(name, r, p, e, appliedCourseIds, resumeMappings);
                     }
                 }
             }
@@ -80,8 +82,9 @@ public class UserStore {
                     String r = parts[2];
                     String e = parts[3];
                     String appliedCourseIds = parts.length >= 5 ? parts[4] : "";
+                    String resumeMappings = parts.length >= 6 ? parts[5] : "";
                     if (p.equals(password) && e.equals(email)) {
-                        return buildUser(name, r, p, e, appliedCourseIds);
+                        return buildUser(name, r, p, e, appliedCourseIds, resumeMappings);
                     }
                 }
             }
@@ -152,7 +155,7 @@ public class UserStore {
         }
     }
 
-    private static User buildUser(String name, String role, String password, String email, String appliedCourseIds) {
+    private static User buildUser(String name, String role, String password, String email, String appliedCourseIds, String resumeMappings) {
         User user = null;
         if ("Admin".equals(role)) {
             user = new Admin(password, email);
@@ -168,6 +171,9 @@ public class UserStore {
         }
         if (user instanceof TA ta && appliedCourseIds != null && !appliedCourseIds.isBlank()) {
             ta.setAppliedClasses(resolveCourses(appliedCourseIds));
+        }
+        if (user instanceof TA ta && resumeMappings != null && !resumeMappings.isBlank()) {
+            ta.setResumeSubmissions(resolveResumeSubmissions(resumeMappings));
         }
         return user;
     }
@@ -196,7 +202,7 @@ public class UserStore {
     private static String toLine(User user) {
         String baseLine = user.getName() + "," + user.getPassword() + "," + user.getRole() + "," + user.getEmail();
         if (user instanceof TA ta) {
-            return baseLine + "," + serializeAppliedCourseIds(ta);
+            return baseLine + "," + serializeAppliedCourseIds(ta) + "," + serializeResumeSubmissions(ta);
         }
         return baseLine;
     }
@@ -205,6 +211,13 @@ public class UserStore {
         return ta.getAppliedClasses().stream()
                 .map(Course::getId)
                 .distinct()
+                .collect(Collectors.joining("|"));
+    }
+
+    private static String serializeResumeSubmissions(TA ta) {
+        return ta.getResumeSubmissions().stream()
+                .filter(submission -> submission.getCourse() != null)
+                .map(submission -> submission.getCourse().getId() + "@" + submission.getResumeDirectory())
                 .collect(Collectors.joining("|"));
     }
 
@@ -223,5 +236,31 @@ public class UserStore {
             }
         }
         return resolvedCourses;
+    }
+
+    private static List<ResumeSubmission> resolveResumeSubmissions(String resumeMappings) {
+        List<Course> availableCourses = CourseStore.getCourseList();
+        List<ResumeSubmission> submissions = new ArrayList<>();
+        for (String mapping : resumeMappings.split("\\|")) {
+            if (mapping == null || mapping.isBlank()) {
+                continue;
+            }
+
+            int separatorIndex = mapping.indexOf('@');
+            if (separatorIndex <= 0 || separatorIndex == mapping.length() - 1) {
+                continue;
+            }
+
+            String courseId = mapping.substring(0, separatorIndex);
+            String resumeDirectory = mapping.substring(separatorIndex + 1);
+
+            for (Course course : availableCourses) {
+                if (courseId.equals(course.getId())) {
+                    submissions.add(new ResumeSubmission(course, resumeDirectory));
+                    break;
+                }
+            }
+        }
+        return submissions;
     }
 }

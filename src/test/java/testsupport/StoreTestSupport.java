@@ -36,5 +36,6 @@ public final class StoreTestSupport {
     public static void clearStoreOverrides() {
         System.clearProperty(UserStore.FILE_PATH_PROPERTY);
         System.clearProperty(CourseStore.FILE_PATH_PROPERTY);
+        System.clearProperty("catalina.base");
     }
 }

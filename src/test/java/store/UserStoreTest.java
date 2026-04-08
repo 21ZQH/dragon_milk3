@@ -12,6 +12,7 @@ import java.util.List;
 
 import model.Course;
 import model.Mo;
+import model.ResumeSubmission;
 import model.TA;
 import model.User;
 import org.junit.jupiter.api.AfterEach;
@@ -66,6 +67,7 @@ class UserStoreTest {
         TA ta = (TA) user;
         assertEquals(1, ta.getAppliedClasses().size());
         assertEquals("course-1", ta.getAppliedClasses().get(0).getId());
+        assertEquals(0, ta.getResumeSubmissions().size());
     }
 
     @Test
@@ -84,7 +86,24 @@ class UserStoreTest {
         UserStore.updateAppliedCourseIds(ta);
 
         List<String> lines = Files.readAllLines(usersFile);
-        assertEquals("Alice,pass123,TA,alice@example.com,course-1", lines.get(0));
+        assertEquals("Alice,pass123,TA,alice@example.com,course-1,", lines.get(0));
+    }
+
+    @Test
+    void validateUserRestoresResumeDirectoryForMatchingCourse() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com,course-1,course-1@D:\\resume\\course-1");
+
+        TA ta = (TA) UserStore.validateUser("pass123", "alice@example.com");
+
+        assertEquals(1, ta.getResumeSubmissions().size());
+        ResumeSubmission submission = ta.getResumeSubmissions().get(0);
+        assertEquals("course-1", submission.getCourse().getId());
+        assertEquals("D:\\resume\\course-1", submission.getResumeDirectory());
     }
 
     @Test
