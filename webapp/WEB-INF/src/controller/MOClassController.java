@@ -43,6 +43,7 @@ public class MOClassController extends HttpServlet {
             String workingHours = request.getParameter("workingHours");
             String jobDescription = request.getParameter("jobDescription");
             String jobRequirement = request.getParameter("jobRequirement");
+<<<<<<< HEAD
 
             String salary = "TBD";
 
@@ -55,6 +56,17 @@ public class MOClassController extends HttpServlet {
                     jobRequirement
             );
 
+=======
+            
+            // Default salary placeholder.
+            String salary = "TBD"; // To Be Determined
+            String courseId = UUID.randomUUID().toString();
+            
+            // Build a course entity.
+            Course newCourse = new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
+            
+            // Persist to storage.
+>>>>>>> cf45567 (update the save logic)
             CourseStore.saveCourse(newCourse);
             request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
 

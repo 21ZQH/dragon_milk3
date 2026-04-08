@@ -10,7 +10,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
+import model.Course;
 import model.Mo;
+import model.TA;
 import model.User;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -49,14 +51,40 @@ class UserStoreTest {
 
     @Test
     void validateUserWithoutRoleMatchesEmailAndPassword() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
-        StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com");
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com,course-1");
 
         User user = UserStore.validateUser("pass123", "alice@example.com");
 
         assertNotNull(user);
         assertEquals("TA", user.getRole());
         assertEquals("Alice", user.getName());
+        TA ta = (TA) user;
+        assertEquals(1, ta.getAppliedClasses().size());
+        assertEquals("course-1", ta.getAppliedClasses().get(0).getId());
+    }
+
+    @Test
+    void updateAppliedCourseIdsRewritesTaLineWithCourseIds() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com");
+
+        TA ta = new TA("pass123", "alice@example.com");
+        ta.setName("Alice");
+        ta.addClass(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+
+        UserStore.updateAppliedCourseIds(ta);
+
+        List<String> lines = Files.readAllLines(usersFile);
+        assertEquals("Alice,pass123,TA,alice@example.com,course-1", lines.get(0));
     }
 
     @Test

@@ -3,11 +3,13 @@ package store;
 import java.io.BufferedReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import model.Course;
 
@@ -24,15 +26,30 @@ public class CourseStore {
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
+<<<<<<< HEAD
                 String[] parts = line.split(",", 6);
                 if (parts.length == 6) {
+=======
+                String[] parts = line.split(",", -1);
+                if (parts.length == 7) {
+                    String courseId = parts[0];
+                    String courseName = parts[1];
+                    String jobTitle = parts[2];
+                    String workingHours = parts[3];
+                    String salary = parts[4];
+                    String jobDescription = parts[5];
+                    String jobRequirement = parts[6];
+                    courseList.add(new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement));
+                } else if (parts.length == 6) {
+                    String courseId = buildLegacyCourseId(line);
+>>>>>>> cf45567 (update the save logic)
                     String courseName = parts[0];
                     String jobTitle = parts[1];
                     String workingHours = parts[2];
                     String salary = parts[3];
                     String jobDescription = parts[4];
                     String jobRequirement = parts[5];
-                    courseList.add(new Course(courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement));
+                    courseList.add(new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement));
                 }
             }
         } catch (Exception e) {
@@ -42,7 +59,17 @@ public class CourseStore {
     }
 
     public static void saveCourse(Course course) {
+<<<<<<< HEAD
         String line = buildCourseLine(course);
+=======
+        String line = course.getId() + ","
+                + course.getCourseName() + ","
+                + course.getJobTitle() + ","
+                + course.getWorkingHours() + ","
+                + course.getSalary() + ","
+                + course.getJobDescription() + ","
+                + course.getJobRequirement();
+>>>>>>> cf45567 (update the save logic)
 
         Path filePath = resolveFilePath();
         try {
@@ -116,5 +143,9 @@ public class CourseStore {
         if (parentPath != null) {
             Files.createDirectories(parentPath);
         }
+    }
+
+    private static String buildLegacyCourseId(String line) {
+        return "legacy-" + UUID.nameUUIDFromBytes(line.getBytes(StandardCharsets.UTF_8));
     }
 }

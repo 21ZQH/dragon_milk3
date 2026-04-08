@@ -2,8 +2,10 @@ package model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class Course {
+    private final String id;
     private String courseName;
     private String jobTitle;
     private String workingHours;
@@ -20,6 +22,11 @@ public class Course {
 
 >>>>>>> 5d4cf0b (update small error)
     public Course(String courseName, String jobTitle, String workingHours, String salary, String jobDescription, String jobRequirement) {
+        this(UUID.randomUUID().toString(), courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
+    }
+
+    public Course(String id, String courseName, String jobTitle, String workingHours, String salary, String jobDescription, String jobRequirement) {
+        this.id = id;
         this.courseName = courseName;
         this.jobTitle = jobTitle;
         this.workingHours = workingHours;
@@ -29,6 +36,8 @@ public class Course {
         this.taApplicants = new ArrayList<>();
         this.applicantResumes = new ArrayList<>();
     }
+
+    public String getId() { return id; }
 
     public String getCourseName() { return courseName; }
     public void setCourseName(String courseName) { this.courseName = courseName; }

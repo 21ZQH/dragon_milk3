@@ -6,8 +6,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import model.Admin;
+import model.Course;
 import model.Mo;
 import model.TA;
 import model.User;
@@ -16,7 +20,7 @@ public class UserStore {
     public static final String FILE_PATH_PROPERTY = "user.store.path";
 
     public static void saveUser(User user) {
-        String line = user.getName() + "," + user.getPassword() + "," + user.getRole() + "," + user.getEmail();
+        String line = toLine(user);
         Path filePath = resolveFilePath();
 
         try {
@@ -42,14 +46,15 @@ public class UserStore {
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length == 4) {
+                String[] parts = line.split(",", -1);
+                if (parts.length >= 4) {
                     String name = parts[0];
                     String p = parts[1];
                     String r = parts[2];
                     String e = parts[3];
+                    String appliedCourseIds = parts.length >= 5 ? parts[4] : "";
                     if (p.equals(password) && r.equals(role) && e.equals(email)) {
-                        return buildUser(name, r, p, e);
+                        return buildUser(name, r, p, e, appliedCourseIds);
                     }
                 }
             }
@@ -68,14 +73,15 @@ public class UserStore {
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length == 4) {
+                String[] parts = line.split(",", -1);
+                if (parts.length >= 4) {
                     String name = parts[0];
                     String p = parts[1];
                     String r = parts[2];
                     String e = parts[3];
+                    String appliedCourseIds = parts.length >= 5 ? parts[4] : "";
                     if (p.equals(password) && e.equals(email)) {
-                        return buildUser(name, r, p, e);
+                        return buildUser(name, r, p, e, appliedCourseIds);
                     }
                 }
             }
@@ -94,8 +100,8 @@ public class UserStore {
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length == 4) {
+                String[] parts = line.split(",", -1);
+                if (parts.length >= 4) {
                     String e = parts[3];
                     if (e.equals(email)) {
                         return true;
@@ -108,7 +114,45 @@ public class UserStore {
         return false;
     }
 
-    private static User buildUser(String name, String role, String password, String email) {
+    public static void updateAppliedCourseIds(TA ta) {
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            saveUser(ta);
+            return;
+        }
+
+        List<String> updatedLines = new ArrayList<>();
+        boolean updated = false;
+
+        try (BufferedReader br = Files.newBufferedReader(filePath)) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",", -1);
+                if (parts.length >= 4 && "TA".equals(parts[2]) && parts[3].equals(ta.getEmail())) {
+                    updatedLines.add(toLine(ta));
+                    updated = true;
+                } else {
+                    updatedLines.add(line);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        if (!updated) {
+            updatedLines.add(toLine(ta));
+        }
+
+        try {
+            ensureParentDirectoryExists(filePath);
+            Files.write(filePath, updatedLines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static User buildUser(String name, String role, String password, String email, String appliedCourseIds) {
         User user = null;
         if ("Admin".equals(role)) {
             user = new Admin(password, email);
@@ -121,6 +165,9 @@ public class UserStore {
         }
         if (user != null && name != null && !name.isBlank()) {
             user.setName(name);
+        }
+        if (user instanceof TA ta && appliedCourseIds != null && !appliedCourseIds.isBlank()) {
+            ta.setAppliedClasses(resolveCourses(appliedCourseIds));
         }
         return user;
     }
@@ -144,5 +191,37 @@ public class UserStore {
         if (parentPath != null) {
             Files.createDirectories(parentPath);
         }
+    }
+
+    private static String toLine(User user) {
+        String baseLine = user.getName() + "," + user.getPassword() + "," + user.getRole() + "," + user.getEmail();
+        if (user instanceof TA ta) {
+            return baseLine + "," + serializeAppliedCourseIds(ta);
+        }
+        return baseLine;
+    }
+
+    private static String serializeAppliedCourseIds(TA ta) {
+        return ta.getAppliedClasses().stream()
+                .map(Course::getId)
+                .distinct()
+                .collect(Collectors.joining("|"));
+    }
+
+    private static List<Course> resolveCourses(String appliedCourseIds) {
+        List<Course> availableCourses = CourseStore.getCourseList();
+        List<Course> resolvedCourses = new ArrayList<>();
+        for (String courseId : appliedCourseIds.split("\\|")) {
+            if (courseId == null || courseId.isBlank()) {
+                continue;
+            }
+            for (Course course : availableCourses) {
+                if (courseId.equals(course.getId())) {
+                    resolvedCourses.add(course);
+                    break;
+                }
+            }
+        }
+        return resolvedCourses;
     }
 }

@@ -56,7 +56,7 @@ public class TA extends User {
     }
 
     public void addClass(Course course) {
-        if (course != null) {
+        if (course != null && appliedClasses.stream().noneMatch(existing -> existing.getId().equals(course.getId()))) {
             appliedClasses.add(course);
         }
     }

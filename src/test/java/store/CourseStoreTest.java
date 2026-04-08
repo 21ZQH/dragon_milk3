@@ -36,6 +36,7 @@ class CourseStoreTest {
         List<Course> courses = CourseStore.getCourseList();
 
         assertEquals(1, courses.size());
+        assertTrue(courses.get(0).getId() != null && !courses.get(0).getId().isBlank());
         assertEquals("Software Engineering", courses.get(0).getCourseName());
         assertEquals("Teaching Assistant", courses.get(0).getJobTitle());
         assertEquals("Support labs", courses.get(0).getJobDescription());
@@ -47,11 +48,12 @@ class CourseStoreTest {
         StoreTestSupport.writeLines(
                 courseFile,
                 "Bad,row,with,too,few",
-                "Java,TA,8 hours/week,TBD,Mark assignments,Java basics");
+                "course-1,Java,TA,8 hours/week,TBD,Mark assignments,Java basics");
 
         List<Course> courses = CourseStore.getCourseList();
 
         assertEquals(1, courses.size());
+        assertEquals("course-1", courses.get(0).getId());
         assertEquals("Java", courses.get(0).getCourseName());
     }
 
