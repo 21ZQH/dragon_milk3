@@ -3,13 +3,16 @@ package store;
 import java.io.BufferedReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import model.Course;
+import model.TA;
 
 public class CourseStore {
     public static final String FILE_PATH_PROPERTY = "course.store.path";
@@ -24,20 +27,32 @@ public class CourseStore {
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",", 6);
-                if (parts.length == 6) {
+                String[] parts = line.split(",", -1);
+                if (parts.length == 7) {
+                    String courseId = parts[0];
+                    String courseName = parts[1];
+                    String jobTitle = parts[2];
+                    String workingHours = parts[3];
+                    String salary = parts[4];
+                    String jobDescription = parts[5];
+                    String jobRequirement = parts[6];
+                    courseList.add(new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement));
+                } else if (parts.length == 6) {
+                    String courseId = buildLegacyCourseId(line);
                     String courseName = parts[0];
                     String jobTitle = parts[1];
                     String workingHours = parts[2];
                     String salary = parts[3];
                     String jobDescription = parts[4];
                     String jobRequirement = parts[5];
-                    courseList.add(new Course(courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement));
+                    courseList.add(new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement));
                 }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        populateApplicants(courseList);
         return courseList;
     }
 
@@ -82,7 +97,8 @@ public class CourseStore {
     }
 
     private static String buildCourseLine(Course course) {
-        return safe(course.getCourseName()) + ","
+        return safe(course.getId()) + ","
+                + safe(course.getCourseName()) + ","
                 + safe(course.getJobTitle()) + ","
                 + safe(course.getWorkingHours()) + ","
                 + safe(course.getSalary()) + ","
@@ -115,6 +131,24 @@ public class CourseStore {
         Path parentPath = filePath.getParent();
         if (parentPath != null) {
             Files.createDirectories(parentPath);
+        }
+    }
+
+    private static String buildLegacyCourseId(String line) {
+        return "legacy-" + UUID.nameUUIDFromBytes(line.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static void populateApplicants(List<Course> courseList) {
+        if (courseList.isEmpty()) {
+            return;
+        }
+
+        List<TA> taUsers = UserStore.getTaUsersForCourses(courseList);
+        for (TA ta : taUsers) {
+            for (Course appliedCourse : ta.getAppliedClasses()) {
+                String resumeDirectory = ta.getResumeDirectoryForCourse(appliedCourse.getId());
+                appliedCourse.addApplication(ta, resumeDirectory);
+            }
         }
     }
 }

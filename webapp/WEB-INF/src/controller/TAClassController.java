@@ -2,6 +2,7 @@ package controller;
 
 
 import model.*;
+import store.UserStore;
 import store.CourseStore;
 
 import java.util.*;
@@ -12,8 +13,6 @@ import jakarta.servlet.http.*;
 
 @MultipartConfig
 public class TAClassController extends HttpServlet {
-    private static final String RESUME_UPLOAD_DIRECTORY = "E:\\Tomcat\\webapps\\SE\\WEB-INF\\file\\resume";
-
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
         if ("view_information".equals(action)) {
@@ -104,26 +103,29 @@ public class TAClassController extends HttpServlet {
         String normalizedEmail = (ta.getEmail() == null || ta.getEmail().trim().isEmpty())
                 ? "unknown"
                 : ta.getEmail().replaceAll("[^a-zA-Z0-9._-]", "_");
-        String normalizedCourseName = (course.getCourseName() == null || course.getCourseName().trim().isEmpty())
-                ? "unknown"
-                : course.getCourseName().replaceAll("[^a-zA-Z0-9._-]", "_");
+        String courseDirectoryName = (course.getId() == null || course.getId().trim().isEmpty())
+                ? "unknown-course"
+                : course.getId();
 
         String safeFileName = normalizedEmail + ".pdf";
-        String uploadDirectoryPath = RESUME_UPLOAD_DIRECTORY + File.separator + normalizedCourseName;
+        String uploadDirectoryPath = resolveResumeUploadDirectory() + File.separator + courseDirectoryName;
         File uploadDirectory = new File(uploadDirectoryPath);
         if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
             throw new IOException("Failed to create upload directory.");
         }
 
         File targetFile = new File(uploadDirectory, safeFileName);
+        if (targetFile.exists() && !targetFile.delete()) {
+            throw new IOException("Failed to replace existing resume file.");
+        }
         resumePart.write(targetFile.getAbsolutePath());
 
         String resumeName = submittedFileName;
-        String resume = targetFile.getAbsolutePath();
+        String resumeDirectory = uploadDirectory.getAbsolutePath();
 
-        ta.addResume(resumeName, resume);
-        course.addApplication(ta, resume);
-        ta.addClass(course);
+        ta.addOrUpdateResume(course, resumeDirectory);
+        course.addApplication(ta, resumeDirectory);
+        UserStore.updateAppliedCourseIds(ta);
 
         session.setAttribute("user", ta);
         request.setAttribute("success", "Resume submitted successfully: " + resumeName);
@@ -155,6 +157,17 @@ public class TAClassController extends HttpServlet {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private String resolveResumeUploadDirectory() {
+        String catalinaBase = System.getProperty("catalina.base");
+        if (catalinaBase != null && !catalinaBase.isBlank()) {
+            return catalinaBase + File.separator + "webapps" + File.separator + "SE"
+                    + File.separator + "WEB-INF" + File.separator + "file" + File.separator + "resume";
+        }
+
+        return System.getProperty("user.dir") + File.separator + "webapp"
+                + File.separator + "WEB-INF" + File.separator + "file" + File.separator + "resume";
     }
 
 }

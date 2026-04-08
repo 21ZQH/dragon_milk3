@@ -80,6 +80,7 @@ class MOClassControllerTest {
 
         List<Course> courses = CourseStore.getCourseList();
         assertEquals(1, courses.size());
+        assertTrue(courses.get(0).getId() != null && !courses.get(0).getId().isBlank());
         assertEquals("Software Engineering", courses.get(0).getCourseName());
         assertEquals("Support lectures", courses.get(0).getJobDescription());
         assertTrue(courses.get(0).getSalary().contains("TBD"));
