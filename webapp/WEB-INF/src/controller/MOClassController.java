@@ -1,11 +1,15 @@
 package controller;
 
 import model.*;
+import store.CandidateStore;
 import store.CourseStore;
 import java.util.*;
 import java.io.*;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
+
+
+
 
 public class MOClassController extends HttpServlet {
     
@@ -13,53 +17,58 @@ public class MOClassController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
         
-        // 捕获前端传来的 action 动作
+        // Handle action from request.
         if ("create_class".equals(action)) {
             create_class(request, response);
         }
         else if("personal_center".equals(action)){
          show_personal_center(request, response);
         }
-        // TODO: 后续可以继续在这里添加 if ("mark_suitable_applicant".equals(action)) 等分支
+        else if ("review_candidates".equals(action)) {
+            show_review_candidates(request, response);
+        }
+        // TODO: Add more action branches here when needed.
     }
 
-    // doPost 方法来处理表单的提交
+    // Handle form submissions.
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
         
-        // 对应 create_project.jsp 表单里的隐藏域 <input type="hidden" name="action" value="publish_course">
+        // This action is posted from create-project.jsp.
         if ("publish_course".equals(action)) {
-            // 获取前端表单用户填写的各项数据
+            // Read form fields.
             String courseName = request.getParameter("courseName");
             String jobTitle = request.getParameter("jobTitle");
             String workingHours = request.getParameter("workingHours");
             String jobDescription = request.getParameter("jobDescription");
             String jobRequirement = request.getParameter("jobRequirement");
             
-            // 给暂时没有输入框的 salary 赋一个初始值
-            String salary = "TBD"; // TBD 表示 To Be Determined (待定)
+            // Default salary placeholder.
+            String salary = "TBD"; // To Be Determined
             
-            // 将收集到的数据打包成一个 Course 对象
+            // Build a course entity.
             Course newCourse = new Course(courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
             
-            // 调用工具类，把对象写入 txt 文件
+            // Persist to storage.
             CourseStore.saveCourse(newCourse);
             
-            //提交成功后，让页面跳转回 MO 的主面板 (Dashboard)
+            // Forward back to MO dashboard.
             request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
+        } else if ("save_review_picks".equals(action)) {
+            save_review_picks(request, response);
         }
     }
 
 
     private void show_personal_center(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // 将请求转发到对应的 JSP 视图
+        // Forward to personal-center page.
         request.getRequestDispatcher("/WEB-INF/views/mo/personal-center.jsp").forward(request, response);
     }
 
-    // 处理跳转到“创建课程”页面的逻辑
+    // Forward to create-project page.
    private void create_class(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        // 直接将请求转发到我们即将编写的 create_project.jsp 页面
+        // No additional data required for this page.
         
         request.getRequestDispatcher("/WEB-INF/views/mo/create-project.jsp").forward(request, response);
        }
@@ -68,6 +77,23 @@ public class MOClassController extends HttpServlet {
    private void mark_suitable_applicant(){
    }
 
-   private void show_applicant_information(){
+   private void show_review_candidates(HttpServletRequest request, HttpServletResponse response)
+           throws ServletException, IOException {
+       List<Candidate> candidateList = CandidateStore.getCandidateList();
+       request.setAttribute("candidateList", candidateList);
+       request.getRequestDispatcher("/WEB-INF/views/mo/review.jsp").forward(request, response);
+   }
+
+   private void save_review_picks(HttpServletRequest request, HttpServletResponse response)
+           throws IOException {
+       String[] pickedIndexes = request.getParameterValues("pickedIndex");
+       CandidateStore.savePickedIndexes(pickedIndexes);
+
+       String returnTo = request.getParameter("returnTo");
+       if ("personal_center".equals(returnTo)) {
+           response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=personal_center");
+       } else {
+           response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=review_candidates");
+       }
    }
 }
