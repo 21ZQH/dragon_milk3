@@ -41,13 +41,34 @@ class UserStoreTest {
 
         List<String> lines = Files.readAllLines(usersFile);
         assertEquals(1, lines.size());
-        assertEquals("Molly,secret123,Mo,mo@example.com", lines.get(0));
+        assertEquals("Molly,secret123,Mo,mo@example.com,", lines.get(0));
 
         User savedUser = UserStore.validateUser("secret123", "Mo", "mo@example.com");
         assertNotNull(savedUser);
         assertEquals("Mo", savedUser.getRole());
         assertEquals("mo@example.com", savedUser.getEmail());
         assertEquals("Molly", savedUser.getName());
+        assertEquals(0, ((Mo) savedUser).getOwnedCourses().size());
+    }
+
+    @Test
+    void validateUserRestoresOwnedCoursesForMo() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills",
+                "course-2,Java,TA,8 hours/week,TBD,Mark assignments,Java basics");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Molly,secret123,Mo,mo@example.com,course-1|course-2");
+
+        Mo mo = (Mo) UserStore.validateUser("secret123", "Mo", "mo@example.com");
+
+        assertEquals("Molly", mo.getName());
+        assertEquals(2, mo.getOwnedCourses().size());
+        assertEquals("course-1", mo.getOwnedCourses().get(0).getId());
+        assertEquals("course-2", mo.getOwnedCourses().get(1).getId());
     }
 
     @Test
