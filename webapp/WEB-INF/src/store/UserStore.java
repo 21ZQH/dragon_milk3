@@ -55,10 +55,13 @@ public class UserStore {
                     String p = parts[1];
                     String r = parts[2];
                     String e = parts[3];
-                    String appliedCourseIds = parts.length >= 5 ? parts[4] : "";
-                    String resumeMappings = parts.length >= 6 ? parts[5] : "";
+                    String college = extractCollege(r, parts);
+                    String skill = extractSkill(r, parts);
+                    String ownedCourseIds = extractOwnedCourseIds(r, parts);
+                    String appliedCourseIds = extractAppliedCourseIds(r, parts);
+                    String resumeMappings = extractResumeMappings(r, parts);
                     if (p.equals(password) && r.equals(role) && e.equals(email)) {
-                        return buildUser(name, r, p, e, appliedCourseIds, resumeMappings, availableCourses);
+                        return buildUser(name, r, p, e, college, skill, ownedCourseIds, appliedCourseIds, resumeMappings, availableCourses);
                     }
                 }
             }
@@ -85,10 +88,13 @@ public class UserStore {
                     String p = parts[1];
                     String r = parts[2];
                     String e = parts[3];
-                    String appliedCourseIds = parts.length >= 5 ? parts[4] : "";
-                    String resumeMappings = parts.length >= 6 ? parts[5] : "";
+                    String college = extractCollege(r, parts);
+                    String skill = extractSkill(r, parts);
+                    String ownedCourseIds = extractOwnedCourseIds(r, parts);
+                    String appliedCourseIds = extractAppliedCourseIds(r, parts);
+                    String resumeMappings = extractResumeMappings(r, parts);
                     if (p.equals(password) && e.equals(email)) {
-                        return buildUser(name, r, p, e, appliedCourseIds, resumeMappings, availableCourses);
+                        return buildUser(name, r, p, e, college, skill, ownedCourseIds, appliedCourseIds, resumeMappings, availableCourses);
                     }
                 }
             }
@@ -159,6 +165,44 @@ public class UserStore {
         }
     }
 
+    public static void updateOwnedCourseIds(Mo mo) {
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            saveUser(mo);
+            return;
+        }
+
+        List<String> updatedLines = new ArrayList<>();
+        boolean updated = false;
+
+        try (BufferedReader br = Files.newBufferedReader(filePath)) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",", -1);
+                if (parts.length >= 4 && "Mo".equals(parts[2]) && parts[3].equals(mo.getEmail())) {
+                    updatedLines.add(toLine(mo));
+                    updated = true;
+                } else {
+                    updatedLines.add(line);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        if (!updated) {
+            updatedLines.add(toLine(mo));
+        }
+
+        try {
+            ensureParentDirectoryExists(filePath);
+            Files.write(filePath, updatedLines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     static List<TA> getTaUsersForCourses(List<Course> availableCourses) {
         List<TA> taUsers = new ArrayList<>();
         Path filePath = resolveFilePath();
@@ -174,10 +218,14 @@ public class UserStore {
                     String name = parts[0];
                     String password = parts[1];
                     String email = parts[3];
-                    String appliedCourseIds = parts.length >= 5 ? parts[4] : "";
-                    String resumeMappings = parts.length >= 6 ? parts[5] : "";
+                    String college = extractCollege("TA", parts);
+                    String skill = extractSkill("TA", parts);
+                    String ownedCourseIds = extractOwnedCourseIds("TA", parts);
+                    String appliedCourseIds = extractAppliedCourseIds("TA", parts);
+                    String resumeMappings = extractResumeMappings("TA", parts);
 
-                    User user = buildUser(name, "TA", password, email, appliedCourseIds, resumeMappings, availableCourses);
+                    User user = buildUser(name, "TA", password, email, college, skill, ownedCourseIds, appliedCourseIds, resumeMappings,
+                            availableCourses);
                     if (user instanceof TA ta) {
                         taUsers.add(ta);
                     }
@@ -190,7 +238,8 @@ public class UserStore {
         return taUsers;
     }
 
-    private static User buildUser(String name, String role, String password, String email, String appliedCourseIds, String resumeMappings,
+    private static User buildUser(String name, String role, String password, String email, String college, String skill,
+            String ownedCourseIds, String appliedCourseIds, String resumeMappings,
             List<Course> availableCourses) {
         User user = null;
         if ("Admin".equals(role)) {
@@ -204,6 +253,13 @@ public class UserStore {
         }
         if (user != null && name != null && !name.isBlank()) {
             user.setName(name);
+        }
+        if (user instanceof TA ta) {
+            ta.setCollege(college);
+            ta.setSkill(skill);
+        }
+        if (user instanceof Mo mo && ownedCourseIds != null && !ownedCourseIds.isBlank()) {
+            mo.setOwnedCourses(resolveCourses(ownedCourseIds, availableCourses));
         }
         if (user instanceof TA ta && appliedCourseIds != null && !appliedCourseIds.isBlank()) {
             ta.setAppliedClasses(resolveCourses(appliedCourseIds, availableCourses));
@@ -236,11 +292,22 @@ public class UserStore {
     }
 
     private static String toLine(User user) {
-        String baseLine = user.getName() + "," + user.getPassword() + "," + user.getRole() + "," + user.getEmail();
+        String baseLine = safe(user.getName()) + "," + safe(user.getPassword()) + "," + safe(user.getRole()) + "," + safe(user.getEmail());
         if (user instanceof TA ta) {
-            return baseLine + "," + serializeAppliedCourseIds(ta) + "," + serializeResumeSubmissions(ta);
+            return baseLine + "," + safe(ta.getCollege()) + "," + safe(ta.getSkill()) + ","
+                    + serializeAppliedCourseIds(ta) + "," + serializeResumeSubmissions(ta);
+        }
+        if (user instanceof Mo mo) {
+            return baseLine + "," + serializeOwnedCourseIds(mo);
         }
         return baseLine;
+    }
+
+    private static String serializeOwnedCourseIds(Mo mo) {
+        return mo.getOwnedCourses().stream()
+                .map(Course::getId)
+                .distinct()
+                .collect(Collectors.joining("|"));
     }
 
     private static String serializeAppliedCourseIds(TA ta) {
@@ -296,5 +363,53 @@ public class UserStore {
             }
         }
         return submissions;
+    }
+
+    private static String extractCollege(String role, String[] parts) {
+        if (!"TA".equals(role) || parts.length < 8) {
+            return "";
+        }
+        return parts[4];
+    }
+
+    private static String extractSkill(String role, String[] parts) {
+        if (!"TA".equals(role) || parts.length < 8) {
+            return "";
+        }
+        return parts[5];
+    }
+
+    private static String extractOwnedCourseIds(String role, String[] parts) {
+        if (!"Mo".equals(role)) {
+            return "";
+        }
+        return parts.length >= 5 ? parts[4] : "";
+    }
+
+    private static String extractAppliedCourseIds(String role, String[] parts) {
+        if (!"TA".equals(role)) {
+            return "";
+        }
+        if (parts.length >= 8) {
+            return parts[6];
+        }
+        return parts.length >= 5 ? parts[4] : "";
+    }
+
+    private static String extractResumeMappings(String role, String[] parts) {
+        if (!"TA".equals(role)) {
+            return "";
+        }
+        if (parts.length >= 8) {
+            return parts[7];
+        }
+        return parts.length >= 6 ? parts[5] : "";
+    }
+
+    private static String safe(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace(",", " ");
     }
 }
