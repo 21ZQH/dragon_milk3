@@ -26,6 +26,7 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 import model.Course;
 import model.Mo;
+import model.ResumeSubmission;
 import model.TA;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -357,11 +358,13 @@ class TAClassControllerTest {
         assertEquals(1, ta.getResumeSubmissions().size());
         assertEquals(course, ta.getResumeSubmissions().get(0).getCourse());
         assertNotNull(ta.getResumeDirectoryForCourse("course-1"));
+        assertEquals(ResumeSubmission.STATUS_PENDING, ta.getResumeStatusForCourse("course-1"));
         assertEquals(
                 tempDir.resolve("webapps").resolve("SE").resolve("WEB-INF").resolve("file").resolve("resume").resolve("course-1").toString(),
                 ta.getResumeDirectoryForCourse("course-1"));
         assertEquals(
-                "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@" + ta.getResumeDirectoryForCourse("course-1"),
+                "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@"
+                        + ta.getResumeDirectoryForCourse("course-1") + "@0",
                 Files.readAllLines(usersFile).get(0));
         verify(dispatcher).forward(request, response);
     }

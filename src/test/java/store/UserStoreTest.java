@@ -129,6 +129,7 @@ class UserStoreTest {
         ResumeSubmission submission = ta.getResumeSubmissions().get(0);
         assertEquals("course-1", submission.getCourse().getId());
         assertEquals("D:\\resume\\course-1", submission.getResumeDirectory());
+        assertEquals(ResumeSubmission.STATUS_PENDING, submission.getStatus());
     }
 
     @Test
@@ -140,7 +141,7 @@ class UserStoreTest {
                 "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
         StoreTestSupport.writeLines(
                 usersFile,
-                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1");
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@2");
 
         TA ta = (TA) UserStore.validateUser("pass123", "alice@example.com");
 
@@ -150,6 +151,7 @@ class UserStoreTest {
         assertEquals(1, ta.getAppliedClasses().size());
         assertEquals("course-1", ta.getAppliedClasses().get(0).getId());
         assertEquals("D:\\resume\\course-1", ta.getResumeDirectoryForCourse("course-1"));
+        assertEquals(ResumeSubmission.STATUS_REJECTED, ta.getResumeStatusForCourse("course-1"));
     }
 
     @Test

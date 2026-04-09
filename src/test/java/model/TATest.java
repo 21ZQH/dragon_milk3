@@ -30,6 +30,19 @@ class TATest {
         assertEquals(1, ta.getAppliedClasses().size());
         assertEquals(1, ta.getResumeSubmissions().size());
         assertEquals("D:\\resume\\new", ta.getResumeDirectoryForCourse("course-1"));
+        assertEquals(ResumeSubmission.STATUS_PENDING, ta.getResumeStatusForCourse("course-1"));
+    }
+
+    @Test
+    void addOrUpdateResumeCanReplaceStatusForSameCourse() {
+        TA ta = new TA("secret123", "ta@example.com");
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+
+        ta.addOrUpdateResume(course, "D:\\resume\\old", ResumeSubmission.STATUS_PENDING);
+        ta.addOrUpdateResume(course, "D:\\resume\\old", ResumeSubmission.STATUS_APPROVED);
+
+        assertEquals(1, ta.getResumeSubmissions().size());
+        assertEquals(ResumeSubmission.STATUS_APPROVED, ta.getResumeStatusForCourse("course-1"));
     }
 
     @Test

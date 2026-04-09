@@ -217,7 +217,7 @@ public class TAClassController extends HttpServlet {
         String resumeName = submittedFileName;
         String resumeDirectory = uploadDirectory.getAbsolutePath();
 
-        ta.addOrUpdateResume(course, resumeDirectory);
+        ta.addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING);
         course.addApplication(ta, resumeDirectory);
         UserStore.updateAppliedCourseIds(ta);
 
