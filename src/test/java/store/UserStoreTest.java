@@ -176,7 +176,7 @@ class UserStoreTest {
         UserStore.updateTaProfile(ta);
 
         List<String> lines = Files.readAllLines(usersFile);
-        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,Java  SQL,course-1,course-1@D:\\resume\\course-1", lines.get(0));
+        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,Java  SQL,course-1,course-1@D:\\resume\\course-1@0", lines.get(0));
     }
 
     @Test

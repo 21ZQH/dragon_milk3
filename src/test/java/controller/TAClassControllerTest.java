@@ -402,7 +402,7 @@ class TAClassControllerTest {
         verify(session).setAttribute("username", "Alice Zhang");
         verify(request).setAttribute("success", "Personal information saved successfully.");
         verify(dispatcher).forward(request, response);
-        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java  SQL,course-1,course-1@D:\\resume\\course-1",
+        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java  SQL,course-1,course-1@D:\\resume\\course-1@0",
                 Files.readAllLines(usersFile).get(0));
     }
 
