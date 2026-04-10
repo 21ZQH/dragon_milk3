@@ -303,6 +303,7 @@
                 </p>
             </div>
             <div class="top-links">
+                <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=personal_center") %>">Back to Personal Centre</a>
                 <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=project_detail&courseIndex=" + (courseIndex == null ? "" : courseIndex)) %>">Back to Project</a>
                 <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>">My Project</a>
             </div>
