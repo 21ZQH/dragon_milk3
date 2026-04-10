@@ -1,5 +1,6 @@
 <%@ page import="java.util.List" %>
 <%@ page import="model.Course" %>
+<%@ page import="model.ResumeSubmission" %>
 <%@ page import="model.TA" %>
 <%@ page import="model.User" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
@@ -15,8 +16,35 @@
         appliedCourses = currentTA.getAppliedClasses();
     }
 
+    Course selectedCourse = (Course) request.getAttribute("selectedCourse");
+    String selectedCourseId = (String) request.getAttribute("selectedCourseId");
+    if (selectedCourse == null && appliedCourses != null && !appliedCourses.isEmpty()) {
+        selectedCourse = appliedCourses.get(0);
+    }
+    if (selectedCourseId == null && selectedCourse != null) {
+        selectedCourseId = selectedCourse.getId();
+    }
+
+    Boolean applicationOpenAttr = (Boolean) request.getAttribute("applicationOpen");
+    boolean applicationOpen = applicationOpenAttr == null ? true : applicationOpenAttr.booleanValue();
+
+    Integer selectedStatus = (Integer) request.getAttribute("selectedStatus");
+    if (selectedStatus == null && currentTA != null && selectedCourse != null) {
+        selectedStatus = currentTA.getResumeStatusForCourse(selectedCourse.getId());
+    }
+    if (selectedStatus == null) {
+        selectedStatus = ResumeSubmission.STATUS_PENDING;
+    }
+
     String success = (String) request.getAttribute("success");
     String error = (String) request.getAttribute("error");
+
+    boolean isAccepted = selectedStatus == ResumeSubmission.STATUS_APPROVED;
+    boolean isRejected = selectedStatus == ResumeSubmission.STATUS_REJECTED;
+    boolean isEvaluating = !isAccepted && !isRejected;
+
+    String statusLabel = isEvaluating ? "Evaluating" : (isAccepted ? "Accepted" : "Rejected");
+    String terminatedLabel = isEvaluating ? "Awaiting result" : (isAccepted ? "Accepted" : "Rejected");
 %>
 <!DOCTYPE html>
 <html>
@@ -29,8 +57,9 @@
         }
         .main-box {
             background: #fff;
-            width: 760px;
-            margin: 50px auto;
+            width: 980px;
+            max-width: calc(100vw - 56px);
+            margin: 36px auto;
             border: 2px solid #222;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -38,10 +67,10 @@
         }
         .title {
             text-align: center;
-            font-size: 2em;
+            font-size: 2.9em;
             font-weight: bold;
-            color: #2d3651;
-            margin-bottom: 22px;
+            color: #253b6e;
+            margin-bottom: 24px;
         }
         .msg-success {
             margin-bottom: 18px;
@@ -63,52 +92,23 @@
             text-align: center;
             font-weight: bold;
         }
-        .section {
-            border: 1px solid #bbb;
-            border-radius: 8px;
-            margin: 16px 0;
-            padding: 18px;
-            background: #f5f7fa;
-        }
-        .section-title {
-            font-size: 1.15em;
-            font-weight: bold;
-            color: #2d3651;
-            margin-bottom: 10px;
-        }
-        .course-card {
-            border: 1px solid #d2d7e2;
-            border-radius: 8px;
-            padding: 14px;
-            margin: 10px 0;
-            background: #fff;
-        }
-        .course-name {
-            font-weight: bold;
-            color: #2d3651;
-            margin-bottom: 6px;
-        }
-        .course-info {
-            color: #444;
-            font-size: 1em;
-            margin-bottom: 8px;
-        }
-        .btn-row {
-            margin-top: 10px;
+        .top-actions {
             display: flex;
-            gap: 10px;
+            gap: 16px;
             flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 26px;
         }
         .btn {
             display: inline-block;
-            padding: 9px 16px;
-            border-radius: 7px;
+            padding: 12px 24px;
+            border-radius: 8px;
             background: #e9ecf5;
             color: #2d3651;
             text-decoration: none;
             font-weight: bold;
             font-family: inherit;
-            font-size: 0.95em;
+            font-size: 1em;
             border: 1px solid #d1d5db;
             cursor: pointer;
         }
@@ -116,26 +116,183 @@
             background: #d1d5db;
         }
         .btn-danger {
-            background: #fdeeee;
-            border-color: #efb7b7;
+            background: #fff4f4;
+            border-color: #f1b4b4;
             color: #a12626;
         }
         .btn-danger:hover {
-            background: #f8d7d7;
+            background: #fde1e1;
         }
-        .top-actions {
+        .section {
+            border: 1px solid #c6cedc;
+            border-radius: 16px;
+            padding: 28px;
+            background: #f5f7fc;
+        }
+        .section-title {
+            font-size: 1.95em;
+            font-weight: bold;
+            color: #1f315d;
+            margin-bottom: 22px;
+        }
+        .chooser-box {
+            border: 1px solid #cfd6e4;
+            border-radius: 14px;
+            padding: 22px;
+            background: #eef2fb;
+            margin-bottom: 26px;
+        }
+        .chooser-title {
+            font-size: 1.15em;
+            font-weight: bold;
+            color: #1f315d;
+            margin-bottom: 14px;
+        }
+        .course-pills {
             display: flex;
-            gap: 12px;
+            gap: 14px;
             flex-wrap: wrap;
-            justify-content: center;
-            margin-bottom: 8px;
+        }
+        .course-pill {
+            display: inline-block;
+            padding: 14px 24px;
+            border-radius: 999px;
+            border: 3px solid #2b2b4f;
+            background: #fff;
+            color: #1f315d;
+            text-decoration: none;
+            font-size: 1.05em;
+            font-weight: bold;
+        }
+        .course-pill.active {
+            background: #2b2b4f;
+            color: #fff;
+        }
+        .detail-card {
+            border: 1px solid #d2d7e2;
+            border-radius: 14px;
+            padding: 24px 22px;
+            background: #fff;
+        }
+        .course-name {
+            font-size: 2em;
+            font-weight: bold;
+            color: #1f315d;
+            margin-bottom: 10px;
+        }
+        .course-info {
+            font-size: 1.15em;
+            color: #3d4a63;
+            margin-bottom: 22px;
+        }
+        .action-row {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+        .empty-state {
+            border: 1px dashed #bcc6d8;
+            border-radius: 14px;
+            padding: 28px 24px;
+            background: #fff;
+            color: #43506a;
+            font-size: 1.05em;
+            line-height: 1.7;
         }
         .empty-actions {
-            margin-top: 12px;
+            margin-top: 16px;
+        }
+        .status-pill {
+            display: inline-block;
+            padding: 12px 18px;
+            border-radius: 999px;
+            font-size: 1.02em;
+            font-weight: bold;
+            margin-bottom: 22px;
+        }
+        .status-pending {
+            background: #fff3da;
+            color: #9a6700;
+            border: 1px solid #f2cc60;
+        }
+        .status-accepted {
+            background: #edf9f0;
+            color: #256029;
+            border: 1px solid #93d5a0;
+        }
+        .status-rejected {
+            background: #fdeeee;
+            color: #a12626;
+            border: 1px solid #efb7b7;
+        }
+        .progress-panel {
+            border: 1px solid #dde3f0;
+            border-radius: 14px;
+            padding: 26px 20px 22px;
+            background: #f9fbff;
+        }
+        .progress-track {
+            position: relative;
             display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 24px;
+        }
+        .progress-track::before {
+            content: "";
+            position: absolute;
+            left: 72px;
+            right: 72px;
+            top: 28px;
+            height: 3px;
+            background: #d3daea;
+            z-index: 0;
+        }
+        .progress-track.complete::before {
+            background: linear-gradient(to right, #3b5998 0%, #3b5998 100%);
+        }
+        .progress-step {
+            position: relative;
+            z-index: 1;
+            width: 50%;
+            text-align: center;
+        }
+        .step-circle {
+            width: 56px;
+            height: 56px;
+            line-height: 56px;
+            margin: 0 auto 14px;
+            border-radius: 50%;
+            border: 3px solid #d3daea;
+            background: #fff;
+            color: #69748d;
+            font-size: 1.1em;
+            font-weight: bold;
+        }
+        .progress-step.active .step-circle {
+            border-color: #3b5998;
+            color: #3b5998;
+        }
+        .progress-step.done .step-circle {
+            border-color: #3b5998;
+            background: #3b5998;
+            color: #fff;
+        }
+        .step-title {
+            font-size: 1.28em;
+            font-weight: bold;
+            color: #1f315d;
+            margin-bottom: 6px;
+        }
+        .step-subtitle {
+            color: #556179;
+            font-size: 1em;
+        }
+        .status-summary {
+            margin-top: 18px;
+            color: #45526c;
+            font-size: 1em;
+            line-height: 1.7;
         }
         .modal-overlay {
             position: fixed;
@@ -174,10 +331,6 @@
             justify-content: flex-end;
             gap: 10px;
         }
-        form {
-            display: inline;
-            margin: 0;
-        }
     </style>
 </head>
 <body>
@@ -198,31 +351,78 @@
 
         <div class="section">
             <div class="section-title">My Applications</div>
+
             <% if (currentTA == null) { %>
-                <div>Please log in as TA first.</div>
+                <div class="empty-state">Please log in as TA first.</div>
             <% } else if (appliedCourses == null || appliedCourses.isEmpty()) { %>
-                <div>You have not applied to any course yet.</div>
-                <div class="empty-actions">
-                    <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find New Jobs</a>
+                <div class="empty-state">
+                    <% if (applicationOpen) { %>
+                        You have not applied to any course yet.
+                        <div class="empty-actions">
+                            <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find New Jobs</a>
+                        </div>
+                    <% } else { %>
+                        The application deadline has passed. You can no longer apply for new courses.
+                    <% } %>
                 </div>
-            <% } else {
-                for (Course course : appliedCourses) {
-                    if (course == null) {
-                        continue;
-                    }
-            %>
-                <div class="course-card">
-                    <div class="course-name"><%= course.getCourseName() %></div>
-                    <div class="course-info">
-                        <%= course.getJobTitle() %> | <%= course.getWorkingHours() %>
-                    </div>
-                    <div class="btn-row">
-                        <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply_by_id&courseId=" + course.getId()) %>">Modify (Re-upload Resume)</a>
-                        <button class="btn btn-danger" type="button" onclick="openWithdrawModal('<%= course.getId() %>')">Withdraw</button>
+            <% } else { %>
+                <div class="chooser-box">
+                    <div class="chooser-title">Choose an applied course</div>
+                    <div class="course-pills">
+                        <% for (Course course : appliedCourses) {
+                               if (course == null) {
+                                   continue;
+                               }
+                               boolean active = course.getId() != null && course.getId().equals(selectedCourseId);
+                        %>
+                            <a class="course-pill <%= active ? "active" : "" %>"
+                               href="<%= response.encodeURL("TAclasscontroller?action=personal_centre&courseId=" + course.getId()) %>">
+                                <%= course.getCourseName() %>
+                            </a>
+                        <% } %>
                     </div>
                 </div>
-            <%  }
-               } %>
+
+                <% if (selectedCourse != null) { %>
+                    <div class="detail-card">
+                        <div class="course-name"><%= selectedCourse.getCourseName() %></div>
+                        <div class="course-info"><%= selectedCourse.getJobTitle() %> | <%= selectedCourse.getWorkingHours() %></div>
+
+                        <% if (applicationOpen) { %>
+                            <div class="action-row">
+                                <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply_by_id&courseId=" + selectedCourse.getId()) %>">Modify (Re-upload Resume)</a>
+                                <button class="btn btn-danger" type="button" onclick="openWithdrawModal('<%= selectedCourse.getId() %>')">Withdraw</button>
+                            </div>
+                        <% } else { %>
+                            <span class="status-pill <%= isEvaluating ? "status-pending" : (isAccepted ? "status-accepted" : "status-rejected") %>"><%= statusLabel %></span>
+
+                            <div class="progress-panel">
+                                <div class="progress-track <%= isEvaluating ? "" : "complete" %>">
+                                    <div class="progress-step active">
+                                        <div class="step-circle"><%= isEvaluating ? "1" : "✓" %></div>
+                                        <div class="step-title">Evaluating</div>
+                                        <div class="step-subtitle"><%= isEvaluating ? "Under review" : "Review completed" %></div>
+                                    </div>
+                                    <div class="progress-step <%= isEvaluating ? "" : "done" %>">
+                                        <div class="step-circle"><%= isEvaluating ? "2" : "✓" %></div>
+                                        <div class="step-title">Terminated</div>
+                                        <div class="step-subtitle"><%= terminatedLabel %></div>
+                                    </div>
+                                </div>
+                                <div class="status-summary">
+                                    <% if (isEvaluating) { %>
+                                        Your application is currently being evaluated by the MO. Please wait for the final review result.
+                                    <% } else if (isAccepted) { %>
+                                        Your application has been evaluated and the final result for this course is Accepted.
+                                    <% } else { %>
+                                        Your application has been evaluated and the final result for this course is Rejected.
+                                    <% } %>
+                                </div>
+                            </div>
+                        <% } %>
+                    </div>
+                <% } %>
+            <% } %>
         </div>
     </div>
 
