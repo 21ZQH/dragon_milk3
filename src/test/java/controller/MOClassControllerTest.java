@@ -1,11 +1,13 @@
 package controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -15,10 +17,15 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Course;
 import model.Mo;
+import model.ResumeSubmission;
+import model.TA;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.mockito.ArgumentCaptor;
 import store.CourseStore;
+import store.UserStore;
 import testsupport.StoreTestSupport;
 
 class MOClassControllerTest {
@@ -99,5 +106,151 @@ class MOClassControllerTest {
         assertEquals("Molly,secret123,Mo,mo@example.com," + courses.get(0).getId(), java.nio.file.Files.readAllLines(usersFile).get(0));
         verify(session).setAttribute("user", mo);
         verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void reviewCandidatesLoadsSelectedCourseApplicants() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@0");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+
+        when(request.getParameter("action")).thenReturn("review_candidates");
+        when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/review.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        ArgumentCaptor<Object> selectedCourseCaptor = ArgumentCaptor.forClass(Object.class);
+        verify(request).setAttribute(org.mockito.ArgumentMatchers.eq("selectedCourse"), selectedCourseCaptor.capture());
+        Object selectedCourse = selectedCourseCaptor.getValue();
+        assertInstanceOf(Course.class, selectedCourse);
+        Course course = (Course) selectedCourse;
+        assertEquals("course-1", course.getId());
+        assertEquals(1, course.getTaApplicants().size());
+        assertEquals("alice@example.com", course.getTaApplicants().get(0).getEmail());
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void reviewCandidatesWithoutCourseIndexDefaultsToFirstOwnedCourse() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills",
+                "course-2,Database,TA,8 hours/week,TBD,Mark assignments,SQL");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+        mo.addOwnedCourse(new Course("course-2", "Database", "TA", "8 hours/week", "TBD", "Mark assignments", "SQL"));
+
+        when(request.getParameter("action")).thenReturn("review_candidates");
+        when(request.getParameter("courseIndex")).thenReturn(null);
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/review.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("courseIndex", "0");
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void saveReviewPicksStoresPickedApplicantEmailsOnCourse() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@0");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+
+        when(request.getParameter("action")).thenReturn("save_review_picks");
+        when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getParameterValues("pickedEmail")).thenReturn(new String[] {"alice@example.com"});
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doPost(request, response);
+
+        List<String> lines = Files.readAllLines(courseFile);
+        assertEquals("course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills,alice@example.com,false",
+                lines.get(0));
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=review_candidates&courseIndex=0&saved=1");
+    }
+
+    @Test
+    void publishReviewUpdatesTaStatusesAndLocksCourse() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@0",
+                "Bob,pass123,TA,bob@example.com,School of Computer Science,C++,course-1,course-1@D:\\resume\\course-1-bob@0");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+
+        when(request.getParameter("action")).thenReturn("publish_review");
+        when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getParameterValues("pickedEmail")).thenReturn(new String[] {"alice@example.com"});
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doPost(request, response);
+
+        List<String> courseLines = Files.readAllLines(courseFile);
+        assertEquals("course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills,alice@example.com,true",
+                courseLines.get(0));
+
+        TA alice = (TA) UserStore.validateUser("pass123", "alice@example.com");
+        TA bob = (TA) UserStore.validateUser("pass123", "bob@example.com");
+        Assertions.assertNotNull(alice);
+        Assertions.assertNotNull(bob);
+        assertEquals(ResumeSubmission.STATUS_APPROVED, alice.getResumeStatusForCourse("course-1"));
+        assertEquals(ResumeSubmission.STATUS_REJECTED, bob.getResumeStatusForCourse("course-1"));
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=review_candidates&courseIndex=0&published=1");
     }
 }

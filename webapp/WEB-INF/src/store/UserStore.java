@@ -335,7 +335,9 @@ public class UserStore {
     private static String serializeResumeSubmissions(TA ta) {
         return ta.getResumeSubmissions().stream()
                 .filter(submission -> submission.getCourse() != null)
-                .map(submission -> submission.getCourse().getId() + "@" + submission.getResumeDirectory())
+                .map(submission -> submission.getCourse().getId() + "@"
+                        + submission.getResumeDirectory() + "@"
+                        + submission.getStatus())
                 .collect(Collectors.joining("|"));
     }
 
@@ -362,17 +364,28 @@ public class UserStore {
                 continue;
             }
 
-            int separatorIndex = mapping.indexOf('@');
-            if (separatorIndex <= 0 || separatorIndex == mapping.length() - 1) {
+            String[] parts = mapping.split("@", 3);
+            if (parts.length < 2) {
                 continue;
             }
 
-            String courseId = mapping.substring(0, separatorIndex);
-            String resumeDirectory = mapping.substring(separatorIndex + 1);
+            String courseId = parts[0];
+            String resumeDirectory = parts[1];
+            int status = ResumeSubmission.STATUS_PENDING;
+            if (courseId == null || courseId.isBlank() || resumeDirectory == null || resumeDirectory.isBlank()) {
+                continue;
+            }
+            if (parts.length == 3) {
+                try {
+                    status = Integer.parseInt(parts[2]);
+                } catch (NumberFormatException ignored) {
+                    status = ResumeSubmission.STATUS_PENDING;
+                }
+            }
 
             for (Course course : availableCourses) {
                 if (courseId.equals(course.getId())) {
-                    submissions.add(new ResumeSubmission(course, resumeDirectory));
+                    submissions.add(new ResumeSubmission(course, resumeDirectory, status));
                     break;
                 }
             }

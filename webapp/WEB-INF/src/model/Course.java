@@ -1,6 +1,7 @@
 package model;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -15,6 +16,8 @@ public class Course {
     private String jobRequirement;
     private List<TA> taApplicants;
     private List<String> applicantResumes;
+    private List<String> pickedApplicantEmails;
+    private boolean reviewPublished;
 
     public Course(String courseName, String jobTitle, String workingHours, String salary, String jobDescription, String jobRequirement) {
         this(UUID.randomUUID().toString(), courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
@@ -30,6 +33,8 @@ public class Course {
         this.jobRequirement = jobRequirement;
         this.taApplicants = new ArrayList<>();
         this.applicantResumes = new ArrayList<>();
+        this.pickedApplicantEmails = new ArrayList<>();
+        this.reviewPublished = false;
     }
 
     public String getId() {
@@ -90,6 +95,36 @@ public class Course {
 
     public List<String> getApplicantResumes() {
         return applicantResumes;
+    }
+
+    public List<String> getPickedApplicantEmails() {
+        return new ArrayList<>(pickedApplicantEmails);
+    }
+
+    public void setPickedApplicantEmails(Collection<String> pickedApplicantEmails) {
+        this.pickedApplicantEmails = new ArrayList<>();
+        if (pickedApplicantEmails == null) {
+            return;
+        }
+
+        for (String email : pickedApplicantEmails) {
+            if (email == null || email.isBlank() || this.pickedApplicantEmails.contains(email)) {
+                continue;
+            }
+            this.pickedApplicantEmails.add(email);
+        }
+    }
+
+    public boolean isApplicantPicked(String email) {
+        return email != null && pickedApplicantEmails.contains(email);
+    }
+
+    public boolean isReviewPublished() {
+        return reviewPublished;
+    }
+
+    public void setReviewPublished(boolean reviewPublished) {
+        this.reviewPublished = reviewPublished;
     }
 
     public void addApplication(TA ta, String resumeDirectory) {

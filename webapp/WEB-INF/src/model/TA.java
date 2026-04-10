@@ -59,7 +59,7 @@ public class TA extends User {
         if (resumeSubmissions != null) {
             for (ResumeSubmission submission : resumeSubmissions) {
                 if (submission != null && submission.getCourse() != null) {
-                    addOrUpdateResume(submission.getCourse(), submission.getResumeDirectory());
+                    addOrUpdateResume(submission.getCourse(), submission.getResumeDirectory(), submission.getStatus());
                 }
             }
         }
@@ -72,6 +72,10 @@ public class TA extends User {
     }
 
     public void addOrUpdateResume(Course course, String resumeDirectory) {
+        addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING);
+    }
+
+    public void addOrUpdateResume(Course course, String resumeDirectory, int status) {
         if (course == null || resumeDirectory == null || resumeDirectory.isBlank()) {
             return;
         }
@@ -82,11 +86,12 @@ public class TA extends User {
             if (course.equals(submission.getCourse())) {
                 submission.setCourse(course);
                 submission.setResumeDirectory(resumeDirectory);
+                submission.setStatus(status);
                 return;
             }
         }
 
-        resumeSubmissions.add(new ResumeSubmission(course, resumeDirectory));
+        resumeSubmissions.add(new ResumeSubmission(course, resumeDirectory, status));
     }
 
     public String getResumeDirectoryForCourse(String courseId) {
@@ -118,5 +123,19 @@ public class TA extends User {
                 iterator.remove();
             }
         }
+    }
+
+    public Integer getResumeStatusForCourse(String courseId) {
+        if (courseId == null || courseId.isBlank()) {
+            return null;
+        }
+
+        for (ResumeSubmission submission : resumeSubmissions) {
+            Course course = submission.getCourse();
+            if (course != null && courseId.equals(course.getId())) {
+                return submission.getStatus();
+            }
+        }
+        return null;
     }
 }
