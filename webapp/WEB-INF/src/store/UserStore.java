@@ -135,41 +135,11 @@ public class UserStore {
     }
 
     public static void updateAppliedCourseIds(TA ta) {
-        Path filePath = resolveFilePath();
-        if (!Files.exists(filePath)) {
-            saveUser(ta);
-            return;
-        }
+        updateTaLine(ta);
+    }
 
-        List<String> updatedLines = new ArrayList<>();
-        boolean updated = false;
-
-        try (BufferedReader br = Files.newBufferedReader(filePath)) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",", -1);
-                if (parts.length >= 4 && "TA".equals(parts[2]) && parts[3].equals(ta.getEmail())) {
-                    updatedLines.add(toLine(ta));
-                    updated = true;
-                } else {
-                    updatedLines.add(line);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        if (!updated) {
-            updatedLines.add(toLine(ta));
-        }
-
-        try {
-            ensureParentDirectoryExists(filePath);
-            Files.write(filePath, updatedLines);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public static void updateTaProfile(TA ta) {
+        updateTaLine(ta);
     }
 
     public static void updateOwnedCourseIds(Mo mo) {
@@ -298,6 +268,44 @@ public class UserStore {
         }
     }
 
+    private static void updateTaLine(TA ta) {
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            saveUser(ta);
+            return;
+        }
+
+        List<String> updatedLines = new ArrayList<>();
+        boolean updated = false;
+
+        try (BufferedReader br = Files.newBufferedReader(filePath)) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                String[] parts = line.split(",", -1);
+                if (parts.length >= 4 && "TA".equals(parts[2]) && parts[3].equals(ta.getEmail())) {
+                    updatedLines.add(toLine(ta));
+                    updated = true;
+                } else {
+                    updatedLines.add(line);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+
+        if (!updated) {
+            updatedLines.add(toLine(ta));
+        }
+
+        try {
+            ensureParentDirectoryExists(filePath);
+            Files.write(filePath, updatedLines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static String toLine(User user) {
         String baseLine = safe(user.getName()) + "," + safe(user.getPassword()) + "," + safe(user.getRole()) + "," + safe(user.getEmail());
         if (user instanceof TA ta) {
@@ -420,3 +428,4 @@ public class UserStore {
         return value.replace(",", " ");
     }
 }
+

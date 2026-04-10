@@ -153,6 +153,31 @@ class UserStoreTest {
     }
 
     @Test
+    void updateTaProfileRewritesOnlyTaProfileFieldsAndPreservesMappings() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1");
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("pass123", "alice@example.com");
+        ta.setName("Alice Zhang");
+        ta.setCollege("New College");
+        ta.setSkill("Java, SQL");
+        ta.addClass(course);
+        ta.addOrUpdateResume(course, "D:\\resume\\course-1");
+
+        UserStore.updateTaProfile(ta);
+
+        List<String> lines = Files.readAllLines(usersFile);
+        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,Java  SQL,course-1,course-1@D:\\resume\\course-1", lines.get(0));
+    }
+
+    @Test
     void missingUserFileBehavesLikeNoRegisteredUsers() {
         StoreTestSupport.useUserStore(tempDir);
 

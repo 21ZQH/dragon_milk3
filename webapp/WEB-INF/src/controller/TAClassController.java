@@ -21,6 +21,8 @@ public class TAClassController extends HttpServlet {
             show_all_information(request, response);
         } else if ("go_apply".equals(action)) {
             go_apply(request, response);
+        } else if ("personal_center".equals(action)) {
+            personal_center(request, response);
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
         }
@@ -30,6 +32,8 @@ public class TAClassController extends HttpServlet {
         String action = request.getParameter("action");
         if ("upload_resume".equals(action)) {
             upload_resume(request, response);
+        } else if ("save_personal_information".equals(action)) {
+            save_personal_information(request, response);
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
         }
@@ -67,6 +71,17 @@ public class TAClassController extends HttpServlet {
         request.setAttribute("selectedCourse", course);
         request.setAttribute("courseIndex", request.getParameter("courseIndex"));
         request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp").forward(request, response);
+    }
+
+    private void personal_center(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        if (!(user instanceof TA)) {
+            response.sendRedirect(request.getContextPath() + "/start.html");
+            return;
+        }
+
+        request.getRequestDispatcher("/WEB-INF/views/ta/personal-center.jsp").forward(request, response);
     }
 
     private void upload_resume(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -134,6 +149,29 @@ public class TAClassController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp").forward(request, response);
     }
 
+    private void save_personal_information(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        if (!(user instanceof TA)) {
+            response.sendRedirect(request.getContextPath() + "/start.html");
+            return;
+        }
+
+        TA ta = (TA) user;
+        ta.setName(trimValue(request.getParameter("name")));
+        ta.setCollege(trimValue(request.getParameter("college")));
+        ta.setSkill(trimValue(request.getParameter("skill")));
+
+        UserStore.updateTaProfile(ta);
+
+        session.setAttribute("user", ta);
+        session.setAttribute("username", ta.getName());
+        request.setAttribute("success", "Personal information saved successfully.");
+        request.getRequestDispatcher("/WEB-INF/views/ta/personal-center.jsp").forward(request, response);
+    }
+
+
+
     @SuppressWarnings("unchecked")
     private Course getCourseFromSession(HttpServletRequest request) {
         HttpSession session = request.getSession();
@@ -159,6 +197,10 @@ public class TAClassController extends HttpServlet {
         }
     }
 
+    private String trimValue(String value) {
+        return value == null ? "" : value.trim();
+    }
+
     private String resolveResumeUploadDirectory() {
         String catalinaBase = System.getProperty("catalina.base");
         if (catalinaBase != null && !catalinaBase.isBlank()) {
@@ -171,4 +213,3 @@ public class TAClassController extends HttpServlet {
     }
 
 }
-

@@ -140,6 +140,25 @@ class TAClassControllerTest {
     }
 
     @Test
+    void personalCenterForwardsForTaUser() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
+
+        when(request.getParameter("action")).thenReturn("personal_center");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/personal-center.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
     void uploadResumeWithoutFileShowsErrorOnApplicationPage() throws Exception {
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -269,5 +288,42 @@ class TAClassControllerTest {
                 "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@" + ta.getResumeDirectoryForCourse("course-1"),
                 Files.readAllLines(usersFile).get(0));
         verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void savePersonalInformationUpdatesSessionAndForwards() throws Exception {
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(usersFile, "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1");
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.setName("Alice");
+        ta.setCollege("School of Software");
+        ta.setSkill("Java");
+        ta.addClass(course);
+        ta.addOrUpdateResume(course, "D:\\resume\\course-1");
+
+        when(request.getParameter("action")).thenReturn("save_personal_information");
+        when(request.getParameter("name")).thenReturn("  Alice Zhang  ");
+        when(request.getParameter("college")).thenReturn("  New College  ");
+        when(request.getParameter("skill")).thenReturn("  Java, SQL  ");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/personal-center.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(session).setAttribute("user", ta);
+        verify(session).setAttribute("username", "Alice Zhang");
+        verify(request).setAttribute("success", "Personal information saved successfully.");
+        verify(dispatcher).forward(request, response);
+        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java  SQL,course-1,course-1@D:\\resume\\course-1",
+                Files.readAllLines(usersFile).get(0));
     }
 }
