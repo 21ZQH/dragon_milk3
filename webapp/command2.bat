@@ -39,6 +39,7 @@ pushd "%SRC_DIR%" || exit /b 1
 
 javac -encoding UTF-8 -classpath "%CP%" -d "%CLASSES_DIR%" model\*.java || goto :compile_failed
 javac -encoding UTF-8 -classpath "%CP%" -d "%CLASSES_DIR%" store\*.java || goto :compile_failed
+javac -encoding UTF-8 -classpath "%CP%" -d "%CLASSES_DIR%" listener\*.java || goto :compile_failed
 javac -encoding UTF-8 -classpath "%CP%" -d "%CLASSES_DIR%" controller\*.java || goto :compile_failed
 
 popd

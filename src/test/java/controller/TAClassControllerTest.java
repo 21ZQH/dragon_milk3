@@ -15,8 +15,10 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
@@ -413,9 +415,10 @@ class TAClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
 
         TA ta = new TA("secret123", "ta@example.com");
-        ta.addClass(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+        ta.addClass(course);
 
         when(request.getParameter("action")).thenReturn("personal_centre");
         when(request.getSession()).thenReturn(session);
@@ -425,6 +428,36 @@ class TAClassControllerTest {
         controller.doGet(request, response);
 
         verify(request).setAttribute("appliedCourses", ta.getAppliedClasses());
+        verify(request).setAttribute("selectedCourse", course);
+        verify(request).setAttribute("selectedCourseId", "course-1");
+        verify(request).setAttribute("applicationOpen", true);
+        verify(request).setAttribute("selectedStatus", ResumeSubmission.STATUS_PENDING);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void personalCentreMarksApplicationsClosedAfterDeadline() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        ServletContext servletContext = mock(ServletContext.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.addClass(course);
+
+        when(request.getParameter("action")).thenReturn("personal_centre");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("applicationDeadline")).thenReturn(LocalDateTime.now().minusHours(1));
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("applicationOpen", false);
         verify(dispatcher).forward(request, response);
     }
 
@@ -513,6 +546,35 @@ class TAClassControllerTest {
     }
 
     @Test
+    void goApplyByIdAfterDeadlineForwardsToPersonalCentreWithError() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        ServletContext servletContext = mock(ServletContext.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.addClass(course);
+
+        when(request.getParameter("action")).thenReturn("go_apply_by_id");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("courseList")).thenReturn(List.of(course));
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("applicationDeadline")).thenReturn(LocalDateTime.now().minusHours(1));
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("error", "The application deadline has passed. You can no longer submit or modify applications.");
+        verify(request).setAttribute("applicationOpen", false);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
     void withdrawApplicationRemovesTaAndCourseReferencesAndPersistsUserData() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
 
@@ -580,6 +642,38 @@ class TAClassControllerTest {
 
         assertFalse(Files.exists(resumeFile));
         verify(request).setAttribute("success", "Application withdrawn successfully.");
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void withdrawApplicationAfterDeadlineDoesNotRemoveApplication() throws Exception {
+        StoreTestSupport.useUserStore(tempDir);
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        ServletContext servletContext = mock(ServletContext.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.addOrUpdateResume(course, "D:\\resume\\course-1");
+        course.addApplication(ta, "D:\\resume\\course-1");
+
+        when(request.getParameter("action")).thenReturn("withdraw_application");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("applicationDeadline")).thenReturn(LocalDateTime.now().minusHours(1));
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        assertEquals(1, ta.getAppliedClasses().size());
+        assertEquals("D:\\resume\\course-1", ta.getResumeDirectoryForCourse("course-1"));
+        verify(request).setAttribute("error", "The application deadline has passed. You can no longer withdraw or modify applications.");
         verify(dispatcher).forward(request, response);
     }
 }

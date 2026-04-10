@@ -4,9 +4,12 @@ package controller;
 import model.*;
 import store.UserStore;
 import store.CourseStore;
+import store.DeadlineStore;
 
 import java.util.*;
 import java.io.*;
+import java.time.LocalDateTime;
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.*;
@@ -72,17 +75,30 @@ public class TAClassController extends HttpServlet {
 
         request.setAttribute("selectedCourse", course);
         request.setAttribute("courseIndex", request.getParameter("courseIndex"));
+        request.setAttribute("applicationOpen", isApplicationOpen(request));
     request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp").forward(request, response);
     }
 
-        private void go_apply(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private void go_apply(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         Course course = getCourseFromSession(request);
         if (course == null) {
             response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=view_information");
             return;
         }
 
-            populateCurrentResumeAttributes(request, course);
+        User user = (User) request.getSession().getAttribute("user");
+        if (!isApplicationOpen(request) && user instanceof TA ta) {
+            forwardPersonalCentre(
+                    request,
+                    response,
+                    ta,
+                    null,
+                    "The application deadline has passed. You can no longer submit or modify applications.",
+                    course.getId());
+            return;
+        }
+
+        populateCurrentResumeAttributes(request, course);
         request.setAttribute("selectedCourse", course);
         request.setAttribute("courseIndex", request.getParameter("courseIndex"));
         request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp").forward(request, response);
@@ -95,6 +111,18 @@ public class TAClassController extends HttpServlet {
 
         if (course == null || courseIndex == null) {
             response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=personal_centre");
+            return;
+        }
+
+        User user = (User) request.getSession().getAttribute("user");
+        if (!isApplicationOpen(request) && user instanceof TA ta) {
+            forwardPersonalCentre(
+                    request,
+                    response,
+                    ta,
+                    null,
+                    "The application deadline has passed. You can no longer submit or modify applications.",
+                    course.getId());
             return;
         }
 
@@ -149,8 +177,7 @@ public class TAClassController extends HttpServlet {
             return;
         }
 
-        request.setAttribute("appliedCourses", ta.getAppliedClasses());
-        request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp").forward(request, response);
+        forwardPersonalCentre(request, response, ta, null, null, request.getParameter("courseId"));
     }
 
     private void profile_center(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -174,6 +201,17 @@ public class TAClassController extends HttpServlet {
         }
 
         TA ta = (TA) user;
+        if (!isApplicationOpen(request)) {
+            forwardPersonalCentre(
+                    request,
+                    response,
+                    ta,
+                    null,
+                    "The application deadline has passed. You can no longer submit or modify applications.",
+                    course.getId());
+            return;
+        }
+
         Part resumePart = request.getPart("resumeFile");
         if (resumePart == null || resumePart.getSize() <= 0) {
             request.setAttribute("selectedCourse", course);
@@ -260,8 +298,18 @@ public class TAClassController extends HttpServlet {
         String courseId = request.getParameter("courseId");
         if (courseId == null || courseId.isBlank()) {
             request.setAttribute("error", "Course id is required.");
-            request.setAttribute("appliedCourses", ta.getAppliedClasses());
-            request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp").forward(request, response);
+            forwardPersonalCentre(request, response, ta, null, "Course id is required.", null);
+            return;
+        }
+
+        if (!isApplicationOpen(request)) {
+            forwardPersonalCentre(
+                    request,
+                    response,
+                    ta,
+                    null,
+                    "The application deadline has passed. You can no longer withdraw or modify applications.",
+                    courseId);
             return;
         }
 
@@ -279,12 +327,16 @@ public class TAClassController extends HttpServlet {
         session.setAttribute("user", ta);
 
         if (!resumeDeleted) {
-            request.setAttribute("error", "Application withdrawn, but failed to delete resume file from disk.");
+            forwardPersonalCentre(
+                    request,
+                    response,
+                    ta,
+                    null,
+                    "Application withdrawn, but failed to delete resume file from disk.",
+                    null);
         } else {
-            request.setAttribute("success", "Application withdrawn successfully.");
+            forwardPersonalCentre(request, response, ta, "Application withdrawn successfully.", null, null);
         }
-        request.setAttribute("appliedCourses", ta.getAppliedClasses());
-        request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp").forward(request, response);
     }
     @SuppressWarnings("unchecked")
     private Course getCourseFromSession(HttpServletRequest request) {
@@ -412,6 +464,65 @@ public class TAClassController extends HttpServlet {
         }
 
         return true;
+    }
+
+    private void forwardPersonalCentre(HttpServletRequest request, HttpServletResponse response, TA ta,
+            String success, String error, String selectedCourseId) throws ServletException, IOException {
+        List<Course> appliedCourses = ta.getAppliedClasses();
+        Course selectedCourse = resolveSelectedAppliedCourse(appliedCourses, selectedCourseId);
+
+        request.setAttribute("appliedCourses", appliedCourses);
+        request.setAttribute("selectedCourse", selectedCourse);
+        request.setAttribute("selectedCourseId", selectedCourse == null ? null : selectedCourse.getId());
+        request.setAttribute("applicationOpen", isApplicationOpen(request));
+        request.setAttribute("applicationDeadline", resolveApplicationDeadline(request));
+        if (selectedCourse != null) {
+            request.setAttribute("selectedStatus", resolveResumeStatus(ta, selectedCourse.getId()));
+        }
+        if (success != null) {
+            request.setAttribute("success", success);
+        }
+        if (error != null) {
+            request.setAttribute("error", error);
+        }
+        request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp").forward(request, response);
+    }
+
+    private Course resolveSelectedAppliedCourse(List<Course> appliedCourses, String selectedCourseId) {
+        if (appliedCourses == null || appliedCourses.isEmpty()) {
+            return null;
+        }
+
+        if (selectedCourseId != null && !selectedCourseId.isBlank()) {
+            for (Course course : appliedCourses) {
+                if (course != null && selectedCourseId.equals(course.getId())) {
+                    return course;
+                }
+            }
+        }
+
+        return appliedCourses.get(0);
+    }
+
+    private int resolveResumeStatus(TA ta, String courseId) {
+        Integer status = ta.getResumeStatusForCourse(courseId);
+        return status == null ? ResumeSubmission.STATUS_PENDING : status;
+    }
+
+    private boolean isApplicationOpen(HttpServletRequest request) {
+        LocalDateTime deadline = resolveApplicationDeadline(request);
+        return deadline == null || !LocalDateTime.now().isAfter(deadline);
+    }
+
+    private LocalDateTime resolveApplicationDeadline(HttpServletRequest request) {
+        ServletContext servletContext = request.getServletContext();
+        if (servletContext != null) {
+            Object deadline = servletContext.getAttribute("applicationDeadline");
+            if (deadline instanceof LocalDateTime localDateTime) {
+                return localDateTime;
+            }
+        }
+        return DeadlineStore.getDeadline();
     }
 
 }

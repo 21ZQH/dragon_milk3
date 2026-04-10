@@ -6,6 +6,8 @@
     Course course = (Course) request.getAttribute("selectedCourse");
     String courseIndex = (String) request.getAttribute("courseIndex");
     String success = (String) request.getAttribute("success");
+    Boolean applicationOpenAttr = (Boolean) request.getAttribute("applicationOpen");
+    boolean applicationOpen = applicationOpenAttr == null || applicationOpenAttr;
     User currentUser = (User) session.getAttribute("user");
     TA currentTA = null;
     if (currentUser instanceof TA) {
@@ -93,6 +95,16 @@
         .nav-btn:hover {
             background: #d1d5db;
         }
+        .notice-box {
+            margin-top: 18px;
+            padding: 14px 18px;
+            border-radius: 8px;
+            background: #fff7e6;
+            color: #9a6700;
+            border: 1px solid #f2cc60;
+            text-align: center;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -120,10 +132,15 @@
             </div>
             <div class="button-row">
                 <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Back to List</a>
-                <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply&courseIndex=" + courseIndex) %>">
-                    <%= hasApplied ? "Modify Resume" : "Go Apply" %>
-                </a>
+                <% if (applicationOpen) { %>
+                    <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply&courseIndex=" + courseIndex) %>">
+                        <%= hasApplied ? "Modify Resume" : "Go Apply" %>
+                    </a>
+                <% } %>
             </div>
+            <% if (!applicationOpen) { %>
+                <div class="notice-box">The application deadline has passed. New applications and resume updates are no longer available.</div>
+            <% } %>
         <% } else { %>
             <div class="detail-box">
                 <div class="value">Course information is unavailable.</div>
