@@ -127,12 +127,19 @@
         <div class="desc-text">Welcome to the Admin management system!</div>
 
         <div class="btn-group">
-            <a href="<%= response.encodeURL("AdminController?action=candidate_management") %>" class="action-btn">Candidate Management</a>
-            
-            <form action="<%= response.encodeURL("logout") %>" method="post" style="width: 80%; display: flex; justify-content: center; margin-top: 20px;">
-                <button type="submit" style="background:none; border:none; color: #3b5998; text-decoration: underline; cursor: pointer; font-size: 1.1em;">Log out</button>
-            </form>
+            <a href="<%= response.encodeURL("AdminController?action=candidate_management") %>" class="action-btn">
+                Candidate Management
+            </a>
+
+            <a href="<%= response.encodeURL("AdminController?action=set_deadline") %>" class="action-btn">
+                Set Deadline
+            </a>
+
+            <a href="<%= response.encodeURL("AdminController?action=logout") %>" class="action-btn">
+                Log out
+            </a>
         </div>
+
     </div>
 
 </body>
