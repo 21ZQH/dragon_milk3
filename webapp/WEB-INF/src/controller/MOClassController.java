@@ -189,14 +189,18 @@ public class MOClassController extends HttpServlet {
 
     private void show_review_candidates(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        Course course = getCourseForReview(request);
-        if (course == null) {
-            response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");
+        List<Course> courseList = getCurrentMoCourseList(request);
+        if (courseList.isEmpty()) {
+            request.setAttribute("courseList", courseList);
+            request.getRequestDispatcher("/WEB-INF/views/mo/review.jsp").forward(request, response);
             return;
         }
 
+        int courseIndex = resolveCourseIndexForReview(request, courseList);
+        Course course = courseList.get(courseIndex);
+        request.setAttribute("courseList", courseList);
         request.setAttribute("selectedCourse", course);
-        request.setAttribute("courseIndex", request.getParameter("courseIndex"));
+        request.setAttribute("courseIndex", String.valueOf(courseIndex));
         request.getRequestDispatcher("/WEB-INF/views/mo/review.jsp").forward(request, response);
     }
 
@@ -326,20 +330,28 @@ public class MOClassController extends HttpServlet {
     }
 
     private Course getCourseForReview(HttpServletRequest request) {
+        List<Course> courseList = getCurrentMoCourseList(request);
+        if (courseList.isEmpty()) {
+            return null;
+        }
+        int courseIndex = resolveCourseIndexForReview(request, courseList);
+        return courseList.get(courseIndex);
+    }
+
+    private int resolveCourseIndexForReview(HttpServletRequest request, List<Course> courseList) {
         String courseIndexParam = request.getParameter("courseIndex");
         if (courseIndexParam == null) {
-            return null;
+            return 0;
         }
 
         try {
             int courseIndex = Integer.parseInt(courseIndexParam);
-            List<Course> courseList = getCurrentMoCourseList(request);
             if (courseIndex < 0 || courseIndex >= courseList.size()) {
-                return null;
+                return 0;
             }
-            return courseList.get(courseIndex);
+            return courseIndex;
         } catch (NumberFormatException e) {
-            return null;
+            return 0;
         }
     }
 

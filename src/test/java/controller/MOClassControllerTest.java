@@ -148,6 +148,37 @@ class MOClassControllerTest {
     }
 
     @Test
+    void reviewCandidatesWithoutCourseIndexDefaultsToFirstOwnedCourse() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills",
+                "course-2,Database,TA,8 hours/week,TBD,Mark assignments,SQL");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+        mo.addOwnedCourse(new Course("course-2", "Database", "TA", "8 hours/week", "TBD", "Mark assignments", "SQL"));
+
+        when(request.getParameter("action")).thenReturn("review_candidates");
+        when(request.getParameter("courseIndex")).thenReturn(null);
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/review.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("courseIndex", "0");
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
     void saveReviewPicksStoresPickedApplicantEmailsOnCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);

@@ -71,13 +71,6 @@
             box-shadow: 0 4px 10px rgba(34,34,59,0.12);
         }
 
-        .action-links {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
         .notice {
             color: #3b5998;
             font-size: 1em;
@@ -230,14 +223,7 @@
                     ? course.getCourseName()
                     : "Project Detail" %>
         </h1>
-        <div class="action-links">
-            <% if (course != null && courseIndex != null) { %>
-                <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=review_candidates&courseIndex=" + courseIndex) %>">
-                    Review Applications
-                </a>
-            <% } %>
-            <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>">Back</a>
-        </div>
+        <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>">Back</a>
     </div>
 
     <div class="notice">// check course detail information</div>

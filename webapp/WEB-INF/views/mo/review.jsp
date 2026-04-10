@@ -2,8 +2,10 @@
 <%@ page import="model.Course" %>
 <%@ page import="model.ResumeSubmission" %>
 <%@ page import="model.TA" %>
+<%@ page import="java.util.List" %>
 <%@ page import="java.net.URLEncoder" %>
 <%
+    List<Course> courseList = (List<Course>) request.getAttribute("courseList");
     Course course = (Course) request.getAttribute("selectedCourse");
     String courseIndex = (String) request.getAttribute("courseIndex");
     boolean reviewPublished = course != null && course.isReviewPublished();
@@ -105,6 +107,49 @@
             background: #fff4df;
             border-color: #efcd80;
             color: #8a5a00;
+        }
+
+        .course-switcher {
+            margin-bottom: 20px;
+            padding: 16px;
+            border: 1px solid #d7daec;
+            border-radius: 12px;
+            background: #f7f8fc;
+        }
+
+        .course-switcher-title {
+            margin: 0 0 12px 0;
+            color: #22223b;
+            font-size: 1em;
+            font-weight: 700;
+        }
+
+        .course-switcher-list {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .course-chip {
+            display: inline-block;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 2px solid #22223b;
+            background: #fff;
+            color: #22223b;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .course-chip:hover {
+            background: #22223b;
+            color: #fff;
+        }
+
+        .course-chip.active {
+            background: #22223b;
+            color: #fff;
         }
 
         .message {
@@ -264,6 +309,24 @@
         </div>
 
         <% if (course != null) { %>
+            <div class="course-switcher">
+                <p class="course-switcher-title">Choose a course to review</p>
+                <div class="course-switcher-list">
+                    <% for (int i = 0; courseList != null && i < courseList.size(); i++) {
+                        Course reviewCourse = courseList.get(i);
+                        boolean active = courseIndex != null && courseIndex.equals(String.valueOf(i));
+                    %>
+                        <a
+                            class="course-chip <%= active ? "active" : "" %>"
+                            href="<%= response.encodeURL("MOclasscontroller?action=review_candidates&courseIndex=" + i) %>">
+                            <%= reviewCourse.getCourseName() == null || reviewCourse.getCourseName().isBlank()
+                                    ? "Untitled Course"
+                                    : reviewCourse.getCourseName() %>
+                        </a>
+                    <% } %>
+                </div>
+            </div>
+
             <div class="summary-bar">
                 <div class="summary-pill">
                     Applicants:
@@ -389,7 +452,11 @@
                 </div>
             <% } %>
         <% } else { %>
-            <div class="readonly-note">Course information is unavailable.</div>
+            <div class="readonly-note">
+                <%= courseList == null || courseList.isEmpty()
+                        ? "No course has been published yet, so there is nothing to review."
+                        : "Course information is unavailable." %>
+            </div>
         <% } %>
     </div>
 
