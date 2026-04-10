@@ -1,19 +1,25 @@
 package controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
 import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -24,12 +30,36 @@ import model.TA;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import store.UserStore;
 import org.mockito.ArgumentCaptor;
 import testsupport.StoreTestSupport;
 
 class TAClassControllerTest {
     @TempDir
     Path tempDir;
+
+    private static class CapturingServletOutputStream extends ServletOutputStream {
+        private final ByteArrayOutputStream delegate = new ByteArrayOutputStream();
+
+        @Override
+        public void write(int b) {
+            delegate.write(b);
+        }
+
+        @Override
+        public boolean isReady() {
+            return true;
+        }
+
+        @Override
+        public void setWriteListener(WriteListener writeListener) {
+            // no-op for test
+        }
+
+        byte[] toByteArray() {
+            return delegate.toByteArray();
+        }
+    }
 
     @AfterEach
     void tearDown() {
@@ -116,6 +146,21 @@ class TAClassControllerTest {
     }
 
     @Test
+    void homeActionForwardsToTaHomePage() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        when(request.getParameter("action")).thenReturn("home");
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
     void goApplySetsSelectedCourseAndForwards() throws Exception {
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -136,6 +181,37 @@ class TAClassControllerTest {
 
         verify(request).setAttribute(eq("selectedCourse"), eq(courses.get(0)));
         verify(request).setAttribute("courseIndex", "0");
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void goApplyWithExistingResumeSetsCurrentResumeAttributes() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        List<Course> courses = List.of(course);
+        TA ta = new TA("secret123", "ta@example.com");
+
+        Path resumeDirectory = tempDir.resolve("resume").resolve("course-1");
+        Files.createDirectories(resumeDirectory);
+        Files.write(resumeDirectory.resolve("ta_example.com.pdf"), "pdf".getBytes());
+        ta.addOrUpdateResume(course, resumeDirectory.toString());
+
+        when(request.getParameter("action")).thenReturn("go_apply");
+        when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("courseList")).thenReturn(courses);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("hasCurrentResume", true);
+        verify(request).setAttribute("currentResumeFileName", "ta_example.com.pdf");
         verify(dispatcher).forward(request, response);
     }
 
@@ -268,6 +344,183 @@ class TAClassControllerTest {
         assertEquals(
                 "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@" + ta.getResumeDirectoryForCourse("course-1"),
                 Files.readAllLines(usersFile).get(0));
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void personalCentreForwardsWithAppliedCourses() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.addClass(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+
+        when(request.getParameter("action")).thenReturn("personal_centre");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("appliedCourses", ta.getAppliedClasses());
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void viewResumeStreamsPdfInline() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        Path resumeDirectory = tempDir.resolve("resume").resolve("course-1");
+        Files.createDirectories(resumeDirectory);
+        byte[] pdfBytes = "%PDF-test".getBytes();
+        Files.write(resumeDirectory.resolve("ta_example.com.pdf"), pdfBytes);
+        ta.addOrUpdateResume(course, resumeDirectory.toString());
+
+        CapturingServletOutputStream outputStream = new CapturingServletOutputStream();
+
+        when(request.getParameter("action")).thenReturn("view_resume");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getParameter("download")).thenReturn(null);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(response.getOutputStream()).thenReturn(outputStream);
+
+        controller.doGet(request, response);
+
+        verify(response).setContentType("application/pdf");
+        verify(response).setHeader("Content-Disposition", "inline; filename=\"ta_example.com.pdf\"");
+        assertArrayEquals(pdfBytes, outputStream.toByteArray());
+    }
+
+    @Test
+    void viewResumeStreamsPdfAsAttachmentWhenDownloadTrue() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        Path resumeDirectory = tempDir.resolve("resume").resolve("course-1");
+        Files.createDirectories(resumeDirectory);
+        Files.write(resumeDirectory.resolve("ta_example.com.pdf"), "pdf".getBytes());
+        ta.addOrUpdateResume(course, resumeDirectory.toString());
+
+        CapturingServletOutputStream outputStream = new CapturingServletOutputStream();
+
+        when(request.getParameter("action")).thenReturn("view_resume");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getParameter("download")).thenReturn("true");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(response.getOutputStream()).thenReturn(outputStream);
+
+        controller.doGet(request, response);
+
+        verify(response).setHeader("Content-Disposition", "attachment; filename=\"ta_example.com.pdf\"");
+    }
+
+    @Test
+    void goApplyByIdResolvesCourseIndexAndForwardsToApplication() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        List<Course> courses = List.of(
+                new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"),
+                new Course("course-2", "Java Programming", "TA", "8 hours/week", "TBD", "Mark labs", "Java basics"));
+
+        when(request.getParameter("action")).thenReturn("go_apply_by_id");
+        when(request.getParameter("courseId")).thenReturn("course-2");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("courseList")).thenReturn(courses);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute(eq("selectedCourse"), eq(courses.get(1)));
+        verify(request).setAttribute("courseIndex", "1");
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void withdrawApplicationRemovesTaAndCourseReferencesAndPersistsUserData() throws Exception {
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.setName("Alice");
+        ta.setCollege("School of Software");
+        ta.setSkill("Java");
+        ta.addOrUpdateResume(course, "D:\\resume\\course-1");
+        course.addApplication(ta, "D:\\resume\\course-1");
+        UserStore.saveUser(ta);
+
+        when(request.getParameter("action")).thenReturn("withdraw_application");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(session.getAttribute("courseList")).thenReturn(List.of(course));
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        assertEquals(0, ta.getAppliedClasses().size());
+        assertEquals(0, ta.getResumeSubmissions().size());
+        assertNull(ta.getResumeDirectoryForCourse("course-1"));
+        assertEquals(0, course.getTaApplicants().size());
+        assertEquals(0, course.getApplicantResumes().size());
+        assertEquals("Alice,secret123,TA,ta@example.com,School of Software,Java,,", Files.readAllLines(usersFile).get(0));
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void withdrawApplicationDeletesStoredResumeFileFromDisk() throws Exception {
+        StoreTestSupport.useUserStore(tempDir);
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        Path resumeDirectory = tempDir.resolve("resume").resolve("course-1");
+        Files.createDirectories(resumeDirectory);
+        Path resumeFile = resumeDirectory.resolve("ta_example.com.pdf");
+        Files.write(resumeFile, "pdf".getBytes());
+
+        ta.addOrUpdateResume(course, resumeDirectory.toString());
+        course.addApplication(ta, resumeDirectory.toString());
+
+        when(request.getParameter("action")).thenReturn("withdraw_application");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(session.getAttribute("courseList")).thenReturn(List.of(course));
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        assertFalse(Files.exists(resumeFile));
+        verify(request).setAttribute("success", "Application withdrawn successfully.");
         verify(dispatcher).forward(request, response);
     }
 }

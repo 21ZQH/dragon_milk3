@@ -106,6 +106,22 @@ public class Course {
         applicantResumes.add(resumeDirectory);
     }
 
+    public void removeApplicationByTaEmail(String taEmail) {
+        if (taEmail == null || taEmail.isBlank()) {
+            return;
+        }
+
+        for (int i = taApplicants.size() - 1; i >= 0; i--) {
+            TA applicant = taApplicants.get(i);
+            if (applicant != null && Objects.equals(taEmail, applicant.getEmail())) {
+                taApplicants.remove(i);
+                if (i < applicantResumes.size()) {
+                    applicantResumes.remove(i);
+                }
+            }
+        }
+    }
+
     @Override
     public boolean equals(Object other) {
         if (this == other) {

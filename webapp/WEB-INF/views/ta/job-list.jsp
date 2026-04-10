@@ -80,6 +80,20 @@
             text-align: center;
             margin-top: 20px;
         }
+        .back-inline {
+            display: inline-block;
+            padding: 8px 18px;
+            border-radius: 6px;
+            background: #e9ecf5;
+            color: #2d3651;
+            text-decoration: none;
+            font-weight: bold;
+            border: 1px solid #d1d5db;
+            margin-right: 12px;
+        }
+        .back-inline:hover {
+            background: #d1d5db;
+        }
         .pagination a, .pagination span {
             display: inline-block;
             margin: 0 8px;
@@ -131,6 +145,7 @@
             %>
         </div>
         <div class="pagination">
+            <a class="back-inline" href="<%= response.encodeURL("TAclasscontroller?action=home") %>">Back</a>
             <% if (page_1 > 1) { %>
                 <a href="<%= response.encodeURL("TAclasscontroller?action=view_information&page=" + (page_1 - 1)) %>">&laquo; Prev</a>
             <% } %>

@@ -1,6 +1,7 @@
 package model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 
@@ -29,5 +30,18 @@ class TATest {
         assertEquals(1, ta.getAppliedClasses().size());
         assertEquals(1, ta.getResumeSubmissions().size());
         assertEquals("D:\\resume\\new", ta.getResumeDirectoryForCourse("course-1"));
+    }
+
+    @Test
+    void withdrawApplicationRemovesCourseAndResumeSubmission() {
+        TA ta = new TA("secret123", "ta@example.com");
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+
+        ta.addOrUpdateResume(course, "D:\\resume\\course-1");
+        ta.withdrawApplication("course-1");
+
+        assertEquals(0, ta.getAppliedClasses().size());
+        assertEquals(0, ta.getResumeSubmissions().size());
+        assertNull(ta.getResumeDirectoryForCourse("course-1"));
     }
 }
