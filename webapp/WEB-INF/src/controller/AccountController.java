@@ -107,9 +107,7 @@ public class AccountController extends HttpServlet {
             throws ServletException, IOException {
         if ("Mo".equalsIgnoreCase(role)) {
             request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
-        }else if ("Admin".equalsIgnoreCase(role)) {
-            request.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp").forward(request, response);
-        }else {
+        } else {
             request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
         }
     }

@@ -1,7 +1,0 @@
-Molly,mo123,Mo,molly.mo@example.com,course-mo-001|course-mo-003
-Brian,mo123,Mo,brian.mo@example.com,course-mo-002|course-mo-004
-Alice,ta123,TA,alice.ta@example.com,School of Software,Java,course-mo-001,
-David,ta123,TA,david.ta@example.com,School of Computer Science,C++,course-mo-002,
-Emma,ta123,TA,emma.ta@example.com,School of Information,SQL,course-mo-003,
-Frank,ta123,TA,frank.ta@example.com,School of Cyberspace,Networking,course-mo-004,
-Admin,admin123,Admin,admin@example.com

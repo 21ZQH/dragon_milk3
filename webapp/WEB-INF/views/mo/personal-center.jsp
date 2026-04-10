@@ -1,6 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%
-    // 获取当前登录用户，以便动态显示姓各1�7
+    // 获取当前登录用户，以便动态显示姓名
     model.User currentUser = (model.User) session.getAttribute("user");
     String username = "Guest";
     if (currentUser != null && currentUser.getName() != null && !currentUser.getName().trim().isEmpty()) {
@@ -12,7 +12,7 @@
 <head>
     <title>Personal Centre</title>
     <style>
-        /* 页面基础背景和居中排牄1�7 */
+        /* 页面基础背景和居中排版 */
         body {
             background: #f7f7f9;
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -24,7 +24,7 @@
             min-height: 100vh;
         }
 
-        /* 主容器白杄1�7 */
+        /* 主容器白板 */
         .container {
             background: #fff;
             width: 100%;
@@ -36,7 +36,7 @@
             box-sizing: border-box;
         }
 
-        /* 顶部标题栄1�7 */
+        /* 顶部标题栏 */
         .page-title {
             font-size: 2.2em;
             font-weight: 700;
@@ -67,15 +67,15 @@
         /* 纵向排列的按钮组容器 */
         .btn-group {
             display: flex;
-            flex-direction: column; /* 规定子元素纵向排刄1�7 */
+            flex-direction: column; /* 规定子元素纵向排列 */
             align-items: center;    /* 居中对齐 */
-            gap: 25px;              /* 按钮之间的垂直间跄1�7 */
+            gap: 25px;              /* 按钮之间的垂直间距 */
         }
 
-        /* 纵向大按钮样弄1�7 */
+        /* 纵向大按钮样式 */
         .action-btn {
             display: block;
-            width: 80%; /* 按钮宽度占据容器的1�7 80%，显得非常大氄1�7 */
+            width: 80%; /* 按钮宽度占据容器的 80%，显得非常大气 */
             padding: 20px 0;
             font-size: 1.5em;
             font-weight: 700;
@@ -89,7 +89,7 @@
             box-shadow: 0 2px 8px rgba(34,34,59,0.05);
         }
 
-        /* 悬浮时的反色和上浮效构1�7 */
+        /* 悬浮时的反色和上浮效果 */
         .action-btn:hover {
             background: #22223b;
             color: #fff;
@@ -111,9 +111,9 @@
             
             <a href="#" class="action-btn">Edit personal information</a>
 
-            <a href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>" class="action-btn">My project</a>
+            <a href="#" class="action-btn">My project</a>
 
-            <a href="<%= response.encodeURL("MOclasscontroller?action=review_candidates") %>" class="action-btn">Review</a>
+            <a href="#" class="action-btn">Review</a>
 
         </div>
 

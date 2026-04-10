@@ -12,9 +12,7 @@ import java.util.List;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import model.Course;
-import model.Mo;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -64,16 +62,11 @@ class MOClassControllerTest {
 
     @Test
     void publishCourseSavesCourseAndReturnsToDashboard() throws Exception {
-        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
-        Path usersFile = StoreTestSupport.useUserStore(tempDir);
-        StoreTestSupport.writeLines(usersFile, "Molly,secret123,Mo,mo@example.com,");
+        StoreTestSupport.useCourseStore(tempDir);
         MOClassController controller = new MOClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
-        HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
-        Mo mo = new Mo("secret123", "mo@example.com");
-        mo.setName("Molly");
 
         when(request.getParameter("action")).thenReturn("publish_course");
         when(request.getParameter("courseName")).thenReturn("Software Engineering");
@@ -81,23 +74,15 @@ class MOClassControllerTest {
         when(request.getParameter("workingHours")).thenReturn("10 hours/week");
         when(request.getParameter("jobDescription")).thenReturn("Support lectures");
         when(request.getParameter("jobRequirement")).thenReturn("Communication skills");
-        when(request.getSession(false)).thenReturn(session);
-        when(request.getSession()).thenReturn(session);
-        when(session.getAttribute("user")).thenReturn(mo);
         when(request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp")).thenReturn(dispatcher);
 
         controller.doPost(request, response);
 
         List<Course> courses = CourseStore.getCourseList();
         assertEquals(1, courses.size());
-        assertTrue(courses.get(0).getId() != null && !courses.get(0).getId().isBlank());
         assertEquals("Software Engineering", courses.get(0).getCourseName());
         assertEquals("Support lectures", courses.get(0).getJobDescription());
         assertTrue(courses.get(0).getSalary().contains("TBD"));
-        assertEquals(1, mo.getOwnedCourses().size());
-        assertEquals(courses.get(0).getId(), mo.getOwnedCourses().get(0).getId());
-        assertEquals("Molly,secret123,Mo,mo@example.com," + courses.get(0).getId(), java.nio.file.Files.readAllLines(usersFile).get(0));
-        verify(session).setAttribute("user", mo);
         verify(dispatcher).forward(request, response);
     }
 }

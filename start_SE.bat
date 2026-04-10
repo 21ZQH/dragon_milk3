@@ -3,10 +3,9 @@ setlocal
 
 set "SCRIPT_DIR=%~dp0"
 set "SOURCE_WEBAPP=%SCRIPT_DIR%webapp"
-set "TOMCAT_HOME=C:\Program Files (x86)\apache-tomcat-9.0.112"
-set "TARGET_DIR=%TOMCAT_HOME%\webapps\SE"
+set "TARGET_DIR=G:\Tomcat\webapps\SE"
 set "BACKUP_DIR=%TEMP%\SE_file_backup"
-set "TOMCAT_STARTUP=%TOMCAT_HOME%\bin\startup.bat"
+set "TOMCAT_EXE=G:\Tomcat\bin\Tomcat11.exe"
 
 echo [1/5] Backing up runtime data...
 if exist "%BACKUP_DIR%" rmdir /s /q "%BACKUP_DIR%"
@@ -29,26 +28,23 @@ if exist "%BACKUP_DIR%" (
 )
 if not exist "%TARGET_DIR%\WEB-INF\file\users.txt" type nul > "%TARGET_DIR%\WEB-INF\file\users.txt"
 if not exist "%TARGET_DIR%\WEB-INF\file\courses.txt" type nul > "%TARGET_DIR%\WEB-INF\file\courses.txt"
-if exist "%SOURCE_WEBAPP%\WEB-INF\file\candidates.txt" (
-    copy /Y "%SOURCE_WEBAPP%\WEB-INF\file\candidates.txt" "%TARGET_DIR%\WEB-INF\file\candidates.txt" >nul
-)
 
 echo [4/5] Compiling Java sources...
 pushd "%TARGET_DIR%\WEB-INF"
-call "..\command2.bat"
+call command2.bat
 if errorlevel 1 goto :compile_failed
 popd
 
 echo [5/5] Starting Tomcat...
-if not exist "%TOMCAT_STARTUP%" goto :tomcat_start_failed
-set "CATALINA_HOME=%TOMCAT_HOME%"
-set "CATALINA_BASE=%TOMCAT_HOME%"
-call "%TOMCAT_STARTUP%"
-if errorlevel 1 goto :tomcat_start_failed
-echo Tomcat startup script executed.
+tasklist /FI "IMAGENAME eq Tomcat11.exe" | find /I "Tomcat11.exe" >nul
+if errorlevel 1 (
+    start "" "%TOMCAT_EXE%"
+    echo Tomcat11.exe started.
+) else (
+    echo Tomcat11.exe is already running.
+)
 
 echo Deployment finished.
-echo Open: http://localhost:8081/SE/start.html
 exit /b 0
 
 :copy_failed
@@ -58,8 +54,4 @@ exit /b 1
 :compile_failed
 popd
 echo Compilation failed.
-exit /b 1
-
-:tomcat_start_failed
-echo Tomcat start failed. Please check %TOMCAT_STARTUP%.
 exit /b 1

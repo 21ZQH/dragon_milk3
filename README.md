@@ -36,8 +36,7 @@ This project is a JSP/Servlet-based prototype for a Teaching Assistant Recruitme
 # Group Name-List
 
 - Github ID: qrsikno2       QMID: 190898878 (Support TA)
-- Github ID: ZQH-21         QMID: 231222442 (Lead)(now currently be suspended, creating 21ZQH)
-- Github ID: 21ZQH          QMID: 231222442(Lead)
+- Github ID: ZQH-21         QMID: 231222442 (Lead)
 - Github ID: Aether0623     QMID: 231220839 (Member)
 - Github ID: DLZDC          QMID: 231220046(Member)
 - Github ID: Anoyo36        QMID: 231220596(Member)

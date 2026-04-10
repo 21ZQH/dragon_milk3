@@ -84,10 +84,13 @@
 </head>
 <body>
     <div class="main-box">
-        <div class="title">Course Information</div>
+        <div class="title">Specific Class Information</div>
         <% if (success != null) { %>
             <div class="success-box"><%= success %></div>
-        <% } %>
+        <% } %>\
+
+
+        
         <% if (course != null) { %>
             <div class="detail-box">
                 <div class="label">Course Name</div>
@@ -107,7 +110,6 @@
             </div>
             <div class="button-row">
                 <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Back to List</a>
-                <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply&courseIndex=" + courseIndex) %>">Go Apply</a>
             </div>
         <% } else { %>
             <div class="detail-box">

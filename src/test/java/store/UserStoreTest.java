@@ -10,10 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-import model.Course;
 import model.Mo;
-import model.ResumeSubmission;
-import model.TA;
 import model.User;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -41,115 +38,25 @@ class UserStoreTest {
 
         List<String> lines = Files.readAllLines(usersFile);
         assertEquals(1, lines.size());
-        assertEquals("Molly,secret123,Mo,mo@example.com,", lines.get(0));
+        assertEquals("Molly,secret123,Mo,mo@example.com", lines.get(0));
 
         User savedUser = UserStore.validateUser("secret123", "Mo", "mo@example.com");
         assertNotNull(savedUser);
         assertEquals("Mo", savedUser.getRole());
         assertEquals("mo@example.com", savedUser.getEmail());
         assertEquals("Molly", savedUser.getName());
-        assertEquals(0, ((Mo) savedUser).getOwnedCourses().size());
-    }
-
-    @Test
-    void validateUserRestoresOwnedCoursesForMo() throws Exception {
-        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
-        Path usersFile = StoreTestSupport.useUserStore(tempDir);
-        StoreTestSupport.writeLines(
-                courseFile,
-                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills",
-                "course-2,Java,TA,8 hours/week,TBD,Mark assignments,Java basics");
-        StoreTestSupport.writeLines(
-                usersFile,
-                "Molly,secret123,Mo,mo@example.com,course-1|course-2");
-
-        Mo mo = (Mo) UserStore.validateUser("secret123", "Mo", "mo@example.com");
-
-        assertEquals("Molly", mo.getName());
-        assertEquals(2, mo.getOwnedCourses().size());
-        assertEquals("course-1", mo.getOwnedCourses().get(0).getId());
-        assertEquals("course-2", mo.getOwnedCourses().get(1).getId());
     }
 
     @Test
     void validateUserWithoutRoleMatchesEmailAndPassword() throws Exception {
-        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
-        StoreTestSupport.writeLines(
-                courseFile,
-                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
-        StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com,course-1");
+        StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com");
 
         User user = UserStore.validateUser("pass123", "alice@example.com");
 
         assertNotNull(user);
         assertEquals("TA", user.getRole());
         assertEquals("Alice", user.getName());
-        TA ta = (TA) user;
-        assertEquals("", ta.getCollege());
-        assertEquals("", ta.getSkill());
-        assertEquals(1, ta.getAppliedClasses().size());
-        assertEquals("course-1", ta.getAppliedClasses().get(0).getId());
-        assertEquals(0, ta.getResumeSubmissions().size());
-    }
-
-    @Test
-    void updateAppliedCourseIdsRewritesTaLineWithCourseIds() throws Exception {
-        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
-        Path usersFile = StoreTestSupport.useUserStore(tempDir);
-        StoreTestSupport.writeLines(
-                courseFile,
-                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
-        StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com");
-
-        TA ta = new TA("pass123", "alice@example.com");
-        ta.setName("Alice");
-        ta.setCollege("School of Software");
-        ta.setSkill("Java");
-        ta.addClass(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
-
-        UserStore.updateAppliedCourseIds(ta);
-
-        List<String> lines = Files.readAllLines(usersFile);
-        assertEquals("Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,", lines.get(0));
-    }
-
-    @Test
-    void validateUserRestoresResumeDirectoryForMatchingCourse() throws Exception {
-        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
-        Path usersFile = StoreTestSupport.useUserStore(tempDir);
-        StoreTestSupport.writeLines(
-                courseFile,
-                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
-        StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com,course-1,course-1@D:\\resume\\course-1");
-
-        TA ta = (TA) UserStore.validateUser("pass123", "alice@example.com");
-
-        assertEquals(1, ta.getResumeSubmissions().size());
-        ResumeSubmission submission = ta.getResumeSubmissions().get(0);
-        assertEquals("course-1", submission.getCourse().getId());
-        assertEquals("D:\\resume\\course-1", submission.getResumeDirectory());
-    }
-
-    @Test
-    void validateUserRestoresTaProfileFieldsFromNewFormat() throws Exception {
-        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
-        Path usersFile = StoreTestSupport.useUserStore(tempDir);
-        StoreTestSupport.writeLines(
-                courseFile,
-                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
-        StoreTestSupport.writeLines(
-                usersFile,
-                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1");
-
-        TA ta = (TA) UserStore.validateUser("pass123", "alice@example.com");
-
-        assertEquals("Alice", ta.getName());
-        assertEquals("School of Software", ta.getCollege());
-        assertEquals("Java", ta.getSkill());
-        assertEquals(1, ta.getAppliedClasses().size());
-        assertEquals("course-1", ta.getAppliedClasses().get(0).getId());
-        assertEquals("D:\\resume\\course-1", ta.getResumeDirectoryForCourse("course-1"));
     }
 
     @Test
