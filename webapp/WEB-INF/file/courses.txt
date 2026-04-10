@@ -1,0 +1,4 @@
+course-mo-001,Software Engineering,TA,10 hours/week,TBD,Support lectures and lab sessions,Java and teamwork
+course-mo-002,Data Structures,TA,8 hours/week,TBD,Help with marking and office hours,C++ or Java basics
+course-mo-003,Database Systems,TA,6 hours/week,TBD,Support SQL labs and tutorials,SQL fundamentals
+course-mo-004,Computer Networks,TA,8 hours/week,TBD,Assist networking labs and Q&A,Networking basics
