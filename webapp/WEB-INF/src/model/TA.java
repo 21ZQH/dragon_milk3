@@ -1,7 +1,9 @@
 package model;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 public class TA extends User {
     private String role = "TA";
@@ -99,5 +101,22 @@ public class TA extends User {
             }
         }
         return null;
+    }
+
+    public void withdrawApplication(String courseId) {
+        if (courseId == null || courseId.isBlank()) {
+            return;
+        }
+
+        appliedClasses.removeIf(course -> course != null && Objects.equals(course.getId(), courseId));
+
+        Iterator<ResumeSubmission> iterator = resumeSubmissions.iterator();
+        while (iterator.hasNext()) {
+            ResumeSubmission submission = iterator.next();
+            Course course = submission.getCourse();
+            if (course != null && Objects.equals(course.getId(), courseId)) {
+                iterator.remove();
+            }
+        }
     }
 }
