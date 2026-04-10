@@ -95,4 +95,21 @@ class CourseStoreTest {
         assertNotNull(applicant.getResumeDirectoryForCourse("course-1"));
         assertEquals("D:\\resume\\course-1", applicant.getResumeDirectoryForCourse("course-1"));
     }
+
+    @Test
+    void loadCourseListRestoresReviewSelectionMetadata() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Java,TA,8 hours/week,TBD,Mark assignments,Java basics,alice@example.com|bob@example.com,true");
+
+        List<Course> courses = CourseStore.getCourseList();
+
+        assertEquals(1, courses.size());
+        Course course = courses.get(0);
+        assertTrue(course.isReviewPublished());
+        assertEquals(2, course.getPickedApplicantEmails().size());
+        assertTrue(course.isApplicantPicked("alice@example.com"));
+        assertTrue(course.isApplicantPicked("bob@example.com"));
+    }
 }

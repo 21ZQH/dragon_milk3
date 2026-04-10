@@ -113,7 +113,7 @@
 
             <a href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>" class="action-btn">My project</a>
 
-            <a href="<%= response.encodeURL("MOclasscontroller?action=review_candidates") %>" class="action-btn">Review</a>
+            <a href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>" class="action-btn">Review</a>
 
         </div>
 

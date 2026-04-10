@@ -1,13 +1,19 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="java.util.List" %>
-<%@ page import="model.Candidate" %>
+<%@ page import="model.Course" %>
+<%@ page import="model.ResumeSubmission" %>
+<%@ page import="model.TA" %>
+<%@ page import="java.net.URLEncoder" %>
 <%
-    List<Candidate> candidateList = (List<Candidate>) request.getAttribute("candidateList");
+    Course course = (Course) request.getAttribute("selectedCourse");
+    String courseIndex = (String) request.getAttribute("courseIndex");
+    boolean reviewPublished = course != null && course.isReviewPublished();
+    String saved = request.getParameter("saved");
+    String published = request.getParameter("published");
 %>
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Review Candidates</title>
+    <title>Review Applications</title>
     <style>
         body {
             background: #f7f7f9;
@@ -17,7 +23,7 @@
         }
 
         .container {
-            max-width: 980px;
+            max-width: 1180px;
             margin: 0 auto;
             background: #fff;
             border: 2px solid #22223b;
@@ -27,68 +33,101 @@
             box-sizing: border-box;
         }
 
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
         .title {
             margin: 0;
             font-size: 2em;
             color: #22223b;
         }
 
-        .toolbar {
-            margin-top: 20px;
-            margin-bottom: 18px;
+        .subtitle {
+            margin: 8px 0 0 0;
+            color: #3b5998;
+            font-size: 1em;
+        }
+
+        .top-links {
             display: flex;
-            align-items: flex-start;
             gap: 10px;
             flex-wrap: wrap;
         }
 
-        .toolbar label {
-            font-weight: 600;
-            color: #22223b;
-        }
-
-        .toolbar select {
-            border: 2px solid #22223b;
-            border-radius: 8px;
-            padding: 6px 10px;
-            font-size: 0.95em;
-            background: #fff;
-        }
-
         .back-link {
             text-decoration: none;
-            color: #3b5998;
+            color: #22223b;
+            font-weight: 600;
+            border: 2px solid #22223b;
+            padding: 10px 16px;
+            border-radius: 10px;
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+
+        .back-link:hover {
+            background: #22223b;
+            color: #fff;
+        }
+
+        .summary-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .summary-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            border: 1px solid #d5d7ea;
+            background: #f4f5fb;
+            color: #22223b;
             font-weight: 600;
         }
 
-        .toolbar-right {
-            margin-left: auto;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 8px;
+        .summary-pill.published {
+            background: #e8f7ec;
+            border-color: #95d3a8;
+            color: #1d6b2a;
         }
 
-        .picked-counter {
-            font-size: 0.95em;
-            font-weight: 700;
-            color: #22223b;
-            background: #f2f3fb;
-            border: 1px solid #d8daf0;
-            border-radius: 8px;
-            padding: 6px 10px;
+        .summary-pill.pending {
+            background: #fff4df;
+            border-color: #efcd80;
+            color: #8a5a00;
         }
 
-        .picked-counter span {
-            display: inline-block;
-            min-width: 20px;
-            text-align: center;
-            text-decoration: none;
+        .message {
+            margin-bottom: 18px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-weight: 600;
+        }
+
+        .message.saved {
+            background: #eef4ff;
+            color: #1c4f9b;
+            border: 1px solid #b8cff5;
+        }
+
+        .message.published {
+            background: #eaf8ec;
+            color: #1d6b2a;
+            border: 1px solid #9dd3a5;
         }
 
         .table-wrap {
-            max-height: 320px;
-            overflow-y: auto;
+            overflow-x: auto;
             border: 1px solid #d9d9e3;
             border-radius: 10px;
         }
@@ -117,26 +156,59 @@
         }
 
         .pick-cell {
-            text-align: center;
             width: 70px;
+            text-align: center;
+        }
+
+        .resume-link {
+            color: #2f5aa8;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .resume-link:hover {
+            text-decoration: underline;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 10px;
+            border-radius: 999px;
+            font-size: 0.9em;
+            font-weight: 700;
+        }
+
+        .status-pending {
+            background: #fff4df;
+            color: #8a5a00;
+        }
+
+        .status-approved {
+            background: #e8f7ec;
+            color: #1d6b2a;
+        }
+
+        .status-rejected {
+            background: #fdecec;
+            color: #9c2020;
         }
 
         .empty {
             color: #666;
             text-align: center;
-            padding: 16px;
+            padding: 18px;
         }
 
         .actions {
-            margin-top: 16px;
+            margin-top: 18px;
             display: flex;
-            justify-content: center;
+            justify-content: flex-end;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
-        .save-btn {
-            border: 2px solid #22223b;
-            background: #22223b;
-            color: #fff;
+        .primary-btn,
+        .secondary-btn {
             border-radius: 10px;
             padding: 10px 18px;
             font-size: 0.95em;
@@ -144,240 +216,222 @@
             cursor: pointer;
         }
 
-        .save-btn:hover {
+        .secondary-btn {
+            border: 2px solid #22223b;
+            background: #fff;
+            color: #22223b;
+        }
+
+        .primary-btn {
+            border: 2px solid #22223b;
+            background: #22223b;
+            color: #fff;
+        }
+
+        .secondary-btn:hover {
+            background: #f1f2f9;
+        }
+
+        .primary-btn:hover {
             background: #30325f;
             border-color: #30325f;
         }
 
-        .confirm-mask {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.45);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-        }
-
-        .confirm-dialog {
-            width: min(92vw, 430px);
-            background: #fff;
-            border-radius: 12px;
-            border: 2px solid #22223b;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.22);
-            padding: 18px;
-            box-sizing: border-box;
-        }
-
-        .confirm-title {
-            margin: 0 0 8px 0;
-            color: #22223b;
-            font-size: 1.1em;
-            font-weight: 700;
-        }
-
-        .confirm-text {
-            margin: 0;
+        .readonly-note {
+            margin-top: 18px;
+            padding: 14px 16px;
+            border-radius: 10px;
+            background: #f6f7fb;
+            border: 1px solid #d7daec;
             color: #333;
-            line-height: 1.55;
-        }
-
-        .confirm-actions {
-            margin-top: 14px;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-
-        .dialog-btn {
-            border: 2px solid #22223b;
-            border-radius: 8px;
-            padding: 7px 14px;
-            font-weight: 700;
-            cursor: pointer;
-            background: #fff;
-            color: #22223b;
-        }
-
-        .dialog-btn.primary {
-            background: #22223b;
-            color: #fff;
+            line-height: 1.6;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1 class="title">Review</h1>
-
-        <div class="toolbar">
-            <label for="filterMode">Show:</label>
-            <select id="filterMode">
-                <option value="all">All candidates</option>
-                <option value="picked">Picked candidates</option>
-            </select>
-            <div class="toolbar-right">
-                <a id="backLink" class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=personal_center") %>">Back to Personal Centre</a>
-                <div class="picked-counter">Picked: <span id="pickedCount">0</span></div>
+        <div class="top-bar">
+            <div>
+                <h1 class="title">Review Applications</h1>
+                <p class="subtitle">
+                    <%= course == null ? "Course not found." : ("Course: " + course.getCourseName()) %>
+                </p>
+            </div>
+            <div class="top-links">
+                <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=project_detail&courseIndex=" + (courseIndex == null ? "" : courseIndex)) %>">Back to Project</a>
+                <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>">My Project</a>
             </div>
         </div>
 
-        <form id="reviewForm" method="post" action="<%= response.encodeURL("MOclasscontroller") %>">
-            <input type="hidden" name="action" value="save_review_picks" />
-            <input type="hidden" id="returnToField" name="returnTo" value="review" />
+        <% if (course != null) { %>
+            <div class="summary-bar">
+                <div class="summary-pill">
+                    Applicants:
+                    <span><%= course.getTaApplicants().size() %></span>
+                </div>
+                <div class="summary-pill">
+                    Picked:
+                    <span id="pickedCount"><%= course.getPickedApplicantEmails().size() %></span>
+                </div>
+                <div class="summary-pill <%= reviewPublished ? "published" : "pending" %>">
+                    <%= reviewPublished ? "Published" : "Pending Review" %>
+                </div>
+            </div>
+
+            <% if ("1".equals(saved)) { %>
+                <div class="message saved">Pick selections saved successfully.</div>
+            <% } %>
+            <% if ("1".equals(published)) { %>
+                <div class="message published">Review has been published. This page is now read-only.</div>
+            <% } %>
 
             <div class="table-wrap">
-                <table id="candidateTable">
+                <table>
                     <thead>
                         <tr>
                             <th class="pick-cell">Pick</th>
                             <th>Name</th>
-                            <th>Education</th>
-                            <th>Other Information</th>
+                            <th>Email</th>
+                            <th>College</th>
+                            <th>Skill</th>
+                            <th>Resume</th>
+                            <th>Status</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <% if (candidateList == null || candidateList.isEmpty()) { %>
+                        <%
+                            boolean hasVisibleApplicant = false;
+                            for (int i = 0; i < course.getTaApplicants().size(); i++) {
+                                TA applicant = course.getTaApplicants().get(i);
+                                if (applicant == null) {
+                                    continue;
+                                }
+                                boolean picked = course.isApplicantPicked(applicant.getEmail());
+                                if (reviewPublished && !picked) {
+                                    continue;
+                                }
+                                hasVisibleApplicant = true;
+                                Integer status = applicant.getResumeStatusForCourse(course.getId());
+                                int statusValue = status == null ? ResumeSubmission.STATUS_PENDING : status.intValue();
+                                String statusLabel = statusValue == ResumeSubmission.STATUS_APPROVED
+                                        ? "Approved"
+                                        : statusValue == ResumeSubmission.STATUS_REJECTED ? "Rejected" : "Pending";
+                                String statusClass = statusValue == ResumeSubmission.STATUS_APPROVED
+                                        ? "status-approved"
+                                        : statusValue == ResumeSubmission.STATUS_REJECTED ? "status-rejected" : "status-pending";
+                        %>
                         <tr>
-                            <td colspan="4" class="empty">No candidate data found.</td>
-                        </tr>
-                        <% } else { %>
-                            <% for (int i = 0; i < candidateList.size(); i++) { %>
-                            <% Candidate candidate = candidateList.get(i); %>
-                            <tr data-picked="<%= candidate.isPicked() %>">
-                                <td class="pick-cell">
+                            <td class="pick-cell">
+                                <% if (reviewPublished) { %>
+                                    <input type="checkbox" checked disabled />
+                                <% } else { %>
                                     <input
                                         type="checkbox"
                                         class="pick-checkbox"
-                                        name="pickedIndex"
-                                        value="<%= i %>"
-                                        <%= candidate.isPicked() ? "checked" : "" %>
-                                    />
-                                </td>
-                                <td><%= candidate.getName() %></td>
-                                <td><%= candidate.getEducation() %></td>
-                                <td><%= candidate.getDetails() %></td>
-                            </tr>
-                            <% } %>
+                                        name="pickedEmail"
+                                        value="<%= applicant.getEmail() == null ? "" : applicant.getEmail() %>"
+                                        form="saveReviewForm"
+                                        <%= picked ? "checked" : "" %> />
+                                <% } %>
+                            </td>
+                            <td><%= applicant.getName() == null || applicant.getName().isBlank() ? "Unnamed TA" : applicant.getName() %></td>
+                            <td><%= applicant.getEmail() == null ? "" : applicant.getEmail() %></td>
+                            <td><%= applicant.getCollege() == null || applicant.getCollege().isBlank() ? "-" : applicant.getCollege() %></td>
+                            <td><%= applicant.getSkill() == null || applicant.getSkill().isBlank() ? "-" : applicant.getSkill() %></td>
+                            <td>
+                                <% if (applicant.getResumeDirectoryForCourse(course.getId()) != null
+                                        && !applicant.getResumeDirectoryForCourse(course.getId()).isBlank()
+                                        && applicant.getEmail() != null
+                                        && !applicant.getEmail().isBlank()) { %>
+                                    <a
+                                        class="resume-link"
+                                        href="<%= response.encodeURL("MOclasscontroller?action=view_resume&courseIndex="
+                                                + courseIndex + "&applicantEmail="
+                                                + URLEncoder.encode(applicant.getEmail(), "UTF-8")) %>"
+                                        target="_blank">
+                                        Open Resume
+                                    </a>
+                                <% } else { %>
+                                    -
+                                <% } %>
+                            </td>
+                            <td><span class="status-badge <%= statusClass %>"><%= statusLabel %></span></td>
+                        </tr>
+                        <% } %>
+                        <% if (!hasVisibleApplicant) { %>
+                        <tr>
+                            <td colspan="7" class="empty">
+                                <%= reviewPublished ? "No picked applicant has been published for this course." : "No applicant data found for this course." %>
+                            </td>
+                        </tr>
                         <% } %>
                     </tbody>
                 </table>
             </div>
 
-            <div class="actions">
-                <button id="saveButton" type="submit" class="save-btn">Save Changes</button>
-            </div>
-        </form>
-    </div>
+            <% if (!reviewPublished) { %>
+                <div class="actions">
+                    <form id="saveReviewForm" method="post" action="<%= response.encodeURL("MOclasscontroller") %>">
+                        <input type="hidden" name="action" value="save_review_picks" />
+                        <input type="hidden" name="courseIndex" value="<%= courseIndex == null ? "" : courseIndex %>" />
+                        <button type="submit" class="secondary-btn">Save Changes</button>
+                    </form>
 
-    <div id="confirmMask" class="confirm-mask" aria-hidden="true">
-        <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
-            <h2 id="confirmTitle" class="confirm-title">Confirm</h2>
-            <p class="confirm-text">Do you want to save your pick changes?</p>
-            <div class="confirm-actions">
-                <button id="confirmYes" type="button" class="dialog-btn primary">Yes</button>
-                <button id="confirmNo" type="button" class="dialog-btn">No</button>
-            </div>
-        </div>
+                    <form id="publishReviewForm" method="post" action="<%= response.encodeURL("MOclasscontroller") %>">
+                        <input type="hidden" name="action" value="publish_review" />
+                        <input type="hidden" name="courseIndex" value="<%= courseIndex == null ? "" : courseIndex %>" />
+                        <button type="submit" class="primary-btn">Publish</button>
+                    </form>
+                </div>
+            <% } else { %>
+                <div class="readonly-note">
+                    This review has already been published. Only the accepted applicants remain visible, and the review result can no longer be edited.
+                </div>
+            <% } %>
+        <% } else { %>
+            <div class="readonly-note">Course information is unavailable.</div>
+        <% } %>
     </div>
 
     <script>
         (function () {
-            var reviewForm = document.getElementById('reviewForm');
-            var filterMode = document.getElementById('filterMode');
-            var backLink = document.getElementById('backLink');
-            var returnToField = document.getElementById('returnToField');
-            var confirmMask = document.getElementById('confirmMask');
-            var confirmYes = document.getElementById('confirmYes');
-            var confirmNo = document.getElementById('confirmNo');
-            var rows = document.querySelectorAll('#candidateTable tbody tr');
+            var saveForm = document.getElementById('saveReviewForm');
+            var publishForm = document.getElementById('publishReviewForm');
+            var pickCount = document.getElementById('pickedCount');
             var checkboxes = document.querySelectorAll('.pick-checkbox');
-            var initialState = Array.prototype.map.call(checkboxes, function (checkbox) {
-                return checkbox.checked;
-            });
 
-            function hasUnsavedChanges() {
-                for (var i = 0; i < checkboxes.length; i++) {
-                    if (checkboxes[i].checked !== initialState[i]) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            function applyFilter() {
-                var mode = filterMode.value;
-                rows.forEach(function (row) {
-                    if (!row.querySelector('.pick-checkbox')) {
-                        row.style.display = '';
-                        return;
-                    }
-                    var picked = row.getAttribute('data-picked') === 'true';
-                    row.style.display = (mode === 'picked' && !picked) ? 'none' : '';
-                });
-            }
-
-            function updatePickedCounter() {
-                var pickedCount = 0;
-                checkboxes.forEach(function (checkbox) {
-                    if (checkbox.checked) {
-                        pickedCount++;
-                    }
-                });
-                document.getElementById('pickedCount').textContent = pickedCount;
-            }
-
-            checkboxes.forEach(function (checkbox) {
-                checkbox.addEventListener('change', function () {
-                    var row = checkbox.closest('tr');
-                    row.setAttribute('data-picked', checkbox.checked ? 'true' : 'false');
-                    updatePickedCounter();
-                    applyFilter();
-                });
-            });
-
-            reviewForm.addEventListener('submit', function () {
-                returnToField.value = 'review';
-            });
-
-            function openConfirm() {
-                confirmMask.style.display = 'flex';
-                confirmMask.setAttribute('aria-hidden', 'false');
-            }
-
-            function closeConfirm() {
-                confirmMask.style.display = 'none';
-                confirmMask.setAttribute('aria-hidden', 'true');
-            }
-
-            backLink.addEventListener('click', function (event) {
-                if (!hasUnsavedChanges()) {
+            function syncSelections() {
+                if (!saveForm || !publishForm) {
                     return;
                 }
 
-                event.preventDefault();
-                openConfirm();
-            });
+                publishForm.querySelectorAll('input[name="pickedEmail"]').forEach(function (node) {
+                    node.parentNode.removeChild(node);
+                });
 
-            confirmYes.addEventListener('click', function () {
-                returnToField.value = 'personal_center';
-                closeConfirm();
-                reviewForm.submit();
-            });
+                var selectedCount = 0;
+                checkboxes.forEach(function (checkbox) {
+                    if (!checkbox.checked) {
+                        return;
+                    }
+                    selectedCount++;
+                    var hiddenField = document.createElement('input');
+                    hiddenField.type = 'hidden';
+                    hiddenField.name = 'pickedEmail';
+                    hiddenField.value = checkbox.value;
+                    publishForm.appendChild(hiddenField);
+                });
 
-            confirmNo.addEventListener('click', function () {
-                closeConfirm();
-                window.location.href = backLink.getAttribute('href');
-            });
-
-            confirmMask.addEventListener('click', function (event) {
-                if (event.target === confirmMask) {
-                    closeConfirm();
+                if (pickCount) {
+                    pickCount.textContent = selectedCount;
                 }
+            }
+
+            checkboxes.forEach(function (checkbox) {
+                checkbox.addEventListener('change', syncSelections);
             });
 
-            filterMode.addEventListener('change', applyFilter);
-            updatePickedCounter();
-            applyFilter();
+            syncSelections();
         })();
     </script>
 </body>

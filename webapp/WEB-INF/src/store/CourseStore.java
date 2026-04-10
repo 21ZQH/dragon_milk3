@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import model.Course;
 import model.TA;
@@ -28,7 +29,19 @@ public class CourseStore {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",", -1);
-                if (parts.length == 7) {
+                if (parts.length >= 9) {
+                    String courseId = parts[0];
+                    String courseName = parts[1];
+                    String jobTitle = parts[2];
+                    String workingHours = parts[3];
+                    String salary = parts[4];
+                    String jobDescription = parts[5];
+                    String jobRequirement = parts[6];
+                    Course course = new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
+                    course.setPickedApplicantEmails(parsePickedApplicantEmails(parts[7]));
+                    course.setReviewPublished(Boolean.parseBoolean(parts[8]));
+                    courseList.add(course);
+                } else if (parts.length == 7) {
                     String courseId = parts[0];
                     String courseName = parts[1];
                     String jobTitle = parts[2];
@@ -96,6 +109,33 @@ public class CourseStore {
         }
     }
 
+    public static void updateCourse(Course updatedCourse) {
+        if (updatedCourse == null || updatedCourse.getId() == null || updatedCourse.getId().isBlank()) {
+            return;
+        }
+
+        List<Course> courseList = getCourseList();
+        for (int i = 0; i < courseList.size(); i++) {
+            if (updatedCourse.getId().equals(courseList.get(i).getId())) {
+                courseList.set(i, updatedCourse);
+
+                List<String> linesToWrite = new ArrayList<>();
+                for (Course course : courseList) {
+                    linesToWrite.add(buildCourseLine(course));
+                }
+
+                Path filePath = resolveFilePath();
+                try {
+                    ensureParentDirectoryExists(filePath);
+                    Files.write(filePath, linesToWrite);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                return;
+            }
+        }
+    }
+
     private static String buildCourseLine(Course course) {
         return safe(course.getId()) + ","
                 + safe(course.getCourseName()) + ","
@@ -103,7 +143,9 @@ public class CourseStore {
                 + safe(course.getWorkingHours()) + ","
                 + safe(course.getSalary()) + ","
                 + safe(course.getJobDescription()) + ","
-                + safe(course.getJobRequirement());
+                + safe(course.getJobRequirement()) + ","
+                + safe(serializePickedApplicantEmails(course)) + ","
+                + course.isReviewPublished();
     }
 
     private static String safe(String value) {
@@ -136,6 +178,27 @@ public class CourseStore {
 
     private static String buildLegacyCourseId(String line) {
         return "legacy-" + UUID.nameUUIDFromBytes(line.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private static String serializePickedApplicantEmails(Course course) {
+        return course.getPickedApplicantEmails().stream()
+                .filter(email -> email != null && !email.isBlank())
+                .distinct()
+                .collect(Collectors.joining("|"));
+    }
+
+    private static List<String> parsePickedApplicantEmails(String value) {
+        List<String> pickedApplicantEmails = new ArrayList<>();
+        if (value == null || value.isBlank()) {
+            return pickedApplicantEmails;
+        }
+
+        for (String email : value.split("\\|")) {
+            if (email != null && !email.isBlank() && !pickedApplicantEmails.contains(email)) {
+                pickedApplicantEmails.add(email);
+            }
+        }
+        return pickedApplicantEmails;
     }
 
     private static void populateApplicants(List<Course> courseList) {
