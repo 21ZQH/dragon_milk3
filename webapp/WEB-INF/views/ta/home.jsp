@@ -166,7 +166,7 @@
          <div class="nav-row">
      <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find a Job</a>
 
-        <a class="nav-btn" href="<%= response.encodeURL("personalCentre.jsp") %>">Personal centre</a>
+        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_center") %>">Personal centre</a>
         <form action="<%= response.encodeURL("logout") %>" method="post" style="display:inline;">
         <button class="nav-btn" type="submit">Log out</button>
         </form>
