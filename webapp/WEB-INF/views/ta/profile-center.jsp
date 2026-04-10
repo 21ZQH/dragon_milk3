@@ -11,7 +11,7 @@
 %>
 <html>
 <head>
-    <title>Personal Centre</title>
+    <title>Profile Centre</title>
     <style>
         body {
             background: #f7f7f7;
@@ -102,17 +102,13 @@
     </style>
     <script>
         function goBackOrHome() {
-            if (document.referrer && document.referrer.length > 0) {
-                history.back();
-                return;
-            }
-            window.location.href = '<%= response.encodeURL("TAclasscontroller?action=view_information") %>';
+            window.location.href = '<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>';
         }
     </script>
 </head>
 <body>
     <div class="main-box">
-        <div class="title">Personal Centre</div>
+        <div class="title">Profile Centre</div>
         <% if (success != null) { %>
             <div class="success-box"><%= success %></div>
         <% } %>
@@ -153,7 +149,7 @@
         <% } else { %>
             <div class="detail-box">Current TA information is unavailable.</div>
             <div class="button-row">
-                <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Back to Home</a>
+                <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Back to Personal Centre</a>
             </div>
         <% } %>
     </div>

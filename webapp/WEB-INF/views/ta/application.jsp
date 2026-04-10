@@ -6,6 +6,12 @@
     Course course = (Course) request.getAttribute("selectedCourse");
     String courseIndex = (String) request.getAttribute("courseIndex");
     String error = (String) request.getAttribute("error");
+    Boolean hasCurrentResume = (Boolean) request.getAttribute("hasCurrentResume");
+    String currentResumeFileName = (String) request.getAttribute("currentResumeFileName");
+    boolean isModifyMode = Boolean.TRUE.equals(hasCurrentResume);
+    String pageTitle = isModifyMode ? "Modify Resume" : "Application";
+    String uploadTitle = isModifyMode ? "Upload a new resume" : "Upload your resume";
+    String submitButtonText = isModifyMode ? "Update Resume" : "Submit Resume";
     User currentUser = (User) session.getAttribute("user");
     TA currentTA = null;
     if (currentUser instanceof TA) {
@@ -55,6 +61,20 @@
             border: 1px solid #f2cc60;
             text-align: center;
             font-weight: bold;
+        }
+        .current-resume-box {
+            margin-bottom: 20px;
+            padding: 14px 18px;
+            border-radius: 8px;
+            background: #edf4ff;
+            color: #243b63;
+            border: 1px solid #bfd2f2;
+        }
+        .resume-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         .detail-box {
             border: 1px solid #bbb;
@@ -127,11 +147,21 @@
 </head>
 <body>
     <div class="main-box">
-        <div class="title">Application</div>
+        <div class="title"><%= pageTitle %></div>
         <% if (error != null) { %>
             <div class="error-box"><%= error %></div>
         <% } %>
         <% if (course != null && currentTA != null) { %>
+            <% if (Boolean.TRUE.equals(hasCurrentResume)) { %>
+                <div class="current-resume-box">
+                    <strong>Current resume:</strong> <%= currentResumeFileName %>
+                    <div class="hint">Uploading a new PDF will replace your current resume for this course.</div>
+                    <div class="resume-actions">
+                        <a class="nav-btn" target="_blank" href="<%= response.encodeURL("TAclasscontroller?action=view_resume&courseId=" + course.getId()) %>">View</a>
+                        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_resume&courseId=" + course.getId() + "&download=true") %>">Download</a>
+                    </div>
+                </div>
+            <% } %>
             <div class="detail-box">
                 <div class="sub-title">Applying For</div>
                 <div><strong>Course:</strong> <%= course.getCourseName() %></div>
@@ -142,7 +172,7 @@
                 <input type="hidden" name="courseIndex" value="<%= courseIndex %>">
 
                 <div class="detail-box">
-                    <div class="sub-title">Upload your resume</div>
+                    <div class="sub-title"><%= uploadTitle %></div>
                     <label class="label" for="resumeFile">Resume File</label>
                     <input class="text-input" type="file" id="resumeFile" name="resumeFile" accept=".pdf,application/pdf" required>
                     <div class="hint">Only PDF resumes are accepted.</div>
@@ -150,7 +180,7 @@
 
                 <div class="button-row">
                     <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + courseIndex) %>">Back to Details</a>
-                    <button class="nav-btn" type="submit">Submit Resume</button>
+                    <button class="nav-btn" type="submit"><%= submitButtonText %></button>
                 </div>
             </form>
         <% } else { %>

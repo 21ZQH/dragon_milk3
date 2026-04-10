@@ -1,9 +1,22 @@
 <%@ page import="model.Course" %>
+<%@ page import="model.TA" %>
+<%@ page import="model.User" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%
     Course course = (Course) request.getAttribute("selectedCourse");
     String courseIndex = (String) request.getAttribute("courseIndex");
     String success = (String) request.getAttribute("success");
+    User currentUser = (User) session.getAttribute("user");
+    TA currentTA = null;
+    if (currentUser instanceof TA) {
+        currentTA = (TA) currentUser;
+    }
+
+    boolean hasApplied = false;
+    if (course != null && currentTA != null && course.getId() != null) {
+        String resumeDirectory = currentTA.getResumeDirectoryForCourse(course.getId());
+        hasApplied = (resumeDirectory != null && !resumeDirectory.isBlank());
+    }
 %>
 <html>
 <head>
@@ -107,7 +120,9 @@
             </div>
             <div class="button-row">
                 <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Back to List</a>
-                <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply&courseIndex=" + courseIndex) %>">Go Apply</a>
+                <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply&courseIndex=" + courseIndex) %>">
+                    <%= hasApplied ? "Modify Resume" : "Go Apply" %>
+                </a>
             </div>
         <% } else { %>
             <div class="detail-box">
