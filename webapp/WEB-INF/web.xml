@@ -32,4 +32,13 @@ http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd"
 <url-pattern>/MOclasscontroller</url-pattern>
 </servlet-mapping>
 
+<servlet>
+    <servlet-name>AdminController</servlet-name>
+    <servlet-class>controller.AdminController</servlet-class>
+</servlet>
+<servlet-mapping>
+    <servlet-name>AdminController</servlet-name>
+    <url-pattern>/AdminController</url-pattern>
+</servlet-mapping>
+
 </web-app>

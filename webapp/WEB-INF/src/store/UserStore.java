@@ -19,6 +19,13 @@ import model.User;
 
 public class UserStore {
     public static final String FILE_PATH_PROPERTY = "user.store.path";
+    public static List<TA> getTAList() {
+        
+        List<Course> availableCourses = CourseStore.getCourseList();
+        
+        
+        return getTaUsersForCourses(availableCourses);
+    }
 
     public static void saveUser(User user) {
         String line = toLine(user);
