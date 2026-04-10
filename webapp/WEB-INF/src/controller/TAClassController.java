@@ -170,6 +170,8 @@ public class TAClassController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/ta/personal-center.jsp").forward(request, response);
     }
 
+
+
     @SuppressWarnings("unchecked")
     private Course getCourseFromSession(HttpServletRequest request) {
         HttpSession session = request.getSession();
