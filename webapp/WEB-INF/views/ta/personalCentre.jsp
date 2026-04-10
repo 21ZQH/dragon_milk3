@@ -16,6 +16,7 @@
         appliedCourses = currentTA.getAppliedClasses();
     }
 
+<<<<<<< HEAD
     Course selectedCourse = (Course) request.getAttribute("selectedCourse");
     String selectedCourseId = (String) request.getAttribute("selectedCourseId");
     if (selectedCourse == null && appliedCourses != null && !appliedCourses.isEmpty()) {
@@ -34,6 +35,16 @@
     }
     if (selectedStatus == null) {
         selectedStatus = ResumeSubmission.STATUS_PENDING;
+=======
+    boolean profileComplete = false;
+    if (currentTA != null) {
+        String taName = currentTA.getName();
+        String taCollege = currentTA.getCollege();
+        String taSkill = currentTA.getSkill();
+        profileComplete = taName != null && !taName.trim().isEmpty()
+                && taCollege != null && !taCollege.trim().isEmpty()
+                && taSkill != null && !taSkill.trim().isEmpty();
+>>>>>>> 755cd97 (Help TA to modify and withdraw their resumes.)
     }
 
     String success = (String) request.getAttribute("success");
@@ -114,6 +125,9 @@
         }
         .btn:hover {
             background: #d1d5db;
+        }
+        .btn-text-disabled {
+            color: #9ea3b0;
         }
         .btn-danger {
             background: #fff4f4;
@@ -328,8 +342,29 @@
         }
         .modal-actions {
             display: flex;
-            justify-content: flex-end;
+            justify-content: center;
             gap: 10px;
+            flex-wrap: wrap;
+        }
+        .modal-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 150px;
+            height: 44px;
+            padding: 0 16px;
+            border-radius: 10px;
+            background: #e9ecf5;
+            color: #2d3651;
+            text-decoration: none;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 0.95em;
+            border: 1px solid #d1d5db;
+            cursor: pointer;
+        }
+        .modal-btn:hover {
+            background: #d1d5db;
         }
     </style>
 </head>
@@ -355,6 +390,7 @@
             <% if (currentTA == null) { %>
                 <div class="empty-state">Please log in as TA first.</div>
             <% } else if (appliedCourses == null || appliedCourses.isEmpty()) { %>
+<<<<<<< HEAD
                 <div class="empty-state">
                     <% if (applicationOpen) { %>
                         You have not applied to any course yet.
@@ -363,6 +399,14 @@
                         </div>
                     <% } else { %>
                         The application deadline has passed. You can no longer apply for new courses.
+=======
+                <div>You have not applied to any course yet.</div>
+                <div class="empty-actions">
+                    <% if (profileComplete) { %>
+                        <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find New Jobs</a>
+                    <% } else { %>
+                        <button class="btn btn-text-disabled" type="button" onclick="openProfileIncompleteModal()">Find New Jobs</button>
+>>>>>>> 755cd97 (Help TA to modify and withdraw their resumes.)
                     <% } %>
                 </div>
             <% } else { %>
@@ -437,6 +481,17 @@
         </div>
     </div>
 
+    <div id="profileIncompleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileIncompleteTitle">
+        <div class="modal-box">
+            <div class="modal-title" id="profileIncompleteTitle">Profile Incomplete</div>
+            <div class="modal-text">Your profile information is incomplete. Please complete it first.</div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn" onclick="closeProfileIncompleteModal()">OK</button>
+                <button type="button" class="modal-btn" onclick="goToProfileCenter()">Go to Profile Centre</button>
+            </div>
+        </div>
+    </div>
+
     <form id="withdrawForm" action="<%= response.encodeURL("TAclasscontroller") %>" method="post" class="hidden">
         <input type="hidden" name="action" value="withdraw_application" />
         <input type="hidden" id="withdrawCourseId" name="courseId" value="" />
@@ -462,6 +517,18 @@
             }
             document.getElementById("withdrawCourseId").value = pendingWithdrawCourseId;
             document.getElementById("withdrawForm").submit();
+        }
+
+        function openProfileIncompleteModal() {
+            document.getElementById("profileIncompleteModal").classList.remove("hidden");
+        }
+
+        function closeProfileIncompleteModal() {
+            document.getElementById("profileIncompleteModal").classList.add("hidden");
+        }
+
+        function goToProfileCenter() {
+            window.location.href = '<%= response.encodeURL("TAclasscontroller?action=profile_center") %>';
         }
     </script>
 </body>
