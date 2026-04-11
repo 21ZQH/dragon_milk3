@@ -130,10 +130,10 @@
                 Personal centre
             </a>
 
-            <form action="<%= response.encodeURL("logout") %>" method="post" style="display:inline;">
-                <button class="nav-btn" type="submit">Log out</button>
-            </form>
-            
+            <a class="nav-btn" href="<%= response.encodeURL("MOclasscontroller?action=logout") %>">
+                Log out
+            </a>
+
         </div>
 
         <div class="logo-row">

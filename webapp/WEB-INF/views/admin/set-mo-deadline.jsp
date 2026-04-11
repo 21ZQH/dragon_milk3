@@ -2,7 +2,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Set TA Resume Submission Deadline</title>
+    <title>Set MO Course Modification Deadline</title>
     <style>
         body {
             background: #f7f7f9;
@@ -153,13 +153,13 @@
 
 <div class="container">
     <div class="top-line">
-        <h1 class="page-title">Set the deadline for TA to upload their resume</h1>
+        <h1 class="page-title">Set the deadline for MO to modify the course information</h1>
         <a class="back-link" href="<%= response.encodeURL("AdminController?action=dashboard") %>">Back to Dashboard</a>
     </div>
 
     <div class="desc-box">
-        Please set the deadline for TA resume submission. After this deadline passes,
-        TAs will no longer be allowed to upload or modify their resumes.
+        Please set the deadline for MO to modify the course information.
+        After this deadline passes, MOs will no longer be allowed to edit course details.
     </div>
 
     <div class="form-card">
@@ -175,17 +175,17 @@
             </div>
         <% } %>
 
-        <% if (request.getAttribute("savedDeadline") != null) { %>
+        <% if (request.getAttribute("savedMoDeadline") != null) { %>
             <div style="margin-bottom: 18px; padding: 12px 16px; border-radius: 10px; background: #eef2ff; color: #22223b; border: 1px solid #cfd7ff;">
-                Current saved deadline: <%= request.getAttribute("savedDeadline") %>
+                Current saved deadline: <%= request.getAttribute("savedMoDeadline") %>
             </div>
         <% } %>
 
         <form action="<%= response.encodeURL("AdminController") %>" method="post">
-            <input type="hidden" name="action" value="save_deadline">
+            <input type="hidden" name="action" value="save_mo_deadline">
 
             <div class="form-row">
-                <label class="form-label" for="deadlineDate">TA Resume Submission Deadline Date</label>
+                <label class="form-label" for="deadlineDate">MO Course Modification Deadline Date</label>
                 <input
                         class="form-input deadline-input"
                         type="date"
@@ -193,12 +193,12 @@
                         name="deadlineDate"
                         required>
                 <div class="hint-text">
-                    Enter the closing date for TA resume submission.
+                    Enter the closing date for MO course information modification.
                 </div>
             </div>
 
             <div class="form-row">
-                <label class="form-label" for="deadlineTime">TA Resume Submission Deadline Time</label>
+                <label class="form-label" for="deadlineTime">MO Course Modification Deadline Time</label>
                 <input
                         class="form-input deadline-input"
                         type="time"
@@ -206,7 +206,7 @@
                         name="deadlineTime"
                         required>
                 <div class="hint-text">
-                    Set the exact closing time. After this time, TAs can no longer upload or update their resumes.
+                    Set the exact closing time. After this time, MOs can no longer edit the course information.
                 </div>
             </div>
 

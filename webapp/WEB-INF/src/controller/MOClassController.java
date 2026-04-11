@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -21,15 +22,18 @@ import model.Mo;
 import model.ResumeSubmission;
 import model.TA;
 import store.CourseStore;
+import store.DeadlineStore;
 import store.UserStore;
 
 public class MOClassController extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        String action = request.getParameter("action");
+       String action = request.getParameter("action");
 
-        if ("create_class".equals(action)) {
+        if ("logout".equals(action)) {
+            logout(request, response);
+        } else if ("create_class".equals(action)) {
             create_class(request, response);
         } else if ("personal_center".equals(action)) {
             show_personal_center(request, response);
@@ -44,13 +48,16 @@ public class MOClassController extends HttpServlet {
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
         }
+
     }
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
 
-        if ("publish_course".equals(action)) {
+        if ("logout".equals(action)) {
+            logout(request, response);
+        } else if ("publish_course".equals(action)) {
             String courseName = request.getParameter("courseName");
             String jobTitle = request.getParameter("jobTitle");
             String workingHours = request.getParameter("workingHours");
@@ -89,6 +96,7 @@ public class MOClassController extends HttpServlet {
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
         }
+
     }
 
     private void show_personal_center(HttpServletRequest request, HttpServletResponse response)
@@ -135,8 +143,27 @@ public class MOClassController extends HttpServlet {
         }
     }
 
-    private void save_course_changes(HttpServletRequest request, HttpServletResponse response)
-            throws IOException, ServletException {
+    private void save_course_changes(HttpServletRequest request, HttpServletResponse response)throws IOException, ServletException {
+        if (!isMoModifyOpen(request)) {
+            List<Course> courseList = getCurrentMoCourseList(request);
+            String courseIndexParam = request.getParameter("courseIndex");
+            if (courseIndexParam != null) {
+                try {
+                    int courseIndex = Integer.parseInt(courseIndexParam);
+                    if (courseIndex >= 0 && courseIndex < courseList.size()) {
+                        request.setAttribute("selectedCourse", courseList.get(courseIndex));
+                        request.setAttribute("courseIndex", courseIndexParam);
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            }
+
+            request.setAttribute("error", "The deadline for MO to modify course information has passed.");
+            request.setAttribute("moModifyDeadline", resolveMoModifyDeadline(request));
+            request.getRequestDispatcher("/WEB-INF/views/mo/project-detail.jsp").forward(request, response);
+            return;
+        }
+
         String courseIndexParam = request.getParameter("courseIndex");
         if (courseIndexParam == null) {
             response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");
@@ -162,13 +189,13 @@ public class MOClassController extends HttpServlet {
             String salary = oldCourse.getSalary() == null ? "TBD" : oldCourse.getSalary();
 
             Course updatedCourse = new Course(
-                    oldCourse.getId(),
-                    courseName,
-                    jobTitle,
-                    workingHours,
-                    salary,
-                    jobDescription,
-                    jobRequirement);
+                oldCourse.getId(),
+                courseName,
+                jobTitle,
+                workingHours,
+                salary,
+                jobDescription,
+                jobRequirement);
             updatedCourse.setPickedApplicantEmails(oldCourse.getPickedApplicantEmails());
             updatedCourse.setReviewPublished(oldCourse.isReviewPublished());
 
@@ -177,15 +204,16 @@ public class MOClassController extends HttpServlet {
             if (mo != null) {
                 mo.replaceOwnedCourse(updatedCourse);
                 request.getSession().setAttribute("user", mo);
-            }
+            }       
 
             response.sendRedirect(
-                    request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex=" + courseIndex + "&success=1");
+                request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex=" + courseIndex + "&success=1");
 
         } catch (NumberFormatException e) {
-            response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");
-        }
+                response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");
+            }
     }
+
 
     private void show_review_candidates(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -420,4 +448,26 @@ public class MOClassController extends HttpServlet {
         mo.replaceOwnedCourse(course);
         request.getSession().setAttribute("user", mo);
     }
+
+    private boolean isMoModifyOpen(HttpServletRequest request) {
+        LocalDateTime deadline = resolveMoModifyDeadline(request);
+        return deadline == null || !LocalDateTime.now().isAfter(deadline);
+    }
+
+    private LocalDateTime resolveMoModifyDeadline(HttpServletRequest request) {
+        Object deadline = request.getServletContext().getAttribute("moCourseModifyDeadline");
+        if (deadline instanceof LocalDateTime localDateTime) {
+            return localDateTime;
+        }
+        return DeadlineStore.getMoModifyDeadline();
+    }
+
+    private void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        response.sendRedirect(request.getContextPath() + "/start.html");
+    }
+
 }
