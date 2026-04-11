@@ -1,4 +1,4 @@
-package controller;
+﻿package controller;
 
 import java.io.IOException;
 import java.time.LocalDate;
@@ -176,3 +176,5 @@ public class AdminController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/start.html");
     }
 }
+
+

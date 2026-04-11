@@ -5,6 +5,8 @@ import java.util.List;
 
 public class Mo extends User {
     private String role="Mo";
+    private String degree;
+    private String college;
     private List<Course> ownedCourses = new ArrayList<>();
 
     public Mo(String password,String email) {
@@ -51,5 +53,21 @@ public class Mo extends User {
         }
 
         addOwnedCourse(course);
+    }
+
+    public String getDegree() {
+        return degree;
+    }
+
+    public void setDegree(String degree) {
+        this.degree = degree;
+    }
+
+    public String getCollege() {
+        return college;
+    }
+
+    public void setCollege(String college) {
+        this.college = college;
     }
 }

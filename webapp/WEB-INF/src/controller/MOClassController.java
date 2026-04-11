@@ -1,4 +1,4 @@
-package controller;
+﻿package controller;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -37,6 +37,8 @@ public class MOClassController extends HttpServlet {
             create_class(request, response);
         } else if ("personal_center".equals(action)) {
             show_personal_center(request, response);
+        } else if ("profile_center".equals(action)) {
+            profile_center(request, response);
         } else if ("review_candidates".equals(action)) {
             show_review_candidates(request, response);
         } else if ("view_resume".equals(action)) {
@@ -93,6 +95,9 @@ public class MOClassController extends HttpServlet {
         } else if ("save_course_changes".equals(action)) {
             save_course_changes(request, response);
 
+        } else if ("save_personal_information".equals(action)) {
+            save_personal_information(request, response);
+
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
         }
@@ -102,6 +107,29 @@ public class MOClassController extends HttpServlet {
     private void show_personal_center(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.getRequestDispatcher("/WEB-INF/views/mo/personal-center.jsp").forward(request, response);
+    }
+
+    private void profile_center(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.getRequestDispatcher("/WEB-INF/views/mo/profile-center.jsp").forward(request, response);
+    }
+
+    private void save_personal_information(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        Mo mo = getCurrentMo(request);
+        if (mo == null) {
+            response.sendRedirect(request.getContextPath() + "/start.html");
+            return;
+        }
+
+        mo.setName(trimValue(request.getParameter("name")));
+        mo.setDegree(trimValue(request.getParameter("degree")));
+        mo.setCollege(trimValue(request.getParameter("college")));
+        UserStore.updateMoProfile(mo);
+
+        request.getSession().setAttribute("user", mo);
+        request.setAttribute("success", "Personal information saved successfully.");
+        request.getRequestDispatcher("/WEB-INF/views/mo/profile-center.jsp").forward(request, response);
     }
 
     private void create_class(HttpServletRequest request, HttpServletResponse response)
@@ -470,4 +498,10 @@ public class MOClassController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/start.html");
     }
 
+    private String trimValue(String value) {
+        return value == null ? "" : value.trim();
+    }
+
 }
+
+
