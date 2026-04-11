@@ -14,7 +14,6 @@ import static org.mockito.Mockito.when;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -63,26 +62,24 @@ class AccountControllerTest {
     }
 
     @Test
-    void duplicateRegistrationShowsErrorOnTaHomePage() throws Exception {
+    void duplicateRegistrationRedirectsBackToStartPageWithError() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
         StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com");
 
         AccountController controller = new AccountController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
-        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
 
         when(request.getParameter("action")).thenReturn("Register");
         when(request.getParameter("name")).thenReturn("Alice");
         when(request.getParameter("password")).thenReturn("pass123");
         when(request.getParameter("role")).thenReturn("TA");
         when(request.getParameter("email")).thenReturn("alice@example.com");
-        when(request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp")).thenReturn(dispatcher);
+        when(request.getContextPath()).thenReturn("/SE");
 
         controller.doPost(request, response);
 
-        verify(request).setAttribute("error", "the email is already registered");
-        verify(dispatcher).forward(request, response);
+        verify(response).sendRedirect("/SE/start.html?error=The+email+is+already+registered.");
     }
 
     @Test
@@ -139,6 +136,26 @@ class AccountControllerTest {
                         && "Alice Zhang".equals(((User) value).getName())));
         verify(session).setAttribute("username", "Alice Zhang");
         verify(response).sendRedirect("/SE/TAclasscontroller?action=home");
+    }
+
+    @Test
+    void invalidLoginRedirectsBackToStartPageWithError() throws Exception {
+        StoreTestSupport.useUserStore(tempDir);
+
+        AccountController controller = new AccountController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        when(request.getParameter("action")).thenReturn("Login");
+        when(request.getParameter("name")).thenReturn("");
+        when(request.getParameter("password")).thenReturn("wrong");
+        when(request.getParameter("role")).thenReturn("TA");
+        when(request.getParameter("email")).thenReturn("missing@example.com");
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doPost(request, response);
+
+        verify(response).sendRedirect("/SE/start.html?error=Invalid+password+or+email.");
     }
 
     @Test
