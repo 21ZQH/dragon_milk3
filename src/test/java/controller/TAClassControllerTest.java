@@ -207,6 +207,25 @@ class TAClassControllerTest {
     }
 
     @Test
+    void editSkillActionForwardsToEditSkillPage() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
+
+        when(request.getParameter("action")).thenReturn("edit_skill");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/edit-skill.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
     void goApplyWithExistingResumeSetsCurrentResumeAttributes() throws Exception {
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -393,7 +412,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("save_personal_information");
         when(request.getParameter("name")).thenReturn("  Alice Zhang  ");
         when(request.getParameter("college")).thenReturn("  New College  ");
-        when(request.getParameter("skill")).thenReturn("  Java, SQL  ");
+        when(request.getParameterValues("skill")).thenReturn(new String[] {"Java", "Python", "SQL"});
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("user")).thenReturn(ta);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/profile-center.jsp")).thenReturn(dispatcher);
@@ -404,7 +423,7 @@ class TAClassControllerTest {
         verify(session).setAttribute("username", "Alice Zhang");
         verify(request).setAttribute("success", "Personal information saved successfully.");
         verify(dispatcher).forward(request, response);
-        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java  SQL,course-1,course-1@D:\\resume\\course-1@0",
+        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java  Python  SQL,course-1,course-1@D:\\resume\\course-1@0",
                 Files.readAllLines(usersFile).get(0));
     }
 
@@ -677,3 +696,4 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 }
+
