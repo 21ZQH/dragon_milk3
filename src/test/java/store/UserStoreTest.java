@@ -130,6 +130,7 @@ class UserStoreTest {
         assertEquals("course-1", submission.getCourse().getId());
         assertEquals("D:\\resume\\course-1", submission.getResumeDirectory());
         assertEquals(ResumeSubmission.STATUS_PENDING, submission.getStatus());
+        assertFalse(submission.isReviewUnread());
     }
 
     @Test
@@ -152,6 +153,7 @@ class UserStoreTest {
         assertEquals("course-1", ta.getAppliedClasses().get(0).getId());
         assertEquals("D:\\resume\\course-1", ta.getResumeDirectoryForCourse("course-1"));
         assertEquals(ResumeSubmission.STATUS_REJECTED, ta.getResumeStatusForCourse("course-1"));
+        assertFalse(ta.hasUnreadReviewUpdates());
     }
 
     @Test
@@ -176,7 +178,25 @@ class UserStoreTest {
         UserStore.updateTaProfile(ta);
 
         List<String> lines = Files.readAllLines(usersFile);
-        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,Java  Python  SQL,course-1,course-1@D:\\resume\\course-1@0", lines.get(0));
+        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,Java  Python  SQL,course-1,course-1@D:\\resume\\course-1@0@false", lines.get(0));
+    }
+
+    @Test
+    void validateUserRestoresUnreadReviewFlagFromNewFormat() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@1@true");
+
+        TA ta = (TA) UserStore.validateUser("pass123", "alice@example.com");
+
+        assertTrue(ta.hasUnreadReviewUpdates());
+        assertTrue(ta.isReviewUnreadForCourse("course-1"));
+        assertEquals(ResumeSubmission.STATUS_APPROVED, ta.getResumeStatusForCourse("course-1"));
     }
 
     @Test

@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -399,7 +400,7 @@ class TAClassControllerTest {
                 ta.getResumeDirectoryForCourse("course-1"));
         assertEquals(
                 "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@"
-                        + ta.getResumeDirectoryForCourse("course-1") + "@0",
+                        + ta.getResumeDirectoryForCourse("course-1") + "@0@false",
                 Files.readAllLines(usersFile).get(0));
         verify(dispatcher).forward(request, response);
     }
@@ -437,7 +438,7 @@ class TAClassControllerTest {
         verify(session).setAttribute("username", "Alice Zhang");
         verify(request).setAttribute("success", "Personal information saved successfully.");
         verify(dispatcher).forward(request, response);
-        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java  Python  SQL,course-1,course-1@D:\\resume\\course-1@0",
+        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java  Python  SQL,course-1,course-1@D:\\resume\\course-1@0@false",
                 Files.readAllLines(usersFile).get(0));
     }
 
@@ -491,6 +492,41 @@ class TAClassControllerTest {
         controller.doGet(request, response);
 
         verify(request).setAttribute("applicationOpen", false);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void personalCentreClearsUnreadReviewUpdatesAndPersistsThem() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@1@true");
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        TA ta = (TA) UserStore.validateUser("secret123", "ta@example.com");
+        assertTrue(ta.hasUnreadReviewUpdates());
+
+        when(request.getParameter("action")).thenReturn("personal_centre");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        assertFalse(ta.hasUnreadReviewUpdates());
+        assertEquals("Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@1@false",
+                Files.readAllLines(usersFile).get(0));
+        verify(session).setAttribute("user", ta);
         verify(dispatcher).forward(request, response);
     }
 

@@ -340,6 +340,8 @@ class MOClassControllerTest {
         Assertions.assertNotNull(bob);
         assertEquals(ResumeSubmission.STATUS_APPROVED, alice.getResumeStatusForCourse("course-1"));
         assertEquals(ResumeSubmission.STATUS_REJECTED, bob.getResumeStatusForCourse("course-1"));
+        assertTrue(alice.hasUnreadReviewUpdates());
+        assertTrue(bob.hasUnreadReviewUpdates());
         verify(response).sendRedirect("/SE/MOclasscontroller?action=review_candidates&courseIndex=0&published=1");
     }
 

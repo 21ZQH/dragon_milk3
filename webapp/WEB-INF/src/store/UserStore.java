@@ -397,7 +397,8 @@ public class UserStore {
                 .filter(submission -> submission.getCourse() != null)
                 .map(submission -> submission.getCourse().getId() + "@"
                         + submission.getResumeDirectory() + "@"
-                        + submission.getStatus())
+                        + submission.getStatus() + "@"
+                        + submission.isReviewUnread())
                 .collect(Collectors.joining("|"));
     }
 
@@ -424,7 +425,7 @@ public class UserStore {
                 continue;
             }
 
-            String[] parts = mapping.split("@", 3);
+            String[] parts = mapping.split("@", 4);
             if (parts.length < 2) {
                 continue;
             }
@@ -432,20 +433,24 @@ public class UserStore {
             String courseId = parts[0];
             String resumeDirectory = parts[1];
             int status = ResumeSubmission.STATUS_PENDING;
+            boolean reviewUnread = false;
             if (courseId == null || courseId.isBlank() || resumeDirectory == null || resumeDirectory.isBlank()) {
                 continue;
             }
-            if (parts.length == 3) {
+            if (parts.length >= 3) {
                 try {
                     status = Integer.parseInt(parts[2]);
                 } catch (NumberFormatException ignored) {
                     status = ResumeSubmission.STATUS_PENDING;
                 }
             }
+            if (parts.length == 4) {
+                reviewUnread = Boolean.parseBoolean(parts[3]);
+            }
 
             for (Course course : availableCourses) {
                 if (courseId.equals(course.getId())) {
-                    submissions.add(new ResumeSubmission(course, resumeDirectory, status));
+                    submissions.add(new ResumeSubmission(course, resumeDirectory, status, reviewUnread));
                     break;
                 }
             }

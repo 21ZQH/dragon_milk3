@@ -31,6 +31,7 @@
     boolean showDeadlineModal = showDeadlineModalAttr != null && showDeadlineModalAttr.booleanValue();
 
     boolean profileComplete = false;
+    boolean hasUnreadReviewUpdate = false;
     if (currentTA != null) {
         String taName = currentTA.getName();
         String taCollege = currentTA.getCollege();
@@ -38,6 +39,7 @@
         profileComplete = taName != null && !taName.trim().isEmpty()
                 && taCollege != null && !taCollege.trim().isEmpty()
                 && taSkill != null && !taSkill.trim().isEmpty();
+        hasUnreadReviewUpdate = currentTA.hasUnreadReviewUpdates();
     }
 %>
 
@@ -176,6 +178,60 @@
             color: #9ea3b0;
         }
 
+        .nav-item {
+            position: relative;
+            display: inline-flex;
+        }
+
+        .notification-dot {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #d92d20;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px #18192b;
+            z-index: 2;
+        }
+
+        .notification-tooltip {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 50%;
+            transform: translateX(-50%);
+            background: #22223b;
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.92em;
+            font-weight: 600;
+            white-space: nowrap;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.2s ease;
+            pointer-events: none;
+            z-index: 3;
+        }
+
+        .notification-tooltip::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 8px 7px 0 7px;
+            border-style: solid;
+            border-color: #22223b transparent transparent transparent;
+        }
+
+        .nav-item.has-notification:hover .notification-tooltip {
+            opacity: 1;
+            visibility: visible;
+        }
+
         .modal-overlay {
             position: fixed;
             inset: 0;
@@ -261,7 +317,13 @@
             <button class="nav-btn nav-btn-disabled" type="button" onclick="openFindJobUnavailableModal()">Find a Job</button>
         <% } %>
 
-        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Personal Centre</a>
+        <div class="nav-item <%= hasUnreadReviewUpdate ? "has-notification" : "" %>">
+            <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Personal Centre</a>
+            <% if (hasUnreadReviewUpdate) { %>
+                <span class="notification-dot" aria-hidden="true"></span>
+                <span class="notification-tooltip">Review result updated</span>
+            <% } %>
+        </div>
         <form action="<%= response.encodeURL("logout") %>" method="post" style="display:inline;">
         <button class="nav-btn" type="submit">Log out</button>
         </form>

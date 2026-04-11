@@ -468,7 +468,7 @@ public class MOClassController extends HttpServlet {
                     ? ResumeSubmission.STATUS_APPROVED
                     : ResumeSubmission.STATUS_REJECTED;
             applicant.addClass(course);
-            applicant.addOrUpdateResume(course, resumeDirectory, status);
+            applicant.addOrUpdateResume(course, resumeDirectory, status, true);
             course.addApplication(applicant, resumeDirectory);
             UserStore.updateAppliedCourseIds(applicant);
         }

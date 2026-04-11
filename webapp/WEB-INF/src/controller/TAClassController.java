@@ -540,6 +540,11 @@ public class TAClassController extends HttpServlet {
 
     private void forwardPersonalCentre(HttpServletRequest request, HttpServletResponse response, TA ta,
             String success, String error, String selectedCourseId) throws ServletException, IOException {
+        if (ta.markAllReviewUpdatesRead()) {
+            UserStore.updateAppliedCourseIds(ta);
+            request.getSession().setAttribute("user", ta);
+        }
+
         List<Course> appliedCourses = ta.getAppliedClasses();
         Course selectedCourse = resolveSelectedAppliedCourse(appliedCourses, selectedCourseId);
 
