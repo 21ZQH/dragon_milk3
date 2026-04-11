@@ -1,5 +1,5 @@
 @echo off
-setlocal
+setlocal EnableExtensions
 
 set "SCRIPT_DIR=%~dp0"
 set "WEB_INF_DIR=%SCRIPT_DIR%WEB-INF"
@@ -9,44 +9,23 @@ if not exist "%WEB_INF_DIR%\src" (
 
 set "SRC_DIR=%WEB_INF_DIR%\src"
 set "CLASSES_DIR=%WEB_INF_DIR%\classes"
-set "SERVLET_API_JAR="
-set "JAKARTA_API_JAR="
+set "API_JAR="
 
 if not exist "%SRC_DIR%" (
     echo Source directory not found: "%SRC_DIR%"
     exit /b 1
 )
 
-if exist "%USERPROFILE%\.m2\repository\jakarta\servlet\jakarta.servlet-api\6.0.0\jakarta.servlet-api-6.0.0.jar" (
-    set "JAKARTA_API_JAR=%USERPROFILE%\.m2\repository\jakarta\servlet\jakarta.servlet-api\6.0.0\jakarta.servlet-api-6.0.0.jar"
-)
-if not defined JAKARTA_API_JAR if exist "%USERPROFILE%\.m2\repository\jakarta\servlet\jakarta.servlet-api\5.0.0\jakarta.servlet-api-5.0.0.jar" (
-    set "JAKARTA_API_JAR=%USERPROFILE%\.m2\repository\jakarta\servlet\jakarta.servlet-api\5.0.0\jakarta.servlet-api-5.0.0.jar"
-)
-
-if defined CATALINA_HOME if exist "%CATALINA_HOME%\lib\servlet-api.jar" (
-    set "SERVLET_API_JAR=%CATALINA_HOME%\lib\servlet-api.jar"
-)
-if not defined SERVLET_API_JAR if exist "G:\Tomcat\lib\servlet-api.jar" (
-    set "SERVLET_API_JAR=G:\Tomcat\lib\servlet-api.jar"
-)
-if not defined SERVLET_API_JAR if exist "C:\Program Files (x86)\apache-tomcat-9.0.112\lib\servlet-api.jar" (
-    set "SERVLET_API_JAR=C:\Program Files (x86)\apache-tomcat-9.0.112\lib\servlet-api.jar"
-)
-
-if not defined SERVLET_API_JAR if not defined JAKARTA_API_JAR (
-    echo Could not find jakarta.servlet-api.jar or servlet-api.jar.
-    echo Please install dependency in Maven local repository or set CATALINA_HOME.
+call :find_api_jar
+if not defined API_JAR (
+    echo Could not find a servlet API JAR.
+    echo Set TOMCAT_HOME or CATALINA_HOME, or install jakarta.servlet-api in Maven local repository.
     exit /b 1
 )
 
 if not exist "%CLASSES_DIR%" mkdir "%CLASSES_DIR%"
 
-if defined SERVLET_API_JAR (
-    set "CP=%SERVLET_API_JAR%;%CLASSES_DIR%;."
-) else (
-    set "CP=%JAKARTA_API_JAR%;%CLASSES_DIR%;."
-)
+set "CP=%API_JAR%;%CLASSES_DIR%;."
 
 pushd "%SRC_DIR%" || exit /b 1
 
@@ -57,6 +36,29 @@ javac -encoding UTF-8 -classpath "%CP%" -d "%CLASSES_DIR%" controller\*.java || 
 
 popd
 echo Compilation completed.
+exit /b 0
+
+:find_api_jar
+for %%V in (6.1.0 6.0.0 5.0.0) do (
+    if not defined API_JAR if exist "%USERPROFILE%\.m2\repository\jakarta\servlet\jakarta.servlet-api\%%V\jakarta.servlet-api-%%V.jar" (
+        set "API_JAR=%USERPROFILE%\.m2\repository\jakarta\servlet\jakarta.servlet-api\%%V\jakarta.servlet-api-%%V.jar"
+    )
+)
+if not defined API_JAR if defined TOMCAT_HOME call :set_api_from_tomcat "%TOMCAT_HOME%"
+if not defined API_JAR if defined CATALINA_HOME call :set_api_from_tomcat "%CATALINA_HOME%"
+if not defined API_JAR if defined CATALINA_BASE call :set_api_from_tomcat "%CATALINA_BASE%"
+if not defined API_JAR if exist "G:\Tomcat\lib\servlet-api.jar" set "API_JAR=G:\Tomcat\lib\servlet-api.jar"
+if not defined API_JAR if exist "C:\Program Files (x86)\apache-tomcat-9.0.112\lib\servlet-api.jar" set "API_JAR=C:\Program Files (x86)\apache-tomcat-9.0.112\lib\servlet-api.jar"
+exit /b 0
+
+:set_api_from_tomcat
+if exist "%~1\lib\servlet-api.jar" (
+    set "API_JAR=%~1\lib\servlet-api.jar"
+    exit /b 0
+)
+if exist "%~1\lib\jakarta.servlet-api.jar" (
+    set "API_JAR=%~1\lib\jakarta.servlet-api.jar"
+)
 exit /b 0
 
 :compile_failed
