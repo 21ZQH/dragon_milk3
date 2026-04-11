@@ -38,6 +38,8 @@ public class TAClassController extends HttpServlet {
             personal_centre(request, response);
         } else if ("profile_center".equals(action)) {
             profile_center(request, response);
+        } else if ("edit_skill".equals(action)) {
+            edit_skill(request, response);
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
         }
@@ -224,6 +226,16 @@ public class TAClassController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/ta/profile-center.jsp").forward(request, response);
     }
 
+    private void edit_skill(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        User user = (User) request.getSession().getAttribute("user");
+        if (!(user instanceof TA)) {
+            response.sendRedirect(request.getContextPath() + "/start.html");
+            return;
+        }
+
+        request.getRequestDispatcher("/WEB-INF/views/ta/edit-skill.jsp").forward(request, response);
+    }
+
     private void upload_resume(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         HttpSession session = request.getSession();
         Course course = getCourseFromSession(request);
@@ -311,7 +323,20 @@ public class TAClassController extends HttpServlet {
         TA ta = (TA) user;
         ta.setName(trimValue(request.getParameter("name")));
         ta.setCollege(trimValue(request.getParameter("college")));
-        ta.setSkill(trimValue(request.getParameter("skill")));
+
+        String[] selectedSkills = request.getParameterValues("skill");
+        if (selectedSkills == null || selectedSkills.length == 0) {
+            ta.setSkill("");
+        } else {
+            List<String> skills = new ArrayList<>();
+            for (String skill : selectedSkills) {
+                String trimmedSkill = trimValue(skill);
+                if (!trimmedSkill.isEmpty()) {
+                    skills.add(trimmedSkill);
+                }
+            }
+            ta.setSkill(String.join(", ", skills));
+        }
 
         UserStore.updateTaProfile(ta);
 
@@ -560,3 +585,7 @@ public class TAClassController extends HttpServlet {
     }
 
 }
+
+
+
+

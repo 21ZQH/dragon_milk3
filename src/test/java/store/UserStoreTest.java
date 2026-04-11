@@ -169,14 +169,14 @@ class UserStoreTest {
         TA ta = new TA("pass123", "alice@example.com");
         ta.setName("Alice Zhang");
         ta.setCollege("New College");
-        ta.setSkill("Java, SQL");
+        ta.setSkill("Java, Python, SQL");
         ta.addClass(course);
         ta.addOrUpdateResume(course, "D:\\resume\\course-1");
 
         UserStore.updateTaProfile(ta);
 
         List<String> lines = Files.readAllLines(usersFile);
-        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,Java  SQL,course-1,course-1@D:\\resume\\course-1@0", lines.get(0));
+        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,Java  Python  SQL,course-1,course-1@D:\\resume\\course-1@0", lines.get(0));
     }
 
     @Test

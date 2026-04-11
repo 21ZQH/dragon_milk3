@@ -58,7 +58,7 @@
             color: #2d3651;
             margin-bottom: 8px;
         }
-        .text-input, .text-area {
+        .text-input {
             width: 100%;
             box-sizing: border-box;
             border: 1px solid #c7ccd8;
@@ -68,10 +68,16 @@
             color: #444;
             background: #fff;
         }
-        .text-area {
-            min-height: 140px;
-            resize: vertical;
+        .skill-value-box {
+            border: 1px solid #c7ccd8;
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-size: 1em;
+            color: #444;
+            background: #fff;
             line-height: 1.7;
+            min-height: 24px;
+            word-break: break-word;
         }
         .button-row {
             display: flex;
@@ -137,11 +143,12 @@
                 </div>
 
                 <div class="detail-box">
-                    <label class="label" for="skill">Skill</label>
-                    <textarea class="text-area" id="skill" name="skill"><%= currentTA.getSkill() == null ? "" : currentTA.getSkill() %></textarea>
+                    <label class="label">Current Skill</label>
+                    <div class="skill-value-box"><%= (currentTA.getSkill() == null || currentTA.getSkill().trim().isEmpty()) ? "None" : currentTA.getSkill() %></div>
                 </div>
 
                 <div class="button-row">
+                    <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=edit_skill") %>">Edit Skill</a>
                     <button class="nav-btn" type="button" onclick="goBackOrHome()">Back</button>
                     <button class="nav-btn" type="submit">Save</button>
                 </div>
