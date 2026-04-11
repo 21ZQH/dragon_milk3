@@ -86,14 +86,23 @@ public class TAClassController extends HttpServlet {
     }
 
     private boolean ensureTaSession(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = (User) request.getSession().getAttribute("user");
-        if (user instanceof TA) {
+            throws IOException {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            session = request.getSession();
+        }
+
+        Object currentUser = session == null ? null : session.getAttribute("user");
+        if (currentUser instanceof TA) {
             return true;
         }
 
-        request.setAttribute("error", "Login has expired. Please log in again.");
-        request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
+        if (currentUser == null) {
+            response.sendRedirect(request.getContextPath() + "/start.html");
+            return false;
+        }
+
+        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: TA role required");
         return false;
     }
 

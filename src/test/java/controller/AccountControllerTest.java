@@ -40,7 +40,6 @@ class AccountControllerTest {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
-        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
 
         when(request.getParameter("action")).thenReturn("Register");
         when(request.getParameter("name")).thenReturn("Molly");
@@ -48,7 +47,7 @@ class AccountControllerTest {
         when(request.getParameter("role")).thenReturn("Mo");
         when(request.getParameter("email")).thenReturn("mo@example.com");
         when(request.getSession()).thenReturn(session);
-        when(request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp")).thenReturn(dispatcher);
+        when(request.getContextPath()).thenReturn("/SE");
 
         controller.doPost(request, response);
 
@@ -56,7 +55,7 @@ class AccountControllerTest {
                 value instanceof User
                         && "Mo".equals(((User) value).getRole())
                         && "mo@example.com".equals(((User) value).getEmail())));
-        verify(dispatcher).forward(request, response);
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=dashboard");
         verify(response, never()).sendError(anyInt(), anyString());
 
         assertTrue(Files.exists(usersFile));
@@ -95,7 +94,6 @@ class AccountControllerTest {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
-        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
 
         when(request.getParameter("action")).thenReturn("Login");
         when(request.getParameter("name")).thenReturn("Molly");
@@ -103,7 +101,7 @@ class AccountControllerTest {
         when(request.getParameter("role")).thenReturn("");
         when(request.getParameter("email")).thenReturn("mo@example.com");
         when(request.getSession()).thenReturn(session);
-        when(request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp")).thenReturn(dispatcher);
+        when(request.getContextPath()).thenReturn("/SE");
 
         controller.doPost(request, response);
 
@@ -111,7 +109,8 @@ class AccountControllerTest {
                 value instanceof User
                         && "Mo".equals(((User) value).getRole())
                         && "Molly".equals(((User) value).getName())));
-        verify(dispatcher).forward(request, response);
+        verify(session).setAttribute("username", "Molly");
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=dashboard");
     }
 
     @Test

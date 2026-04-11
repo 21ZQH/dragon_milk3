@@ -351,22 +351,20 @@ class TAClassControllerTest {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
-        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
 
         Course course = new Course("Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
         List<Course> courses = List.of(course);
 
         when(request.getParameter("action")).thenReturn("upload_resume");
         when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getSession(false)).thenReturn(session);
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(session.getAttribute("user")).thenReturn(new Mo("secret123", "mo@example.com"));
-        when(request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp")).thenReturn(dispatcher);
 
         controller.doPost(request, response);
 
-        verify(request).setAttribute("error", "Login has expired. Please log in again.");
-        verify(dispatcher).forward(request, response);
+        verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: TA role required");
     }
 
     @Test

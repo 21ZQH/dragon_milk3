@@ -46,9 +46,13 @@ class MOClassControllerTest {
         MOClassController controller = new MOClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
 
         when(request.getParameter("action")).thenReturn("create_class");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
         when(request.getRequestDispatcher("/WEB-INF/views/mo/create-project.jsp")).thenReturn(dispatcher);
 
         controller.doGet(request, response);
@@ -62,13 +66,19 @@ class MOClassControllerTest {
         MOClassController controller = new MOClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
 
         when(request.getParameter("action")).thenReturn("dashboard");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
         when(request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp")).thenReturn(dispatcher);
 
         controller.doGet(request, response);
 
+        verify(request).setAttribute("moModifyOpen", true);
+        verify(request).setAttribute("showModifyLockedModal", false);
         verify(dispatcher).forward(request, response);
     }
 
@@ -78,9 +88,13 @@ class MOClassControllerTest {
         MOClassController controller = new MOClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
 
         when(request.getParameter("action")).thenReturn("personal_center");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
         when(request.getRequestDispatcher("/WEB-INF/views/mo/personal-center.jsp")).thenReturn(dispatcher);
 
         controller.doGet(request, response);
@@ -95,10 +109,14 @@ class MOClassControllerTest {
         MOClassController controller = new MOClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
         ServletContext servletContext = mock(ServletContext.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
 
         when(request.getParameter("action")).thenReturn("personal_center");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
         when(request.getServletContext()).thenReturn(servletContext);
         when(servletContext.getAttribute("applicationDeadline")).thenReturn(LocalDateTime.now().plusHours(1));
         when(request.getRequestDispatcher("/WEB-INF/views/mo/personal-center.jsp")).thenReturn(dispatcher);
@@ -107,6 +125,39 @@ class MOClassControllerTest {
 
         verify(request).setAttribute("reviewStageOpen", false);
         verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void unauthenticatedMoRequestRedirectsToStartPage() throws Exception {
+        StoreTestSupport.useCourseStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        when(request.getParameter("action")).thenReturn("dashboard");
+        when(request.getSession(false)).thenReturn(null);
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doGet(request, response);
+
+        verify(response).sendRedirect("/SE/start.html");
+    }
+
+    @Test
+    void nonMoRequestReturnsForbidden() throws Exception {
+        StoreTestSupport.useCourseStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        when(request.getParameter("action")).thenReturn("dashboard");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(new TA("pass123", "alice@example.com"));
+
+        controller.doGet(request, response);
+
+        verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: MO role required");
     }
 
     @Test
@@ -146,6 +197,78 @@ class MOClassControllerTest {
         assertEquals("Molly,secret123,Mo,mo@example.com," + courses.get(0).getId(), java.nio.file.Files.readAllLines(usersFile).get(0));
         verify(session).setAttribute("user", mo);
         verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void createClassAfterMoModifyDeadlineRedirectsToDashboard() throws Exception {
+        StoreTestSupport.useCourseStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        ServletContext servletContext = mock(ServletContext.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+
+        when(request.getParameter("action")).thenReturn("create_class");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("moCourseModifyDeadline")).thenReturn(LocalDateTime.now().minusHours(1));
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doGet(request, response);
+
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=dashboard&modifyLocked=1");
+    }
+
+    @Test
+    void dashboardShowsModifyLockedModalAfterRedirectFlag() throws Exception {
+        StoreTestSupport.useCourseStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        ServletContext servletContext = mock(ServletContext.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+
+        when(request.getParameter("action")).thenReturn("dashboard");
+        when(request.getParameter("modifyLocked")).thenReturn("1");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("moCourseModifyDeadline")).thenReturn(LocalDateTime.now().minusHours(1));
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("moModifyOpen", false);
+        verify(request).setAttribute("showModifyLockedModal", true);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void publishCourseAfterMoModifyDeadlineRedirectsWithoutSaving() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        StoreTestSupport.useUserStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        ServletContext servletContext = mock(ServletContext.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+
+        when(request.getParameter("action")).thenReturn("publish_course");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("moCourseModifyDeadline")).thenReturn(LocalDateTime.now().minusHours(1));
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doPost(request, response);
+
+        assertTrue(!Files.exists(courseFile) || Files.readAllLines(courseFile).isEmpty());
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=dashboard&modifyLocked=1");
     }
 
     @Test

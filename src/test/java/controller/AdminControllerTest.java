@@ -39,11 +39,12 @@ class AdminControllerTest {
 
         // 模拟未登录状态 (没有 session)
         when(request.getSession(false)).thenReturn(null);
+        when(request.getContextPath()).thenReturn("/SE");
 
         controller.doGet(request, response);
 
         // 验证重定向到了登录页
-        verify(response).sendRedirect("start.html");
+        verify(response).sendRedirect("/SE/start.html");
     }
 
     @Test

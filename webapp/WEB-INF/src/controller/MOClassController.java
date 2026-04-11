@@ -34,7 +34,14 @@ public class MOClassController extends HttpServlet {
 
         if ("logout".equals(action)) {
             logout(request, response);
-        } else if ("dashboard".equals(action)) {
+            return;
+        }
+
+        if (!ensureMoSession(request, response)) {
+            return;
+        }
+
+        if ("dashboard".equals(action)) {
             show_dashboard(request, response);
         } else if ("create_class".equals(action)) {
             create_class(request, response);
@@ -62,7 +69,18 @@ public class MOClassController extends HttpServlet {
 
         if ("logout".equals(action)) {
             logout(request, response);
-        } else if ("publish_course".equals(action)) {
+            return;
+        }
+
+        if (!ensureMoSession(request, response)) {
+            return;
+        }
+
+        if ("publish_course".equals(action)) {
+            if (!isMoModifyOpen(request)) {
+                redirectMoModifyLocked(request, response);
+                return;
+            }
             String courseName = request.getParameter("courseName");
             String jobTitle = request.getParameter("jobTitle");
             String workingHours = request.getParameter("workingHours");
@@ -88,7 +106,7 @@ public class MOClassController extends HttpServlet {
                 UserStore.updateOwnedCourseIds(mo);
                 request.getSession().setAttribute("user", mo);
             }
-            request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
+            show_dashboard(request, response);
 
         } else if ("save_review_picks".equals(action)) {
             save_review_picks(request, response);
@@ -107,8 +125,26 @@ public class MOClassController extends HttpServlet {
 
     }
 
+    private boolean ensureMoSession(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            response.sendRedirect(request.getContextPath() + "/start.html");
+            return false;
+        }
+
+        Object currentUser = session.getAttribute("user");
+        if (currentUser instanceof Mo) {
+            return true;
+        }
+
+        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: MO role required");
+        return false;
+    }
+
     private void show_dashboard(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        request.setAttribute("moModifyOpen", isMoModifyOpen(request));
+        request.setAttribute("showModifyLockedModal", "1".equals(request.getParameter("modifyLocked")));
         request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
     }
 
@@ -143,6 +179,10 @@ public class MOClassController extends HttpServlet {
 
     private void create_class(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        if (!isMoModifyOpen(request)) {
+            redirectMoModifyLocked(request, response);
+            return;
+        }
         request.getRequestDispatcher("/WEB-INF/views/mo/create-project.jsp").forward(request, response);
     }
 
@@ -404,7 +444,7 @@ public class MOClassController extends HttpServlet {
             request.getSession().setAttribute("user", mo);
             return freshOwnedCourses;
         }
-        return CourseStore.getCourseList();
+        return new ArrayList<>();
     }
 
     private Course getCourseForReview(HttpServletRequest request) {
@@ -512,9 +552,12 @@ public class MOClassController extends HttpServlet {
     }
 
     private LocalDateTime resolveMoModifyDeadline(HttpServletRequest request) {
-        Object deadline = request.getServletContext().getAttribute("moCourseModifyDeadline");
-        if (deadline instanceof LocalDateTime localDateTime) {
-            return localDateTime;
+        ServletContext servletContext = request.getServletContext();
+        if (servletContext != null) {
+            Object deadline = servletContext.getAttribute("moCourseModifyDeadline");
+            if (deadline instanceof LocalDateTime localDateTime) {
+                return localDateTime;
+            }
         }
         return DeadlineStore.getMoModifyDeadline();
     }
@@ -549,6 +592,10 @@ public class MOClassController extends HttpServlet {
 
     private void redirectReviewLocked(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=personal_center&reviewLocked=1");
+    }
+
+    private void redirectMoModifyLocked(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=dashboard&modifyLocked=1");
     }
 }
 

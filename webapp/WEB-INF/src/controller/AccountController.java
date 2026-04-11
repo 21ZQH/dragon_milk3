@@ -114,7 +114,7 @@ public class AccountController extends HttpServlet {
     private void forwardByRole(HttpServletRequest request, HttpServletResponse response, String role)
             throws ServletException, IOException {
         if ("Mo".equalsIgnoreCase(role)) {
-            request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
+            response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=dashboard");
         }else if ("Admin".equalsIgnoreCase(role)) {
             request.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp").forward(request, response);
         }else {
