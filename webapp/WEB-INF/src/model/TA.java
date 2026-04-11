@@ -59,7 +59,11 @@ public class TA extends User {
         if (resumeSubmissions != null) {
             for (ResumeSubmission submission : resumeSubmissions) {
                 if (submission != null && submission.getCourse() != null) {
-                    addOrUpdateResume(submission.getCourse(), submission.getResumeDirectory(), submission.getStatus());
+                    addOrUpdateResume(
+                            submission.getCourse(),
+                            submission.getResumeDirectory(),
+                            submission.getStatus(),
+                            submission.isReviewUnread());
                 }
             }
         }
@@ -72,10 +76,14 @@ public class TA extends User {
     }
 
     public void addOrUpdateResume(Course course, String resumeDirectory) {
-        addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING);
+        addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING, false);
     }
 
     public void addOrUpdateResume(Course course, String resumeDirectory, int status) {
+        addOrUpdateResume(course, resumeDirectory, status, false);
+    }
+
+    public void addOrUpdateResume(Course course, String resumeDirectory, int status, boolean reviewUnread) {
         if (course == null || resumeDirectory == null || resumeDirectory.isBlank()) {
             return;
         }
@@ -87,11 +95,12 @@ public class TA extends User {
                 submission.setCourse(course);
                 submission.setResumeDirectory(resumeDirectory);
                 submission.setStatus(status);
+                submission.setReviewUnread(reviewUnread);
                 return;
             }
         }
 
-        resumeSubmissions.add(new ResumeSubmission(course, resumeDirectory, status));
+        resumeSubmissions.add(new ResumeSubmission(course, resumeDirectory, status, reviewUnread));
     }
 
     public String getResumeDirectoryForCourse(String courseId) {
@@ -130,10 +139,54 @@ public class TA extends User {
             return null;
         }
 
+        ResumeSubmission submission = findSubmissionByCourseId(courseId);
+        if (submission != null) {
+            return submission.getStatus();
+        }
+        return null;
+    }
+
+    public boolean hasUnreadReviewUpdates() {
+        for (ResumeSubmission submission : resumeSubmissions) {
+            if (submission != null && submission.isReviewUnread()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean isReviewUnreadForCourse(String courseId) {
+        ResumeSubmission submission = findSubmissionByCourseId(courseId);
+        return submission != null && submission.isReviewUnread();
+    }
+
+    public void markReviewUpdateUnread(String courseId) {
+        ResumeSubmission submission = findSubmissionByCourseId(courseId);
+        if (submission != null) {
+            submission.setReviewUnread(true);
+        }
+    }
+
+    public boolean markAllReviewUpdatesRead() {
+        boolean changed = false;
+        for (ResumeSubmission submission : resumeSubmissions) {
+            if (submission != null && submission.isReviewUnread()) {
+                submission.setReviewUnread(false);
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    private ResumeSubmission findSubmissionByCourseId(String courseId) {
+        if (courseId == null || courseId.isBlank()) {
+            return null;
+        }
+
         for (ResumeSubmission submission : resumeSubmissions) {
             Course course = submission.getCourse();
             if (course != null && courseId.equals(course.getId())) {
-                return submission.getStatus();
+                return submission;
             }
         }
         return null;

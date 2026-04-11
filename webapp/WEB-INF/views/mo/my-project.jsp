@@ -175,7 +175,7 @@
 
 <div class="container">
     <div class="page-title">My project</div>
-    <div class="page-subtitle">// check courses below</div>
+    <!-- <div class="page-subtitle">// check courses below</div> -->
 
     <div class="top-bar">
         <input type="text" id="searchInput" class="search-box" placeholder="Search by course name or job title...">

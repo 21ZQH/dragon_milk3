@@ -1,10 +1,19 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%
+    Boolean moModifyOpenAttr = (Boolean) request.getAttribute("moModifyOpen");
+    boolean moModifyOpen = moModifyOpenAttr == null ? true : moModifyOpenAttr.booleanValue();
+    Boolean moProfileCompleteAttr = (Boolean) request.getAttribute("moProfileComplete");
+    boolean moProfileComplete = moProfileCompleteAttr == null ? true : moProfileCompleteAttr.booleanValue();
+    Boolean showModifyLockedModalAttr = (Boolean) request.getAttribute("showModifyLockedModal");
+    boolean showModifyLockedModal = showModifyLockedModalAttr != null && showModifyLockedModalAttr.booleanValue();
+    Boolean showProfileIncompleteModalAttr = (Boolean) request.getAttribute("showProfileIncompleteModal");
+    boolean showProfileIncompleteModal = showProfileIncompleteModalAttr != null && showProfileIncompleteModalAttr.booleanValue();
+%>
 <!DOCTYPE html>
 <html>
 <head>
     <title>MO Dashboard</title>
     <style>
-        /* ================= 1. 页面基础样式 ================= */
         body {
             background: #f7f7f9;
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -13,118 +22,190 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh; /* 确保整个内容在浏览器中垂直居中 */
+            min-height: 100vh;
         }
 
-        /* ================= 2. 中间白色的主外框 ================= */
         .container {
             background: #fff;
             width: 100%;
-            /* 【修改点】：将框拉长，这里设置了最大宽度为 850px，你可以改这个数值来调整框的宽度 */
-            max-width: 850px; 
+            max-width: 850px;
             border-radius: 20px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.12);
             border: 2px solid #22223b;
-            padding: 40px 40px 50px 40px; /* 上、右、下、左的内边距 */
+            padding: 40px 40px 50px 40px;
             box-sizing: border-box;
         }
 
-        /* ================= 3. 顶部大标题样式 ================= */
         .title {
-            /* 【修改点】：稍微缩小了字号，之前是3em，现在是2.2em */
-            font-size: 2.2em; 
+            font-size: 2.2em;
             font-weight: 700;
             color: #22223b;
             margin-bottom: 15px;
             text-align: center;
         }
 
-        /* ================= 4. 标题下方的欢迎描述副文本 ================= */
         .desc {
             color: #444;
             font-size: 1.1em;
             text-align: center;
             line-height: 1.6;
-            margin-bottom: 45px; /* 控制文字和下方按钮的间距 */
+            margin-bottom: 45px;
         }
-        
-        /* ================= 5. 第一行按钮的排版容器 ================= */
+
         .nav-row {
             display: flex;
-            justify-content: center; /* 按钮在行内居中 */
+            justify-content: center;
             align-items: center;
-            gap: 30px; /* 按钮之间的水平间距，想宽一点就把30px改大 */
-            flex-wrap: wrap; 
+            gap: 30px;
+            flex-wrap: wrap;
             width: 100%;
-            margin-bottom: 30px; /* 第一行和第二行（Logo）之间的垂直间距 */
+            margin-bottom: 30px;
         }
 
-        /* ================= 6. 第二行 Logo 的排版容器 ================= */
         .logo-row {
             display: flex;
-            justify-content: center; /* 确保 Logo 居中 */
+            justify-content: center;
             align-items: center;
             width: 100%;
         }
 
-        /* ================= 7. 每一个独立按钮的具体样式（完全复刻 TA 界面的按钮） ================= */
         .nav-btn {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 200px;  /* 按钮的宽度 */
-            height: 80px;  /* 按钮的高度 */
+            width: 200px;
+            height: 80px;
             padding: 0;
             background: #fff;
             border: 3px solid #18192b;
-            border-radius: 20px; /* 圆角程度 */
+            border-radius: 20px;
             font-size: 1.2em;
             font-weight: 700;
             color: #18192b;
             text-decoration: none;
             font-family: 'Segoe UI', Arial, sans-serif;
             box-shadow: 0 2px 8px rgba(24,25,43,0.06);
-            transition: box-shadow 0.2s, border-color 0.2s;
+            transition: box-shadow 0.2s, border-color 0.2s, background 0.2s;
             cursor: pointer;
-            overflow: hidden; 
+            overflow: hidden;
             text-align: center;
         }
-        /* 鼠标悬停在按钮上时的变色效果 */
+
         .nav-btn:hover {
             box-shadow: 0 4px 16px rgba(24,25,43,0.12);
             border-color: #3b3e5b;
             background: #f5f6fa;
         }
 
-        /* 针对包含图片的 Logo 按钮的特殊设置 */
+        .nav-btn-disabled {
+            color: #9ea3b0;
+            background: #fff;
+        }
+
+        .nav-btn-disabled:hover {
+            border-color: #18192b;
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(24,25,43,0.06);
+        }
+
         .nav-logo img {
             width: 80%;
             height: 80%;
-            object-fit: contain; /* 保持图片比例 */
+            object-fit: contain;
             display: block;
         }
 
-        /* 消除 form 表单自带的边距，以免打乱排版 */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .modal-box {
+            width: 460px;
+            max-width: calc(100vw - 40px);
+            background: #fff;
+            border: 3px solid #18192b;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            padding: 22px;
+        }
+
+        .modal-title {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #18192b;
+            margin-bottom: 12px;
+        }
+
+        .modal-text {
+            color: #444;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+        }
+
+        .modal-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 130px;
+            height: 48px;
+            padding: 0 18px;
+            background: #fff;
+            border: 3px solid #18192b;
+            border-radius: 14px;
+            color: #18192b;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .modal-btn:hover {
+            background: #f5f6fa;
+        }
+
         form {
             margin: 0;
         }
     </style>
 </head>
-<body>
+<body data-show-modify-locked-modal="<%= showModifyLockedModal %>"
+      data-show-profile-incomplete-modal="<%= showProfileIncompleteModal %>">
     <div class="container">
-        
         <div class="title">MO management system</div>
-        
+
         <div class="desc">
             Welcome to the MO management system!<br>
             Here you can create new project, manage your profile, and more.
         </div>
-        
+
         <div class="nav-row">
-            
-            <a class="nav-btn" href="<%= response.encodeURL("MOclasscontroller?action=create_class") %>">
-                Create new project
-            </a>
+            <% if (moModifyOpen && moProfileComplete) { %>
+                <a class="nav-btn" href="<%= response.encodeURL("MOclasscontroller?action=create_class") %>">
+                    Create new project
+                </a>
+            <% } else if (!moModifyOpen) { %>
+                <button class="nav-btn nav-btn-disabled" type="button" onclick="openMoModifyLockedModal()">
+                    Create new project
+                </button>
+            <% } else { %>
+                <button class="nav-btn nav-btn-disabled" type="button" onclick="openProfileIncompleteModal()">
+                    Create new project
+                </button>
+            <% } %>
 
             <a class="nav-btn" href="<%= response.encodeURL("MOclasscontroller?action=personal_center") %>">
                 Personal centre
@@ -133,7 +214,6 @@
             <a class="nav-btn" href="<%= response.encodeURL("MOclasscontroller?action=logout") %>">
                 Log out
             </a>
-
         </div>
 
         <div class="logo-row">
@@ -141,7 +221,56 @@
                 <img src="images/logo.png" alt="Logo" />
             </a>
         </div>
-
     </div>
+
+    <div id="moModifyLockedModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="moModifyLockedTitle">
+        <div class="modal-box">
+            <div class="modal-title" id="moModifyLockedTitle">Course Modification Closed</div>
+            <div class="modal-text">The deadline for MO to create or modify course information has passed.</div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn" onclick="closeMoModifyLockedModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="profileIncompleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileIncompleteTitle">
+        <div class="modal-box">
+            <div class="modal-title" id="profileIncompleteTitle">Complete Your Profile</div>
+            <div class="modal-text">Please complete your personal information before creating or modifying course projects.</div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn" onclick="closeProfileIncompleteModal()">OK</button>
+                <a class="modal-btn" href="<%= response.encodeURL("MOclasscontroller?action=profile_center") %>">Go to Profile</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const showModifyLockedModalFlag = document.body.dataset.showModifyLockedModal === "true";
+        const showProfileIncompleteModalFlag = document.body.dataset.showProfileIncompleteModal === "true";
+
+        function openMoModifyLockedModal() {
+            document.getElementById("moModifyLockedModal").classList.remove("hidden");
+        }
+
+        function closeMoModifyLockedModal() {
+            document.getElementById("moModifyLockedModal").classList.add("hidden");
+        }
+
+        function openProfileIncompleteModal() {
+            document.getElementById("profileIncompleteModal").classList.remove("hidden");
+        }
+
+        function closeProfileIncompleteModal() {
+            document.getElementById("profileIncompleteModal").classList.add("hidden");
+        }
+
+        if (showModifyLockedModalFlag) {
+            openMoModifyLockedModal();
+        }
+
+        if (showProfileIncompleteModalFlag) {
+            openProfileIncompleteModal();
+        }
+    </script>
 </body>
 </html>

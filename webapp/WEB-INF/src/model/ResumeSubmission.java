@@ -8,15 +8,21 @@ public class ResumeSubmission {
     private Course course;
     private String resumeDirectory;
     private int status;
+    private boolean reviewUnread;
 
     public ResumeSubmission(Course course, String resumeDirectory) {
-        this(course, resumeDirectory, STATUS_PENDING);
+        this(course, resumeDirectory, STATUS_PENDING, false);
     }
 
     public ResumeSubmission(Course course, String resumeDirectory, int status) {
+        this(course, resumeDirectory, status, false);
+    }
+
+    public ResumeSubmission(Course course, String resumeDirectory, int status, boolean reviewUnread) {
         this.course = course;
         this.resumeDirectory = resumeDirectory;
         this.status = status;
+        this.reviewUnread = reviewUnread;
     }
 
     public Course getCourse() {
@@ -41,5 +47,13 @@ public class ResumeSubmission {
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    public boolean isReviewUnread() {
+        return reviewUnread;
+    }
+
+    public void setReviewUnread(boolean reviewUnread) {
+        this.reviewUnread = reviewUnread;
     }
 }

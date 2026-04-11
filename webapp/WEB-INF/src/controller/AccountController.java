@@ -1,6 +1,8 @@
 package controller;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -36,8 +38,7 @@ public class AccountController extends HttpServlet {
             throws ServletException, IOException {
         try {
             if (UserStore.isEmailRegistered(email)) {
-                request.setAttribute("error", "the email is already registered");
-                request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
+                redirectToStartWithError(request, response, "The email is already registered.");
                 return;
             }
 
@@ -51,7 +52,7 @@ public class AccountController extends HttpServlet {
             }
 
             UserStore.saveUser(user);
-            request.getSession().setAttribute("user", user);
+            storeAuthenticatedUser(request, user);
             request.setAttribute("name", name);
             request.setAttribute("email", email);
             forwardByRole(request, response, user.getRole());
@@ -73,13 +74,12 @@ public class AccountController extends HttpServlet {
             }
 
             if (user != null) {
-                request.getSession().setAttribute("user", user);
+                storeAuthenticatedUser(request, user);
                 request.setAttribute("name", name);
                 request.setAttribute("email", email);
                 forwardByRole(request, response, user.getRole());
             } else {
-                request.setAttribute("error", "Invalid password and email");
-                request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
+                redirectToStartWithError(request, response, "Invalid password or email.");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -103,14 +103,28 @@ public class AccountController extends HttpServlet {
         return null;
     }
 
+    private void storeAuthenticatedUser(HttpServletRequest request, User user) {
+        request.getSession().setAttribute("user", user);
+        String username = user.getName();
+        if (username != null && !username.trim().isEmpty()) {
+            request.getSession().setAttribute("username", username.trim());
+        }
+    }
+
+    private void redirectToStartWithError(HttpServletRequest request, HttpServletResponse response, String errorMessage)
+            throws IOException {
+        String encodedMessage = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
+        response.sendRedirect(request.getContextPath() + "/start.html?error=" + encodedMessage);
+    }
+
     private void forwardByRole(HttpServletRequest request, HttpServletResponse response, String role)
             throws ServletException, IOException {
         if ("Mo".equalsIgnoreCase(role)) {
-            request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
+            response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=dashboard");
         }else if ("Admin".equalsIgnoreCase(role)) {
-            request.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp").forward(request, response);
+            response.sendRedirect(request.getContextPath() + "/AdminController?action=dashboard");
         }else {
-            request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
+            response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=home");
         }
     }
 }

@@ -103,6 +103,7 @@
         <% if (currentTA != null) { %>
             <form action="<%= response.encodeURL("TAclasscontroller") %>" method="post">
                 <input type="hidden" name="action" value="save_personal_information">
+                <input type="hidden" name="skillFormSubmitted" value="true">
                 <input type="hidden" name="name" value="<%= currentTA.getName() == null ? "" : currentTA.getName() %>">
                 <input type="hidden" name="college" value="<%= currentTA.getCollege() == null ? "" : currentTA.getCollege() %>">
 

@@ -159,6 +159,16 @@
             }
             
         }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const errorMessage = urlParams.get('error');
+        if (errorMessage) {
+            alert(errorMessage);
+            urlParams.delete('error');
+            const nextQuery = urlParams.toString();
+            const nextUrl = window.location.pathname + (nextQuery ? '?' + nextQuery : '');
+            window.history.replaceState({}, document.title, nextUrl);
+        }
     </script>
 </body>
 </html>

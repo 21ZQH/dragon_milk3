@@ -30,11 +30,16 @@ import store.UserStore;
 @MultipartConfig
 public class TAClassController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String action = request.getParameter("action");
+        if ("logout".equals(action)) {
+            logout(request, response);
+            return;
+        }
+
         if (!ensureTaSession(request, response)) {
             return;
         }
 
-        String action = request.getParameter("action");
         if ("view_information".equals(action)) {
             view_information(request, response);
         } else if ("home".equals(action)) {
@@ -59,11 +64,16 @@ public class TAClassController extends HttpServlet {
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String action = request.getParameter("action");
+        if ("logout".equals(action)) {
+            logout(request, response);
+            return;
+        }
+
         if (!ensureTaSession(request, response)) {
             return;
         }
 
-        String action = request.getParameter("action");
         if ("upload_resume".equals(action)) {
             upload_resume(request, response);
         } else if ("save_personal_information".equals(action)) {
@@ -76,15 +86,32 @@ public class TAClassController extends HttpServlet {
     }
 
     private boolean ensureTaSession(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        User user = (User) request.getSession().getAttribute("user");
-        if (user instanceof TA) {
+            throws IOException {
+        HttpSession session = request.getSession(false);
+        if (session == null) {
+            session = request.getSession();
+        }
+
+        Object currentUser = session == null ? null : session.getAttribute("user");
+        if (currentUser instanceof TA) {
             return true;
         }
 
-        request.setAttribute("error", "Login has expired. Please log in again.");
-        request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
+        if (currentUser == null) {
+            response.sendRedirect(request.getContextPath() + "/start.html");
+            return false;
+        }
+
+        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: TA role required");
         return false;
+    }
+
+    private void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        response.sendRedirect(request.getContextPath() + "/start.html");
     }
 
     private void home(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -337,15 +364,16 @@ public class TAClassController extends HttpServlet {
         ta.setName(trimValue(request.getParameter("name")));
         ta.setCollege(trimValue(request.getParameter("college")));
 
-        String[] selectedSkills = request.getParameterValues("skill");
-        if (selectedSkills == null || selectedSkills.length == 0) {
-            ta.setSkill("");
-        } else {
+        boolean skillFormSubmitted = "true".equalsIgnoreCase(request.getParameter("skillFormSubmitted"));
+        if (skillFormSubmitted) {
+            String[] selectedSkills = request.getParameterValues("skill");
             List<String> skills = new ArrayList<>();
-            for (String skill : selectedSkills) {
-                String trimmedSkill = trimValue(skill);
-                if (!trimmedSkill.isEmpty()) {
-                    skills.add(trimmedSkill);
+            if (selectedSkills != null) {
+                for (String skill : selectedSkills) {
+                    String trimmedSkill = trimValue(skill);
+                    if (!trimmedSkill.isEmpty()) {
+                        skills.add(trimmedSkill);
+                    }
                 }
             }
             ta.setSkill(String.join(", ", skills));
@@ -540,6 +568,11 @@ public class TAClassController extends HttpServlet {
 
     private void forwardPersonalCentre(HttpServletRequest request, HttpServletResponse response, TA ta,
             String success, String error, String selectedCourseId) throws ServletException, IOException {
+        if (ta.markAllReviewUpdatesRead()) {
+            UserStore.updateAppliedCourseIds(ta);
+            request.getSession().setAttribute("user", ta);
+        }
+
         List<Course> appliedCourses = ta.getAppliedClasses();
         Course selectedCourse = resolveSelectedAppliedCourse(appliedCourses, selectedCourseId);
 

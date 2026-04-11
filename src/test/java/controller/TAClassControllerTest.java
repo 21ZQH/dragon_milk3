@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
@@ -82,9 +83,11 @@ class TAClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         when(request.getParameter("action")).thenReturn("view_information");
         when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/job-list.jsp")).thenReturn(dispatcher);
 
         controller.doGet(request, response);
@@ -109,6 +112,7 @@ class TAClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         List<Course> courses = List.of(
                 new Course("Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"),
@@ -117,6 +121,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("show_all_information");
         when(request.getParameter("courseIndex")).thenReturn("1");
         when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp")).thenReturn(dispatcher);
 
@@ -133,6 +138,7 @@ class TAClassControllerTest {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         List<Course> courses = List.of(
                 new Course("Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
@@ -140,6 +146,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("show_all_information");
         when(request.getParameter("courseIndex")).thenReturn(null);
         when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(request.getContextPath()).thenReturn("/SE");
 
@@ -153,14 +160,35 @@ class TAClassControllerTest {
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         when(request.getParameter("action")).thenReturn("home");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp")).thenReturn(dispatcher);
 
         controller.doGet(request, response);
 
         verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void logoutActionInvalidatesSessionAndRedirectsToStartPage() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        when(request.getParameter("action")).thenReturn("logout");
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doPost(request, response);
+
+        verify(session).invalidate();
+        verify(response).sendRedirect("/SE/start.html");
     }
 
     @Test
@@ -170,6 +198,7 @@ class TAClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         List<Course> courses = List.of(
                 new Course("Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
@@ -177,6 +206,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("go_apply");
         when(request.getParameter("courseIndex")).thenReturn("0");
         when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp")).thenReturn(dispatcher);
 
@@ -327,14 +357,14 @@ class TAClassControllerTest {
 
         when(request.getParameter("action")).thenReturn("upload_resume");
         when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getSession(false)).thenReturn(session);
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(session.getAttribute("user")).thenReturn(new Mo("secret123", "mo@example.com"));
-        when(request.getContextPath()).thenReturn("/SE");
 
         controller.doPost(request, response);
 
-        verify(response).sendRedirect("/SE/TAclasscontroller?action=view_information");
+        verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: TA role required");
     }
 
     @Test
@@ -385,7 +415,7 @@ class TAClassControllerTest {
                 ta.getResumeDirectoryForCourse("course-1"));
         assertEquals(
                 "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@"
-                        + ta.getResumeDirectoryForCourse("course-1") + "@0",
+                        + ta.getResumeDirectoryForCourse("course-1") + "@0@false",
                 Files.readAllLines(usersFile).get(0));
         verify(dispatcher).forward(request, response);
     }
@@ -412,6 +442,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("save_personal_information");
         when(request.getParameter("name")).thenReturn("  Alice Zhang  ");
         when(request.getParameter("college")).thenReturn("  New College  ");
+        when(request.getParameter("skillFormSubmitted")).thenReturn("true");
         when(request.getParameterValues("skill")).thenReturn(new String[] {"Java", "Python", "SQL"});
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("user")).thenReturn(ta);
@@ -423,8 +454,44 @@ class TAClassControllerTest {
         verify(session).setAttribute("username", "Alice Zhang");
         verify(request).setAttribute("success", "Personal information saved successfully.");
         verify(dispatcher).forward(request, response);
-        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java  Python  SQL,course-1,course-1@D:\\resume\\course-1@0",
+        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java  Python  SQL,course-1,course-1@D:\\resume\\course-1@0@false",
                 Files.readAllLines(usersFile).get(0));
+    }
+
+    @Test
+    void savePersonalInformationWithoutSkillSubmissionKeepsExistingSkill() throws Exception {
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(usersFile, "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1");
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.setName("Alice");
+        ta.setCollege("School of Software");
+        ta.setSkill("Java");
+        ta.addClass(course);
+        ta.addOrUpdateResume(course, "D:\\resume\\course-1");
+
+        when(request.getParameter("action")).thenReturn("save_personal_information");
+        when(request.getParameter("name")).thenReturn("Alice Zhang");
+        when(request.getParameter("college")).thenReturn("New College");
+        when(request.getParameter("skillFormSubmitted")).thenReturn(null);
+        when(request.getParameterValues("skill")).thenReturn(null);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/profile-center.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        assertEquals("Java", ta.getSkill());
+        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java,course-1,course-1@D:\\resume\\course-1@0@false",
+                Files.readAllLines(usersFile).get(0));
+        verify(dispatcher).forward(request, response);
     }
 
     @Test
@@ -477,6 +544,41 @@ class TAClassControllerTest {
         controller.doGet(request, response);
 
         verify(request).setAttribute("applicationOpen", false);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void personalCentreClearsUnreadReviewUpdatesAndPersistsThem() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@1@true");
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        TA ta = (TA) UserStore.validateUser("secret123", "ta@example.com");
+        assertTrue(ta.hasUnreadReviewUpdates());
+
+        when(request.getParameter("action")).thenReturn("personal_centre");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        assertFalse(ta.hasUnreadReviewUpdates());
+        assertEquals("Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@1@false",
+                Files.readAllLines(usersFile).get(0));
+        verify(session).setAttribute("user", ta);
         verify(dispatcher).forward(request, response);
     }
 
@@ -546,6 +648,7 @@ class TAClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         List<Course> courses = List.of(
                 new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"),
@@ -554,6 +657,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("go_apply_by_id");
         when(request.getParameter("courseId")).thenReturn("course-2");
         when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp")).thenReturn(dispatcher);
 

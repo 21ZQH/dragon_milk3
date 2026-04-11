@@ -2,6 +2,8 @@ package model;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -43,6 +45,20 @@ class TATest {
 
         assertEquals(1, ta.getResumeSubmissions().size());
         assertEquals(ResumeSubmission.STATUS_APPROVED, ta.getResumeStatusForCourse("course-1"));
+    }
+
+    @Test
+    void markAllReviewUpdatesReadClearsUnreadFlags() {
+        TA ta = new TA("secret123", "ta@example.com");
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+
+        ta.addOrUpdateResume(course, "D:\\resume\\course-1", ResumeSubmission.STATUS_APPROVED, true);
+
+        assertTrue(ta.hasUnreadReviewUpdates());
+        assertTrue(ta.isReviewUnreadForCourse("course-1"));
+        assertTrue(ta.markAllReviewUpdatesRead());
+        assertFalse(ta.hasUnreadReviewUpdates());
+        assertFalse(ta.isReviewUnreadForCourse("course-1"));
     }
 
     @Test
