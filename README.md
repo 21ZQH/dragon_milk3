@@ -5,38 +5,40 @@
 ![Architecture](https://img.shields.io/badge/Architecture-Role--Based-0f766e)
 ![Status](https://img.shields.io/badge/Status-Active%20Prototype-f59e0b)
 
-A role-based web platform for teaching assistant recruitment at BUPT International School.
-The system covers the full workflow from TA application and resume upload to MO review, deadline control, and final result publishing.
+A role-based recruitment platform for teaching assistant applications at **BUPT International School**.  
+The system models the full workflow from course publishing and resume submission to deadline control, applicant review, and final result publishing.
 
-> Recommended hero image:
-> `docs/images/hero-overview.png`
->
-> Best choice:
-> a clean full-page screenshot or a 3-panel collage showing `TA / MO / Admin`.
+![System Hero](./docs/images/ta-home.png)
 
 ## Overview
 
-This project was developed for the **EBU6304 Software Engineering Group Project**.
-It is built with a classic **JSP/Servlet** architecture and focuses on a realistic recruitment workflow involving three different roles:
+This project was developed for the **EBU6304 Software Engineering Group Project**.  
+It is built with a classic **JSP/Servlet** architecture and designed around three clearly separated roles:
 
-- **TA** for job browsing, resume submission, and result tracking
-- **MO** for course publishing, applicant review, and result publishing
-- **Admin** for deadline management and system-level control
+- **TA**: browse jobs, upload resumes, manage profile data, and track review results
+- **MO**: create course projects, review applicants, and publish final decisions
+- **Admin**: manage deadlines, candidate visibility, and system-level control
 
-The project is designed around **role separation**, **deadline-aware interaction**, and **file-based persistence** without relying on a database.
+The project emphasizes:
+
+- role-based access control
+- deadline-aware interaction
+- ID-based course persistence
+- file-based storage without a database
+- testable controller/store/model workflows
 
 ## Why This Project
 
-Teaching assistant recruitment is not just a simple form submission process.
-It requires:
+Teaching assistant recruitment is a small system on the surface, but a complete one needs more than simple forms.
+It needs:
 
-- clear role-based permissions
-- deadline-aware behavior
-- application tracking per course
-- a review and publishing workflow
-- stable persistence between users, courses, and uploaded resumes
+- different permissions for different users
+- course-linked applications instead of one global submission
+- a staged review workflow
+- persistent result tracking
+- visible status feedback after publication
 
-This system aims to model that complete lifecycle in a way that is practical, testable, and easy to demonstrate.
+This project aims to turn that real process into a clear, demo-friendly web platform.
 
 ## Feature Breakdown
 
@@ -44,44 +46,54 @@ This system aims to model that complete lifecycle in a way that is practical, te
 
 #### Job Discovery
 
-- Browse available TA openings
-- View course details and application information
-- Enter the application flow from a guided interface
+- Browse available TA positions
+- View detailed course and workload information
+- Enter the application flow through dedicated job pages
 
 #### Resume Submission
 
 - Upload a resume for a specific course
 - Re-upload the resume before the application deadline
-- Keep course-linked application records with stable course IDs
+- Keep application records linked to immutable course IDs
 
 #### Personal Centre
 
 - View all applied courses in one place
-- Switch between applications using a structured course selector
-- Track progress after the application stage closes
-- See final review results after MO publishes them
-- Receive a notification dot when a review result has been updated
+- Switch between applications through a structured course selector
+- Track review progress after the application stage closes
+- See final review results after publication
+- Receive a notification dot when a review result is updated
 
 #### Profile Management
 
-- Update personal information
-- Edit educational background
-- Maintain skill information through a dedicated skill editing flow
+- Update name and educational background
+- Edit skills through a dedicated skill page
+- Preserve profile data and skill selections across updates
 
-> Recommended screenshots for this section:
-> `docs/images/ta-home.png`
-> `docs/images/ta-personal-centre.png`
-> `docs/images/ta-profile-centre.png`
-> `docs/images/ta-profile-skill.png`
-> `docs/images/ta-application.png`
+#### TA Screens
+
+<table>
+  <tr>
+    <td align="center" width="50%"><strong>Find Jobs</strong><br><img src="./docs/images/ta-findjob.png" alt="TA Find Job" height="300"></td>
+    <td align="center" width="50%"><strong>Application</strong><br><img src="./docs/images/ta-application.png" alt="TA Application" height="300"></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><strong>Personal Centre</strong><br><img src="./docs/images/ta-personal-centre.png" alt="TA Personal Centre" height="300"></td>
+    <td align="center" width="50%"><strong>Review Result</strong><br><img src="./docs/images/ta-review-result.png" alt="TA Review Result" height="300"></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><strong>Profile Centre</strong><br><img src="./docs/images/ta-profile-centre.png" alt="TA Profile Centre" height="300"></td>
+    <td align="center" width="50%"><strong>Skill Editing</strong><br><img src="./docs/images/ta-profile-skill.png" alt="TA Skill Editing" height="300"></td>
+  </tr>
+</table>
 
 ### MO Module
 
 #### Project Creation
 
-- Create new course recruitment posts
+- Create new recruitment posts for courses
 - Assign immutable course IDs
-- Save course information to local storage
+- Persist course information to local storage
 
 #### Project Management
 
@@ -94,19 +106,26 @@ This system aims to model that complete lifecycle in a way that is practical, te
 - Review applicants course by course
 - Open uploaded resumes directly from the review page
 - Save picked applicants before publishing
-- Publish final review results to update TA application status
+- Publish final results to update TA status
 
-#### Access Control
+#### MO Profile and Control
 
-- Prevent review before the TA application stage ends
-- Prevent course modification after the MO deadline
-- Restrict MO routes through servlet-level session checks
+- Edit MO personal information through a profile page
+- Restrict creation and editing when profile data is incomplete
+- Restrict protected routes through servlet-level session checks
 
-> Recommended screenshots for this section:
-> `docs/images/mo-dashboard.png`
-> `docs/images/mo-create-project.png`
-> `docs/images/mo-project-detail.png`
-> `docs/images/mo-review.png`
+#### MO Screens
+
+<table>
+  <tr>
+    <td align="center" width="50%"><strong>Dashboard</strong><br><img src="./docs/images/mo-dashboard.png" alt="MO Dashboard" height="300"></td>
+    <td align="center" width="50%"><strong>Profile</strong><br><img src="./docs/images/mo-profie.png" alt="MO Profile" height="300"></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><strong>Create Project</strong><br><img src="./docs/images/mo-create-project.png" alt="MO Create Project" height="300"></td>
+    <td align="center" width="50%"><strong>Project Detail</strong><br><img src="./docs/images/mo-project-detail.png" alt="MO Project Detail" height="300"></td>
+  </tr>
+</table>
 
 ### Admin Module
 
@@ -114,24 +133,33 @@ This system aims to model that complete lifecycle in a way that is practical, te
 
 - Set the TA application deadline
 - Set the MO course modification deadline
-- Persist deadlines to disk and restore them when the server starts
+- Persist deadlines and reload them when the server starts
 
-#### Administrative Control
+#### Candidate and Workload Visibility
 
-- Access the admin dashboard through a dedicated role-based entry
-- Manage recruitment settings through a centralized interface
-- Maintain system timing rules that drive TA and MO behavior
+- View candidate information from the admin side
+- Open uploaded resumes directly from the admin workflow
+- Monitor recruitment-related information through a centralized interface
 
-> Recommended screenshots for this section:
-> `docs/images/admin-dashboard.png`
-> `docs/images/admin-application-deadline.png`
-> `docs/images/admin-mo-deadline.png`
+#### Admin Screens
+
+<table>
+  <tr>
+    <td align="center" width="50%"><strong>Dashboard</strong><br><img src="./docs/images/admin-dashboard.png" alt="Admin Dashboard" height="300"></td>
+    <td align="center" width="50%"><strong>Candidate / Workload</strong><br><img src="./docs/images/admin-workload.png" alt="Admin Workload" height="300"></td>
+  </tr>
+  <tr>
+    <td align="center" width="50%"><strong>TA Deadline</strong><br><img src="./docs/images/admin-application-deadline.png" alt="Admin Application Deadline" height="300"></td>
+    <td align="center" width="50%"><strong>MO Deadline</strong><br><img src="./docs/images/admin-mo-deadline.png" alt="Admin MO Deadline" height="300"></td>
+  </tr>
+</table>
 
 ## Project Structure
 
 ```text
 .
 |-- docs/                         Documentation and project assets
+|   `-- images/                   README screenshots
 |-- src/
 |   `-- test/java/                JUnit test sources
 |-- webapp/
@@ -158,60 +186,36 @@ This system aims to model that complete lifecycle in a way that is practical, te
 ## Highlights
 
 - **Role-based workflow**
-  Separate TA, MO, and Admin experiences with dedicated routes and responsibilities.
+  TA, MO, and Admin each have dedicated routes, UI flows, and responsibilities.
 
-- **Deadline-aware system behavior**
-  Application, review, and modification flows change automatically based on configured deadlines.
+- **Deadline-aware behavior**
+  Application, review, and modification actions react to configured deadlines both in the UI and in controller-level checks.
 
-- **ID-based course persistence**
-  Course records use immutable IDs, making review, application, and resume mapping more stable.
+- **ID-based persistence**
+  Courses use immutable IDs, making resume mappings and review publishing more reliable.
 
-- **Publish-first review design**
-  MO can save a review selection first and publish final results later.
+- **Publish-first review model**
+  MO can save picks first and publish final decisions later.
 
-- **Notification logic for TA users**
-  Review result updates surface through unread notifications in the TA interface.
+- **Notification logic for applicants**
+  TA users receive visible unread result updates after MO publishes review outcomes.
 
-- **File-based persistence**
-  User data, course data, deadlines, and resume mappings are stored locally without a database dependency.
+- **Profile completeness gate**
+  MO users must complete required personal information before creating or modifying projects.
 
-- **Test coverage for core flows**
-  Controllers, stores, and models are covered with JUnit tests for major user actions and edge cases.
+- **File-based storage**
+  Users, deadlines, courses, and resume mappings are stored locally without requiring a database.
 
-## Screenshots
-
-Use this section as the final polished gallery after you collect screenshots.
-
-### Entry Flow
-
-> Place screenshot here:
-> `docs/images/start-page.png`
-
-### TA Experience
-
-> Place screenshots here:
-> `docs/images/ta-home.png`
-> `docs/images/ta-personal-centre.png`
-
-### MO Experience
-
-> Place screenshots here:
-> `docs/images/mo-dashboard.png`
-> `docs/images/mo-review.png`
-
-### Admin Experience
-
-> Place screenshots here:
-> `docs/images/admin-dashboard.png`
-> `docs/images/admin-application-deadline.png`
+- **JUnit-backed validation**
+  Controllers, stores, and models are covered with tests for major user journeys and regression-prone logic.
 
 ## Advantages
 
-- Clean separation of responsibilities across three user roles
-- Simple deployment model for demonstration and coursework delivery
-- Strong workflow visibility for both applicants and reviewers
-- Easy-to-demo UI states driven by deadlines and review results
-- Practical architecture for explaining session handling, persistence, and testing in a course setting
+- Clear separation of responsibilities across three user roles
+- Easy to demonstrate in a coursework setting
+- Strong linkage between UI behavior and backend rules
+- Stable persistence model for course-based applications
+- Good foundation for explaining sessions, deadlines, testing, and state transitions
 
 ## Quick Start
 
@@ -235,16 +239,23 @@ Use your Tomcat deployment flow and open:
 http://localhost:8081/SE/start.html
 ```
 
+### Local Notes
+
+- The project uses file-based runtime data under `webapp/WEB-INF/file`
+- Tomcat deployment is driven by the repository's existing batch workflow
+- README screenshots are stored under `docs/images`
+
 ## Testing
 
 The project includes JUnit-based testing for controller, model, and store layers.
 Covered areas include:
 
 - account registration and login
-- TA resume upload and personal centre behavior
+- TA application and resume upload
 - MO review and publish flow
 - deadline restrictions
-- persistence format handling
+- admin resume access and deadline setting
+- persistence format compatibility for TA and MO records
 
 ## Group Name List
 
