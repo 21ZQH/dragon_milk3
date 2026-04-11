@@ -177,9 +177,11 @@ This project aims to turn that real process into a clear, demo-friendly web plat
 |   |   |   `-- ta/               TA JSP pages
 |   |   `-- web.xml               Servlet mappings
 |   |-- command2.bat              Local compile helper
+|   |-- command2.sh               macOS compile helper
 |   `-- start.html                Login and registration entry
 |-- pom.xml                       Maven test configuration
-|-- start_SE.bat                  Deployment helper
+|-- start_SE.bat                  Windows deployment helper
+|-- start_se.sh                   macOS deployment helper
 `-- README.md
 ```
 
@@ -221,9 +223,15 @@ This project aims to turn that real process into a clear, demo-friendly web plat
 
 ### Requirements
 
-- Java
-- Tomcat
+- Java 17 or later
+- Apache Tomcat 11
 - Maven
+
+### Tomcat 11 Notes
+
+- Apache Tomcat 11.0.x currently requires **Java 17 or later**
+- The latest stable Tomcat 11 release listed by Apache on **April 11, 2026** is **11.0.21**
+- This project already uses the `jakarta.servlet.*` namespace, so it is aligned with the Tomcat 11 / Jakarta EE generation
 
 ### Run Tests
 
@@ -231,9 +239,38 @@ This project aims to turn that real process into a clear, demo-friendly web plat
 mvn test
 ```
 
-### Start the System
+### Start on Windows
 
-Use your Tomcat deployment flow and open:
+1. Install Tomcat 11 and set either `TOMCAT_HOME` or `CATALINA_HOME`
+2. Run the deployment script from the project root:
+
+```bat
+start_SE.bat
+```
+
+### Start on macOS
+
+1. Install Tomcat 11
+2. Set `TOMCAT_HOME` or `CATALINA_HOME`
+   Homebrew users often use:
+
+```bash
+export TOMCAT_HOME="/opt/homebrew/opt/tomcat/libexec"
+```
+
+3. Make the scripts executable once:
+
+```bash
+chmod +x start_se.sh webapp/command2.sh webapp/WEB-INF/command2.sh
+```
+
+4. Run:
+
+```bash
+./start_se.sh
+```
+
+### Open the System
 
 ```text
 http://localhost:8081/SE/start.html
@@ -241,8 +278,10 @@ http://localhost:8081/SE/start.html
 
 ### Local Notes
 
-- The project uses file-based runtime data under `webapp/WEB-INF/file`
-- Tomcat deployment is driven by the repository's existing batch workflow
+- Runtime data is preserved under the deployed app at `webapps/SE/WEB-INF/file`
+- The startup scripts back up and restore `users.txt`, `courses.txt`, and deadline files during redeploy
+- Use `start_SE.bat` on Windows and `start_se.sh` on macOS
+- `webapp/command2.bat` and `webapp/command2.sh` are the platform-specific compile helpers
 - README screenshots are stored under `docs/images`
 
 ## Testing
