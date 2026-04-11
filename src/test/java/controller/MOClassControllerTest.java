@@ -40,6 +40,14 @@ class MOClassControllerTest {
         StoreTestSupport.clearStoreOverrides();
     }
 
+    private Mo createCompleteMo(String email) {
+        Mo mo = new Mo("secret123", email);
+        mo.setName("Molly");
+        mo.setDegree("Master of Science");
+        mo.setCollege("School of Software");
+        return mo;
+    }
+
     @Test
     void createClassActionForwardsToCreateProjectPage() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -48,7 +56,7 @@ class MOClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
-        Mo mo = new Mo("secret123", "mo@example.com");
+        Mo mo = createCompleteMo("mo@example.com");
 
         when(request.getParameter("action")).thenReturn("create_class");
         when(request.getSession(false)).thenReturn(session);
@@ -58,6 +66,25 @@ class MOClassControllerTest {
         controller.doGet(request, response);
 
         verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void createClassWithIncompleteProfileRedirectsToDashboard() throws Exception {
+        StoreTestSupport.useCourseStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+
+        when(request.getParameter("action")).thenReturn("create_class");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doGet(request, response);
+
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=dashboard&profileIncomplete=1");
     }
 
     @Test
@@ -170,8 +197,7 @@ class MOClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
-        Mo mo = new Mo("secret123", "mo@example.com");
-        mo.setName("Molly");
+        Mo mo = createCompleteMo("mo@example.com");
 
         when(request.getParameter("action")).thenReturn("publish_course");
         when(request.getParameter("courseName")).thenReturn("Software Engineering");
@@ -194,9 +220,31 @@ class MOClassControllerTest {
         assertTrue(courses.get(0).getSalary().contains("TBD"));
         assertEquals(1, mo.getOwnedCourses().size());
         assertEquals(courses.get(0).getId(), mo.getOwnedCourses().get(0).getId());
-        assertEquals("Molly,secret123,Mo,mo@example.com," + courses.get(0).getId(), java.nio.file.Files.readAllLines(usersFile).get(0));
+        assertEquals("Molly,secret123,Mo,mo@example.com,Master of Science,School of Software," + courses.get(0).getId(),
+                java.nio.file.Files.readAllLines(usersFile).get(0));
         verify(session).setAttribute("user", mo);
         verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void publishCourseWithIncompleteProfileRedirectsWithoutSaving() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        StoreTestSupport.useUserStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+
+        when(request.getParameter("action")).thenReturn("publish_course");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doPost(request, response);
+
+        assertTrue(!Files.exists(courseFile) || Files.readAllLines(courseFile).isEmpty());
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=dashboard&profileIncomplete=1");
     }
 
     @Test
@@ -384,7 +432,7 @@ class MOClassControllerTest {
         HttpSession session = mock(HttpSession.class);
         ServletContext servletContext = mock(ServletContext.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
-        Mo mo = new Mo("secret123", "mo@example.com");
+        Mo mo = createCompleteMo("mo@example.com");
         mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
         LocalDateTime moDeadline = LocalDateTime.now().plusHours(2);
 
@@ -400,8 +448,44 @@ class MOClassControllerTest {
         controller.doGet(request, response);
 
         verify(request).setAttribute("courseIndex", "0");
+        verify(request).setAttribute("moProfileComplete", true);
         verify(request).setAttribute("moModifyOpen", true);
         verify(request).setAttribute("moModifyDeadline", moDeadline);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void saveCourseChangesWithIncompleteProfileForwardsWithProfileError() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        ServletContext servletContext = mock(ServletContext.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+        LocalDateTime moDeadline = LocalDateTime.now().plusHours(1);
+
+        when(request.getParameter("action")).thenReturn("save_course_changes");
+        when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("moCourseModifyDeadline")).thenReturn(moDeadline);
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/project-detail.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(request).setAttribute("error", "Please complete your personal information before creating or modifying course projects.");
+        verify(request).setAttribute("showProfileIncompleteModal", true);
+        verify(request).setAttribute("moProfileComplete", false);
         verify(dispatcher).forward(request, response);
     }
 

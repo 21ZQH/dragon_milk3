@@ -2,8 +2,12 @@
 <%
     Boolean moModifyOpenAttr = (Boolean) request.getAttribute("moModifyOpen");
     boolean moModifyOpen = moModifyOpenAttr == null ? true : moModifyOpenAttr.booleanValue();
+    Boolean moProfileCompleteAttr = (Boolean) request.getAttribute("moProfileComplete");
+    boolean moProfileComplete = moProfileCompleteAttr == null ? true : moProfileCompleteAttr.booleanValue();
     Boolean showModifyLockedModalAttr = (Boolean) request.getAttribute("showModifyLockedModal");
     boolean showModifyLockedModal = showModifyLockedModalAttr != null && showModifyLockedModalAttr.booleanValue();
+    Boolean showProfileIncompleteModalAttr = (Boolean) request.getAttribute("showProfileIncompleteModal");
+    boolean showProfileIncompleteModal = showProfileIncompleteModalAttr != null && showProfileIncompleteModalAttr.booleanValue();
 %>
 <!DOCTYPE html>
 <html>
@@ -178,7 +182,8 @@
         }
     </style>
 </head>
-<body data-show-modify-locked-modal="<%= showModifyLockedModal %>">
+<body data-show-modify-locked-modal="<%= showModifyLockedModal %>"
+      data-show-profile-incomplete-modal="<%= showProfileIncompleteModal %>">
     <div class="container">
         <div class="title">MO management system</div>
 
@@ -188,12 +193,16 @@
         </div>
 
         <div class="nav-row">
-            <% if (moModifyOpen) { %>
+            <% if (moModifyOpen && moProfileComplete) { %>
                 <a class="nav-btn" href="<%= response.encodeURL("MOclasscontroller?action=create_class") %>">
                     Create new project
                 </a>
-            <% } else { %>
+            <% } else if (!moModifyOpen) { %>
                 <button class="nav-btn nav-btn-disabled" type="button" onclick="openMoModifyLockedModal()">
+                    Create new project
+                </button>
+            <% } else { %>
+                <button class="nav-btn nav-btn-disabled" type="button" onclick="openProfileIncompleteModal()">
                     Create new project
                 </button>
             <% } %>
@@ -224,8 +233,20 @@
         </div>
     </div>
 
+    <div id="profileIncompleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileIncompleteTitle">
+        <div class="modal-box">
+            <div class="modal-title" id="profileIncompleteTitle">Complete Your Profile</div>
+            <div class="modal-text">Please complete your personal information before creating or modifying course projects.</div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn" onclick="closeProfileIncompleteModal()">OK</button>
+                <a class="modal-btn" href="<%= response.encodeURL("MOclasscontroller?action=profile_center") %>">Go to Profile</a>
+            </div>
+        </div>
+    </div>
+
     <script>
         const showModifyLockedModalFlag = document.body.dataset.showModifyLockedModal === "true";
+        const showProfileIncompleteModalFlag = document.body.dataset.showProfileIncompleteModal === "true";
 
         function openMoModifyLockedModal() {
             document.getElementById("moModifyLockedModal").classList.remove("hidden");
@@ -235,8 +256,20 @@
             document.getElementById("moModifyLockedModal").classList.add("hidden");
         }
 
+        function openProfileIncompleteModal() {
+            document.getElementById("profileIncompleteModal").classList.remove("hidden");
+        }
+
+        function closeProfileIncompleteModal() {
+            document.getElementById("profileIncompleteModal").classList.add("hidden");
+        }
+
         if (showModifyLockedModalFlag) {
             openMoModifyLockedModal();
+        }
+
+        if (showProfileIncompleteModalFlag) {
+            openProfileIncompleteModal();
         }
     </script>
 </body>

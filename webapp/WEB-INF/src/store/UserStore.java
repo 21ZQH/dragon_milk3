@@ -19,11 +19,9 @@ import model.User;
 
 public class UserStore {
     public static final String FILE_PATH_PROPERTY = "user.store.path";
+
     public static List<TA> getTAList() {
-        
         List<Course> availableCourses = CourseStore.getCourseList();
-        
-        
         return getTaUsersForCourses(availableCourses);
     }
 
@@ -40,81 +38,17 @@ public class UserStore {
 
         try (FileWriter fw = new FileWriter(filePath.toFile(), true)) {
             fw.write(line + "\n");
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
     public static User validateUser(String password, String role, String email) {
-        Path filePath = resolveFilePath();
-        if (!Files.exists(filePath)) {
-            return null;
-        }
-
-        List<Course> availableCourses = CourseStore.getCourseList();
-
-        try (BufferedReader br = Files.newBufferedReader(filePath)) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",", -1);
-                if (parts.length >= 4) {
-                    String name = parts[0];
-                    String p = parts[1];
-                    String r = parts[2];
-                    String e = parts[3];
-                    String college = extractCollege(r, parts);
-                    String skill = extractSkill(r, parts);
-                    String moDegree = extractMoDegree(r, parts);
-                    String moCollege = extractMoCollege(r, parts);
-                    String ownedCourseIds = extractOwnedCourseIds(r, parts);
-                    String appliedCourseIds = extractAppliedCourseIds(r, parts);
-                    String resumeMappings = extractResumeMappings(r, parts);
-                    if (p.equals(password) && r.equals(role) && e.equals(email)) {
-                        return buildUser(name, r, p, e, college, skill, moDegree, moCollege, ownedCourseIds, appliedCourseIds,
-                                resumeMappings, availableCourses);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+        return findUser(password, email, role, true);
     }
 
     public static User validateUser(String password, String email) {
-        Path filePath = resolveFilePath();
-        if (!Files.exists(filePath)) {
-            return null;
-        }
-
-        List<Course> availableCourses = CourseStore.getCourseList();
-
-        try (BufferedReader br = Files.newBufferedReader(filePath)) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",", -1);
-                if (parts.length >= 4) {
-                    String name = parts[0];
-                    String p = parts[1];
-                    String r = parts[2];
-                    String e = parts[3];
-                    String college = extractCollege(r, parts);
-                    String skill = extractSkill(r, parts);
-                    String moDegree = extractMoDegree(r, parts);
-                    String moCollege = extractMoCollege(r, parts);
-                    String ownedCourseIds = extractOwnedCourseIds(r, parts);
-                    String appliedCourseIds = extractAppliedCourseIds(r, parts);
-                    String resumeMappings = extractResumeMappings(r, parts);
-                    if (p.equals(password) && e.equals(email)) {
-                        return buildUser(name, r, p, e, college, skill, moDegree, moCollege, ownedCourseIds, appliedCourseIds,
-                                resumeMappings, availableCourses);
-                    }
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+        return findUser(password, email, null, false);
     }
 
     public static boolean isEmailRegistered(String email) {
@@ -126,68 +60,31 @@ public class UserStore {
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",", -1);
-                if (parts.length >= 4) {
-                    String e = parts[3];
-                    if (e.equals(email)) {
-                        return true;
-                    }
+                ParsedUserLine parsedLine = parseUserLine(line);
+                if (parsedLine != null && email.equals(parsedLine.email)) {
+                    return true;
                 }
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
         return false;
     }
 
     public static void updateAppliedCourseIds(TA ta) {
-        updateTaLine(ta);
+        updateUserLine("TA", ta.getEmail(), toTaLine(ta));
     }
 
     public static void updateTaProfile(TA ta) {
-        updateTaLine(ta);
+        updateUserLine("TA", ta.getEmail(), toTaLine(ta));
     }
 
     public static void updateMoProfile(Mo mo) {
-        updateMoLine(mo);
+        updateUserLine("Mo", mo.getEmail(), toMoLine(mo));
     }
 
     public static void updateOwnedCourseIds(Mo mo) {
-        Path filePath = resolveFilePath();
-        if (!Files.exists(filePath)) {
-            saveUser(mo);
-            return;
-        }
-
-        List<String> updatedLines = new ArrayList<>();
-        boolean updated = false;
-
-        try (BufferedReader br = Files.newBufferedReader(filePath)) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",", -1);
-                if (parts.length >= 4 && "Mo".equals(parts[2]) && parts[3].equals(mo.getEmail())) {
-                    updatedLines.add(toLine(mo));
-                    updated = true;
-                } else {
-                    updatedLines.add(line);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        if (!updated) {
-            updatedLines.add(toLine(mo));
-        }
-
-        try {
-            ensureParentDirectoryExists(filePath);
-            Files.write(filePath, updatedLines);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        updateUserLine("Mo", mo.getEmail(), toMoLine(mo));
     }
 
     static List<TA> getTaUsersForCourses(List<Course> availableCourses) {
@@ -200,24 +97,14 @@ public class UserStore {
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",", -1);
-                if (parts.length >= 4 && "TA".equals(parts[2])) {
-                    String name = parts[0];
-                    String password = parts[1];
-                    String email = parts[3];
-                    String college = extractCollege("TA", parts);
-                    String skill = extractSkill("TA", parts);
-                        String moDegree = extractMoDegree("TA", parts);
-                        String moCollege = extractMoCollege("TA", parts);
-                    String ownedCourseIds = extractOwnedCourseIds("TA", parts);
-                    String appliedCourseIds = extractAppliedCourseIds("TA", parts);
-                    String resumeMappings = extractResumeMappings("TA", parts);
+                ParsedUserLine parsedLine = parseUserLine(line);
+                if (parsedLine == null || !"TA".equals(parsedLine.role)) {
+                    continue;
+                }
 
-                        User user = buildUser(name, "TA", password, email, college, skill, moDegree, moCollege,
-                            ownedCourseIds, appliedCourseIds, resumeMappings, availableCourses);
-                    if (user instanceof TA ta) {
-                        taUsers.add(ta);
-                    }
+                User user = buildUser(parsedLine, availableCourses);
+                if (user instanceof TA ta) {
+                    taUsers.add(ta);
                 }
             }
         } catch (IOException e) {
@@ -227,40 +114,207 @@ public class UserStore {
         return taUsers;
     }
 
-        private static User buildUser(String name, String role, String password, String email, String college, String skill,
-            String moDegree, String moCollege, String ownedCourseIds, String appliedCourseIds, String resumeMappings,
-            List<Course> availableCourses) {
-        User user = null;
-        if ("Admin".equals(role)) {
-            user = new Admin(password, email);
+    private static User findUser(String password, String email, String role, boolean matchRole) {
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            return null;
         }
-        if ("TA".equals(role)) {
-            user = new TA(password, email);
+
+        List<Course> availableCourses = CourseStore.getCourseList();
+
+        try (BufferedReader br = Files.newBufferedReader(filePath)) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                ParsedUserLine parsedLine = parseUserLine(line);
+                if (parsedLine == null) {
+                    continue;
+                }
+
+                boolean passwordMatches = password.equals(parsedLine.password);
+                boolean emailMatches = email.equals(parsedLine.email);
+                boolean roleMatches = !matchRole || role.equals(parsedLine.role);
+
+                if (passwordMatches && emailMatches && roleMatches) {
+                    return buildUser(parsedLine, availableCourses);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        if ("Mo".equals(role)) {
-            user = new Mo(password, email);
+
+        return null;
+    }
+
+    private static void updateUserLine(String role, String email, String replacementLine) {
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            try {
+                ensureParentDirectoryExists(filePath);
+                Files.write(filePath, List.of(replacementLine));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return;
         }
-        if (user != null && name != null && !name.isBlank()) {
-            user.setName(name);
+
+        List<String> updatedLines = new ArrayList<>();
+        boolean updated = false;
+
+        try (BufferedReader br = Files.newBufferedReader(filePath)) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                ParsedUserLine parsedLine = parseUserLine(line);
+                if (parsedLine != null && role.equals(parsedLine.role) && email.equals(parsedLine.email)) {
+                    updatedLines.add(replacementLine);
+                    updated = true;
+                } else {
+                    updatedLines.add(line);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
         }
+
+        if (!updated) {
+            updatedLines.add(replacementLine);
+        }
+
+        try {
+            ensureParentDirectoryExists(filePath);
+            Files.write(filePath, updatedLines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static User buildUser(ParsedUserLine parsedLine, List<Course> availableCourses) {
+        User user = switch (parsedLine.role) {
+            case "Admin" -> new Admin(parsedLine.password, parsedLine.email);
+            case "TA" -> new TA(parsedLine.password, parsedLine.email);
+            case "Mo" -> new Mo(parsedLine.password, parsedLine.email);
+            default -> null;
+        };
+
+        if (user == null) {
+            return null;
+        }
+
+        if (parsedLine.name != null && !parsedLine.name.isBlank()) {
+            user.setName(parsedLine.name);
+        }
+
         if (user instanceof TA ta) {
-            ta.setCollege(college);
-            ta.setSkill(skill);
+            ta.setCollege(parsedLine.taCollege);
+            ta.setSkill(parsedLine.taSkill);
+            if (!parsedLine.appliedCourseIds.isBlank()) {
+                ta.setAppliedClasses(resolveCourses(parsedLine.appliedCourseIds, availableCourses));
+            }
+            if (!parsedLine.resumeMappings.isBlank()) {
+                ta.setResumeSubmissions(resolveResumeSubmissions(parsedLine.resumeMappings, availableCourses));
+            }
+        }
+
+        if (user instanceof Mo mo) {
+            mo.setDegree(parsedLine.moDegree);
+            mo.setCollege(parsedLine.moCollege);
+            if (!parsedLine.ownedCourseIds.isBlank()) {
+                mo.setOwnedCourses(resolveCourses(parsedLine.ownedCourseIds, availableCourses));
+            }
+        }
+
+        return user;
+    }
+
+    private static ParsedUserLine parseUserLine(String line) {
+        if (line == null || line.isBlank()) {
+            return null;
+        }
+
+        String[] parts = line.split(",", -1);
+        if (parts.length < 4) {
+            return null;
+        }
+
+        ParsedUserLine parsedLine = new ParsedUserLine();
+        parsedLine.name = parts[0];
+        parsedLine.password = parts[1];
+        parsedLine.role = parts[2];
+        parsedLine.email = parts[3];
+
+        if ("TA".equals(parsedLine.role)) {
+            parseTaFields(parsedLine, parts);
+        } else if ("Mo".equals(parsedLine.role)) {
+            parseMoFields(parsedLine, parts);
+        }
+
+        return parsedLine;
+    }
+
+    private static void parseTaFields(ParsedUserLine parsedLine, String[] parts) {
+        if (parts.length >= 8) {
+            parsedLine.taCollege = parts[4];
+            parsedLine.taSkill = parts[5];
+            parsedLine.appliedCourseIds = parts[6];
+            parsedLine.resumeMappings = parts[7];
+            return;
+        }
+
+        if (parts.length >= 6) {
+            parsedLine.appliedCourseIds = parts[4];
+            parsedLine.resumeMappings = parts[5];
+            return;
+        }
+
+        if (parts.length >= 5) {
+            parsedLine.appliedCourseIds = parts[4];
+        }
+    }
+
+    private static void parseMoFields(ParsedUserLine parsedLine, String[] parts) {
+        if (parts.length >= 7) {
+            parsedLine.moDegree = parts[4];
+            parsedLine.moCollege = parts[5];
+            parsedLine.ownedCourseIds = parts[6];
+            return;
+        }
+
+        if (parts.length >= 5) {
+            parsedLine.ownedCourseIds = parts[4];
+        }
+    }
+
+    private static String toLine(User user) {
+        if (user instanceof TA ta) {
+            return toTaLine(ta);
         }
         if (user instanceof Mo mo) {
-            mo.setDegree(moDegree);
-            mo.setCollege(moCollege);
+            return toMoLine(mo);
         }
-        if (user instanceof Mo mo && ownedCourseIds != null && !ownedCourseIds.isBlank()) {
-            mo.setOwnedCourses(resolveCourses(ownedCourseIds, availableCourses));
+        return toAdminLine(user);
+    }
+
+    private static String toAdminLine(User user) {
+        return baseLine(user);
+    }
+
+    private static String toTaLine(TA ta) {
+        return baseLine(ta) + "," + safe(ta.getCollege()) + "," + safe(ta.getSkill()) + ","
+                + serializeAppliedCourseIds(ta) + "," + serializeResumeSubmissions(ta);
+    }
+
+    private static String toMoLine(Mo mo) {
+        String degree = safe(mo.getDegree());
+        String college = safe(mo.getCollege());
+        String ownedCourseIds = serializeOwnedCourseIds(mo);
+        if (degree.isBlank() && college.isBlank()) {
+            return baseLine(mo) + "," + ownedCourseIds;
         }
-        if (user instanceof TA ta && appliedCourseIds != null && !appliedCourseIds.isBlank()) {
-            ta.setAppliedClasses(resolveCourses(appliedCourseIds, availableCourses));
-        }
-        if (user instanceof TA ta && resumeMappings != null && !resumeMappings.isBlank()) {
-            ta.setResumeSubmissions(resolveResumeSubmissions(resumeMappings, availableCourses));
-        }
-        return user;
+        return baseLine(mo) + "," + degree + "," + college + "," + ownedCourseIds;
+    }
+
+    private static String baseLine(User user) {
+        return safe(user.getName()) + "," + safe(user.getPassword()) + "," + safe(user.getRole()) + "," + safe(user.getEmail());
     }
 
     private static Path resolveFilePath() {
@@ -282,100 +336,6 @@ public class UserStore {
         if (parentPath != null) {
             Files.createDirectories(parentPath);
         }
-    }
-
-    private static void updateTaLine(TA ta) {
-        Path filePath = resolveFilePath();
-        if (!Files.exists(filePath)) {
-            saveUser(ta);
-            return;
-        }
-
-        List<String> updatedLines = new ArrayList<>();
-        boolean updated = false;
-
-        try (BufferedReader br = Files.newBufferedReader(filePath)) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",", -1);
-                if (parts.length >= 4 && "TA".equals(parts[2]) && parts[3].equals(ta.getEmail())) {
-                    updatedLines.add(toLine(ta));
-                    updated = true;
-                } else {
-                    updatedLines.add(line);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        if (!updated) {
-            updatedLines.add(toLine(ta));
-        }
-
-        try {
-            ensureParentDirectoryExists(filePath);
-            Files.write(filePath, updatedLines);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static void updateMoLine(Mo mo) {
-        Path filePath = resolveFilePath();
-        if (!Files.exists(filePath)) {
-            saveUser(mo);
-            return;
-        }
-
-        List<String> updatedLines = new ArrayList<>();
-        boolean updated = false;
-
-        try (BufferedReader br = Files.newBufferedReader(filePath)) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",", -1);
-                if (parts.length >= 4 && "Mo".equals(parts[2]) && parts[3].equals(mo.getEmail())) {
-                    updatedLines.add(toLine(mo));
-                    updated = true;
-                } else {
-                    updatedLines.add(line);
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return;
-        }
-
-        if (!updated) {
-            updatedLines.add(toLine(mo));
-        }
-
-        try {
-            ensureParentDirectoryExists(filePath);
-            Files.write(filePath, updatedLines);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static String toLine(User user) {
-        String baseLine = safe(user.getName()) + "," + safe(user.getPassword()) + "," + safe(user.getRole()) + "," + safe(user.getEmail());
-        if (user instanceof TA ta) {
-            return baseLine + "," + safe(ta.getCollege()) + "," + safe(ta.getSkill()) + ","
-                    + serializeAppliedCourseIds(ta) + "," + serializeResumeSubmissions(ta);
-        }
-        if (user instanceof Mo mo) {
-            String degree = safe(mo.getDegree());
-            String college = safe(mo.getCollege());
-            String ownedCourseIds = serializeOwnedCourseIds(mo);
-            if (degree.isBlank() && college.isBlank()) {
-                return baseLine + "," + ownedCourseIds;
-            }
-            return baseLine + "," + degree + "," + college + "," + ownedCourseIds;
-        }
-        return baseLine;
     }
 
     private static String serializeOwnedCourseIds(Mo mo) {
@@ -402,9 +362,9 @@ public class UserStore {
                 .collect(Collectors.joining("|"));
     }
 
-    private static List<Course> resolveCourses(String appliedCourseIds, List<Course> availableCourses) {
+    private static List<Course> resolveCourses(String courseIds, List<Course> availableCourses) {
         List<Course> resolvedCourses = new ArrayList<>();
-        for (String courseId : appliedCourseIds.split("\\|")) {
+        for (String courseId : courseIds.split("\\|")) {
             if (courseId == null || courseId.isBlank()) {
                 continue;
             }
@@ -434,9 +394,11 @@ public class UserStore {
             String resumeDirectory = parts[1];
             int status = ResumeSubmission.STATUS_PENDING;
             boolean reviewUnread = false;
+
             if (courseId == null || courseId.isBlank() || resumeDirectory == null || resumeDirectory.isBlank()) {
                 continue;
             }
+
             if (parts.length >= 3) {
                 try {
                     status = Integer.parseInt(parts[2]);
@@ -444,6 +406,7 @@ public class UserStore {
                     status = ResumeSubmission.STATUS_PENDING;
                 }
             }
+
             if (parts.length == 4) {
                 reviewUnread = Boolean.parseBoolean(parts[3]);
             }
@@ -458,69 +421,24 @@ public class UserStore {
         return submissions;
     }
 
-    private static String extractCollege(String role, String[] parts) {
-        if (!"TA".equals(role) || parts.length < 8) {
-            return "";
-        }
-        return parts[4];
-    }
-
-    private static String extractSkill(String role, String[] parts) {
-        if (!"TA".equals(role) || parts.length < 8) {
-            return "";
-        }
-        return parts[5];
-    }
-
-    private static String extractOwnedCourseIds(String role, String[] parts) {
-        if (!"Mo".equals(role)) {
-            return "";
-        }
-        if (parts.length >= 7) {
-            return parts[6];
-        }
-        return parts.length >= 5 ? parts[4] : "";
-    }
-
-    private static String extractMoDegree(String role, String[] parts) {
-        if (!"Mo".equals(role) || parts.length < 7) {
-            return "";
-        }
-        return parts[4];
-    }
-
-    private static String extractMoCollege(String role, String[] parts) {
-        if (!"Mo".equals(role) || parts.length < 7) {
-            return "";
-        }
-        return parts[5];
-    }
-
-    private static String extractAppliedCourseIds(String role, String[] parts) {
-        if (!"TA".equals(role)) {
-            return "";
-        }
-        if (parts.length >= 8) {
-            return parts[6];
-        }
-        return parts.length >= 5 ? parts[4] : "";
-    }
-
-    private static String extractResumeMappings(String role, String[] parts) {
-        if (!"TA".equals(role)) {
-            return "";
-        }
-        if (parts.length >= 8) {
-            return parts[7];
-        }
-        return parts.length >= 6 ? parts[5] : "";
-    }
-
     private static String safe(String value) {
         if (value == null) {
             return "";
         }
         return value.replace(",", " ");
     }
-}
 
+    private static final class ParsedUserLine {
+        private String name = "";
+        private String password = "";
+        private String role = "";
+        private String email = "";
+        private String taCollege = "";
+        private String taSkill = "";
+        private String moDegree = "";
+        private String moCollege = "";
+        private String ownedCourseIds = "";
+        private String appliedCourseIds = "";
+        private String resumeMappings = "";
+    }
+}

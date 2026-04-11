@@ -72,6 +72,7 @@ This system aims to model that complete lifecycle in a way that is practical, te
 > `docs/images/ta-home.png`
 > `docs/images/ta-personal-centre.png`
 > `docs/images/ta-profile-centre.png`
+> `docs/images/ta-profile-skill.png`
 > `docs/images/ta-application.png`
 
 ### MO Module

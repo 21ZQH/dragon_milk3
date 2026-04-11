@@ -81,6 +81,10 @@ public class MOClassController extends HttpServlet {
                 redirectMoModifyLocked(request, response);
                 return;
             }
+            if (!isMoProfileComplete(request)) {
+                redirectProfileIncomplete(request, response);
+                return;
+            }
             String courseName = request.getParameter("courseName");
             String jobTitle = request.getParameter("jobTitle");
             String workingHours = request.getParameter("workingHours");
@@ -143,8 +147,10 @@ public class MOClassController extends HttpServlet {
 
     private void show_dashboard(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        request.setAttribute("moProfileComplete", isMoProfileComplete(request));
         request.setAttribute("moModifyOpen", isMoModifyOpen(request));
         request.setAttribute("showModifyLockedModal", "1".equals(request.getParameter("modifyLocked")));
+        request.setAttribute("showProfileIncompleteModal", "1".equals(request.getParameter("profileIncomplete")));
         request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
     }
 
@@ -181,6 +187,10 @@ public class MOClassController extends HttpServlet {
             throws ServletException, IOException {
         if (!isMoModifyOpen(request)) {
             redirectMoModifyLocked(request, response);
+            return;
+        }
+        if (!isMoProfileComplete(request)) {
+            redirectProfileIncomplete(request, response);
             return;
         }
         request.getRequestDispatcher("/WEB-INF/views/mo/create-project.jsp").forward(request, response);
@@ -235,6 +245,25 @@ public class MOClassController extends HttpServlet {
 
             request.setAttribute("error", "The deadline for MO to modify course information has passed.");
             request.setAttribute("moModifyOpen", false);
+            request.getRequestDispatcher("/WEB-INF/views/mo/project-detail.jsp").forward(request, response);
+            return;
+        }
+
+        if (!isMoProfileComplete(request)) {
+            List<Course> courseList = getCurrentMoCourseList(request);
+            String courseIndexParam = request.getParameter("courseIndex");
+            if (courseIndexParam != null) {
+                try {
+                    int courseIndex = Integer.parseInt(courseIndexParam);
+                    if (courseIndex >= 0 && courseIndex < courseList.size()) {
+                        prepareProjectDetailAttributes(request, courseList.get(courseIndex), courseIndexParam);
+                    }
+                } catch (NumberFormatException ignored) {
+                }
+            }
+
+            request.setAttribute("error", "Please complete your personal information before creating or modifying course projects.");
+            request.setAttribute("showProfileIncompleteModal", true);
             request.getRequestDispatcher("/WEB-INF/views/mo/project-detail.jsp").forward(request, response);
             return;
         }
@@ -542,8 +571,14 @@ public class MOClassController extends HttpServlet {
     private void prepareProjectDetailAttributes(HttpServletRequest request, Course selectedCourse, String courseIndex) {
         request.setAttribute("selectedCourse", selectedCourse);
         request.setAttribute("courseIndex", courseIndex);
+        request.setAttribute("moProfileComplete", isMoProfileComplete(request));
         request.setAttribute("moModifyOpen", isMoModifyOpen(request));
         request.setAttribute("moModifyDeadline", resolveMoModifyDeadline(request));
+    }
+
+    private boolean isMoProfileComplete(HttpServletRequest request) {
+        Mo mo = getCurrentMo(request);
+        return mo != null && mo.hasCompleteProfile();
     }
 
     private boolean isMoModifyOpen(HttpServletRequest request) {
@@ -596,6 +631,10 @@ public class MOClassController extends HttpServlet {
 
     private void redirectMoModifyLocked(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=dashboard&modifyLocked=1");
+    }
+
+    private void redirectProfileIncomplete(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=dashboard&profileIncomplete=1");
     }
 }
 

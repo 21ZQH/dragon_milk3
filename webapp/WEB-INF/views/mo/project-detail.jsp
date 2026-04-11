@@ -8,6 +8,11 @@
     Object moModifyDeadline = request.getAttribute("moModifyDeadline");
     Boolean moModifyOpenAttr = (Boolean) request.getAttribute("moModifyOpen");
     boolean moModifyOpen = moModifyOpenAttr == null ? true : moModifyOpenAttr.booleanValue();
+    Boolean moProfileCompleteAttr = (Boolean) request.getAttribute("moProfileComplete");
+    boolean moProfileComplete = moProfileCompleteAttr == null ? true : moProfileCompleteAttr.booleanValue();
+    Boolean showProfileIncompleteModalAttr = (Boolean) request.getAttribute("showProfileIncompleteModal");
+    boolean showProfileIncompleteModal = showProfileIncompleteModalAttr != null && showProfileIncompleteModalAttr.booleanValue();
+    boolean canModifyProject = moModifyOpen && moProfileComplete;
 %>
 <!DOCTYPE html>
 <html>
@@ -365,9 +370,10 @@
             <div class="section-header">
                 <h2 class="section-title">Course Name</h2>
                 <button type="button"
-                        class="edit-btn <%= moModifyOpen ? "" : "disabled" %>"
+                        class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
                         data-target="courseName"
-                        data-locked="<%= !moModifyOpen %>">Edit</button>
+                        data-locked="<%= !canModifyProject %>"
+                        data-lock-reason="<%= !moModifyOpen ? "deadline" : (!moProfileComplete ? "profile" : "") %>">Edit</button>
             </div>
             <input
                 id="courseName"
@@ -383,9 +389,10 @@
             <div class="section-header">
                 <h2 class="section-title">Job Title</h2>
                 <button type="button"
-                        class="edit-btn <%= moModifyOpen ? "" : "disabled" %>"
+                        class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
                         data-target="jobTitle"
-                        data-locked="<%= !moModifyOpen %>">Edit</button>
+                        data-locked="<%= !canModifyProject %>"
+                        data-lock-reason="<%= !moModifyOpen ? "deadline" : (!moProfileComplete ? "profile" : "") %>">Edit</button>
             </div>
             <input
                 id="jobTitle"
@@ -401,9 +408,10 @@
             <div class="section-header">
                 <h2 class="section-title">Working Hours</h2>
                 <button type="button"
-                        class="edit-btn <%= moModifyOpen ? "" : "disabled" %>"
+                        class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
                         data-target="workingHours"
-                        data-locked="<%= !moModifyOpen %>">Edit</button>
+                        data-locked="<%= !canModifyProject %>"
+                        data-lock-reason="<%= !moModifyOpen ? "deadline" : (!moProfileComplete ? "profile" : "") %>">Edit</button>
             </div>
             <input
                 id="workingHours"
@@ -419,9 +427,10 @@
             <div class="section-header">
                 <h2 class="section-title">Job Description</h2>
                 <button type="button"
-                        class="edit-btn <%= moModifyOpen ? "" : "disabled" %>"
+                        class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
                         data-target="jobDescription"
-                        data-locked="<%= !moModifyOpen %>">Edit</button>
+                        data-locked="<%= !canModifyProject %>"
+                        data-lock-reason="<%= !moModifyOpen ? "deadline" : (!moProfileComplete ? "profile" : "") %>">Edit</button>
             </div>
             <textarea
                 id="jobDescription"
@@ -434,9 +443,10 @@
             <div class="section-header">
                 <h2 class="section-title">Job Requirement</h2>
                 <button type="button"
-                        class="edit-btn <%= moModifyOpen ? "" : "disabled" %>"
+                        class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
                         data-target="jobRequirement"
-                        data-locked="<%= !moModifyOpen %>">Edit</button>
+                        data-locked="<%= !canModifyProject %>"
+                        data-lock-reason="<%= !moModifyOpen ? "deadline" : (!moProfileComplete ? "profile" : "") %>">Edit</button>
             </div>
             <textarea
                 id="jobRequirement"
@@ -446,10 +456,12 @@
         </div>
 
         <div class="save-section">
-            <% if (moModifyOpen) { %>
+            <% if (canModifyProject) { %>
                 <button type="submit" class="save-btn">Save changes</button>
-            <% } else { %>
+            <% } else if (!moModifyOpen) { %>
                 <button type="button" class="save-btn disabled" onclick="openMoModifyLockedModal()">Save changes</button>
+            <% } else { %>
+                <button type="button" class="save-btn disabled" onclick="openProfileIncompleteModal()">Save changes</button>
             <% } %>
         </div>
     </form>
@@ -472,13 +484,28 @@
     </div>
 </div>
 
+<div id="profileIncompleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileIncompleteTitle">
+    <div class="modal-box">
+        <div class="modal-title" id="profileIncompleteTitle">Complete Your Profile</div>
+        <div class="modal-text">Please complete your personal information before creating or modifying course projects.</div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn" onclick="closeProfileIncompleteModal()">OK</button>
+            <a class="modal-btn" href="<%= response.encodeURL("MOclasscontroller?action=profile_center") %>">Go to Profile</a>
+        </div>
+    </div>
+</div>
+
 <script>
     const editButtons = document.querySelectorAll(".edit-btn");
 
     editButtons.forEach(button => {
         button.addEventListener("click", function () {
             if (this.dataset.locked === "true") {
-                openMoModifyLockedModal();
+                if (this.dataset.lockReason === "profile") {
+                    openProfileIncompleteModal();
+                } else {
+                    openMoModifyLockedModal();
+                }
                 return;
             }
 
@@ -508,6 +535,14 @@
         document.getElementById("moModifyLockedModal").classList.add("hidden");
     }
 
+    function openProfileIncompleteModal() {
+        document.getElementById("profileIncompleteModal").classList.remove("hidden");
+    }
+
+    function closeProfileIncompleteModal() {
+        document.getElementById("profileIncompleteModal").classList.add("hidden");
+    }
+
     const successToast = document.getElementById("successToast");
     if (successToast) {
         setTimeout(() => {
@@ -521,6 +556,10 @@
             }, 400);
         }, 2500);
     }
+
+    <% if (showProfileIncompleteModal) { %>
+    openProfileIncompleteModal();
+    <% } %>
 </script>
 
 </body>

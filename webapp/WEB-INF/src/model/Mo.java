@@ -70,4 +70,12 @@ public class Mo extends User {
     public void setCollege(String college) {
         this.college = college;
     }
+
+    public boolean hasCompleteProfile() {
+        return hasText(getName()) && hasText(degree) && hasText(college);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
 }

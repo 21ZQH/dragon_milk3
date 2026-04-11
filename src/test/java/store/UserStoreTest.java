@@ -72,6 +72,27 @@ class UserStoreTest {
     }
 
     @Test
+    void validateUserRestoresMoProfileFieldsFromNewFormat() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Molly,secret123,Mo,mo@example.com,Master of Science,School of Software,course-1");
+
+        Mo mo = (Mo) UserStore.validateUser("secret123", "Mo", "mo@example.com");
+
+        assertNotNull(mo);
+        assertEquals("Molly", mo.getName());
+        assertEquals("Master of Science", mo.getDegree());
+        assertEquals("School of Software", mo.getCollege());
+        assertEquals(1, mo.getOwnedCourses().size());
+        assertEquals("course-1", mo.getOwnedCourses().get(0).getId());
+    }
+
+    @Test
     void validateUserWithoutRoleMatchesEmailAndPassword() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
