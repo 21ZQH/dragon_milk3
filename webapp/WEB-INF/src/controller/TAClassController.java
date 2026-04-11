@@ -1,18 +1,31 @@
-﻿package controller;
+package controller;
 
 
-import model.*;
-import store.UserStore;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
+import model.Course;
+import model.ResumeSubmission;
+import model.TA;
+import model.User;
 import store.CourseStore;
 import store.DeadlineStore;
-
-import java.util.*;
-import java.io.*;
-import java.time.LocalDateTime;
-import jakarta.servlet.ServletContext;
-import jakarta.servlet.*;
-import jakarta.servlet.annotation.MultipartConfig;
-import jakarta.servlet.http.*;
+import store.UserStore;
 
 @MultipartConfig
 public class TAClassController extends HttpServlet {

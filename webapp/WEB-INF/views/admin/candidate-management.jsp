@@ -11,7 +11,7 @@
 <head>
     <title>Candidate Management</title>
     <style>
-        /* 沿用统一的 UI 规范 */
+        
         body {
             background: #f7f7f9;
             font-family: 'Segoe UI', Arial, sans-serif;
@@ -159,6 +159,7 @@
             color: #333;
             display: flex;
             justify-content: space-between;
+            align-items: center; 
         }
 
         .empty-box {
@@ -187,7 +188,7 @@
                     // 获取已申请的课程数量
                     List<Course> appliedCourses = ta.getAppliedClasses();
                     int appliedCount = (appliedCourses != null) ? appliedCourses.size() : 0;
-                    boolean isFull = appliedCount >= 3;
+                    
         %>
             <div class="candidate-card">
                 <div class="card-header">
@@ -195,8 +196,8 @@
                         <%= ta.getName() != null && !ta.getName().isEmpty() ? ta.getName() : "Unknown Name" %>
                         <span class="candidate-email">(<%= ta.getEmail() %>)</span>
                     </div>
-                    <div class="quota-badge <%= isFull ? "full" : "" %>">
-                        Applied Courses: <%= appliedCount %> / 3
+                    <div class="quota-badge">
+                        Applied Courses: <%= appliedCount %>
                     </div>
                 </div>
 
@@ -216,8 +217,15 @@
                     <ul class="applied-course-list">
                         <% for (Course course : appliedCourses) { %>
                             <li class="applied-course-item">
-                                <strong><%= course.getCourseName() %></strong> 
-                                <span><%= course.getJobTitle() %></span>
+                                <div>
+                                    <strong><%= course.getCourseName() %></strong> 
+                                    <span>(<%= course.getJobTitle() %>)</span>
+                                </div>
+                                <a href="<%= response.encodeURL("AdminController?action=view_resume&applicantEmail=" + ta.getEmail() + "&courseId=" + course.getId()) %>" 
+                                   target="_blank" 
+                                   style="color: #3b5998; text-decoration: underline; font-size: 0.9em;">
+                                   View PDF Resume
+                                </a>
                             </li>
                         <% } %>
                     </ul>
