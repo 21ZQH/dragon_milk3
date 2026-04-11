@@ -364,15 +364,16 @@ public class TAClassController extends HttpServlet {
         ta.setName(trimValue(request.getParameter("name")));
         ta.setCollege(trimValue(request.getParameter("college")));
 
-        String[] selectedSkills = request.getParameterValues("skill");
-        if (selectedSkills == null || selectedSkills.length == 0) {
-            ta.setSkill("");
-        } else {
+        boolean skillFormSubmitted = "true".equalsIgnoreCase(request.getParameter("skillFormSubmitted"));
+        if (skillFormSubmitted) {
+            String[] selectedSkills = request.getParameterValues("skill");
             List<String> skills = new ArrayList<>();
-            for (String skill : selectedSkills) {
-                String trimmedSkill = trimValue(skill);
-                if (!trimmedSkill.isEmpty()) {
-                    skills.add(trimmedSkill);
+            if (selectedSkills != null) {
+                for (String skill : selectedSkills) {
+                    String trimmedSkill = trimValue(skill);
+                    if (!trimmedSkill.isEmpty()) {
+                        skills.add(trimmedSkill);
+                    }
                 }
             }
             ta.setSkill(String.join(", ", skills));

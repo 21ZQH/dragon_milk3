@@ -442,6 +442,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("save_personal_information");
         when(request.getParameter("name")).thenReturn("  Alice Zhang  ");
         when(request.getParameter("college")).thenReturn("  New College  ");
+        when(request.getParameter("skillFormSubmitted")).thenReturn("true");
         when(request.getParameterValues("skill")).thenReturn(new String[] {"Java", "Python", "SQL"});
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("user")).thenReturn(ta);
@@ -455,6 +456,42 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
         assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java  Python  SQL,course-1,course-1@D:\\resume\\course-1@0@false",
                 Files.readAllLines(usersFile).get(0));
+    }
+
+    @Test
+    void savePersonalInformationWithoutSkillSubmissionKeepsExistingSkill() throws Exception {
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(usersFile, "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1");
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.setName("Alice");
+        ta.setCollege("School of Software");
+        ta.setSkill("Java");
+        ta.addClass(course);
+        ta.addOrUpdateResume(course, "D:\\resume\\course-1");
+
+        when(request.getParameter("action")).thenReturn("save_personal_information");
+        when(request.getParameter("name")).thenReturn("Alice Zhang");
+        when(request.getParameter("college")).thenReturn("New College");
+        when(request.getParameter("skillFormSubmitted")).thenReturn(null);
+        when(request.getParameterValues("skill")).thenReturn(null);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/profile-center.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        assertEquals("Java", ta.getSkill());
+        assertEquals("Alice Zhang,secret123,TA,ta@example.com,New College,Java,course-1,course-1@D:\\resume\\course-1@0@false",
+                Files.readAllLines(usersFile).get(0));
+        verify(dispatcher).forward(request, response);
     }
 
     @Test
