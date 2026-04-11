@@ -13,8 +13,11 @@ public class AppContextListener implements ServletContextListener {
     public void contextInitialized(ServletContextEvent sce) {
         ServletContext context = sce.getServletContext();
 
-        LocalDateTime deadline = DeadlineStore.getDeadline();
-        context.setAttribute("applicationDeadline", deadline);
+        LocalDateTime applicationDeadline = DeadlineStore.getDeadline();
+        LocalDateTime moModifyDeadline = DeadlineStore.getMoModifyDeadline();
+
+        context.setAttribute("applicationDeadline", applicationDeadline);
+        context.setAttribute("moCourseModifyDeadline", moModifyDeadline);
     }
 
     @Override
@@ -22,4 +25,3 @@ public class AppContextListener implements ServletContextListener {
         // no action needed
     }
 }
-
