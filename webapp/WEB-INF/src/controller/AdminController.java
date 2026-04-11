@@ -1,6 +1,9 @@
-﻿package controller;
+package controller;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -43,7 +46,9 @@ public class AdminController extends HttpServlet {
             show_dashboard(request, response);
         } else if ("candidate_management".equals(action)) {
             manage_candidates(request, response);
-        } else if ("set_deadline".equals(action)) {
+        } else if ("view_resume".equals(action)) { 
+            view_resume(request, response);
+        }else if ("set_deadline".equals(action)) {
             show_set_deadline(request, response);
         } else if ("set_mo_deadline".equals(action)) {
             show_set_mo_deadline(request, response);
@@ -168,6 +173,52 @@ public class AdminController extends HttpServlet {
         }
     }
 
+    private String resolveResumeUploadDirectory() {
+        String catalinaBase = System.getProperty("catalina.base");
+        if (catalinaBase != null && !catalinaBase.isBlank()) {
+            return catalinaBase + File.separator + "webapps" + File.separator + "SE"
+                 + File.separator + "WEB-INF" + File.separator + "file" + File.separator + "resume";
+        }
+            return System.getProperty("user.dir") + File.separator + "webapp"
+                + File.separator + "WEB-INF" + File.separator + "file" + File.separator + "resume";
+    }
+
+    private File getResumeFile(String email, String courseId) {
+        if (email == null || courseId == null) return null;
+    
+        
+        String normalizedEmail = email.replaceAll("[^a-zA-Z0-9._-]", "_");
+        String filePath = resolveResumeUploadDirectory() + File.separator + courseId + File.separator + normalizedEmail + ".pdf";
+    
+        return new File(filePath);
+    }
+    private void view_resume(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        String applicantEmail = request.getParameter("applicantEmail");
+        String courseId = request.getParameter("courseId");
+
+        File resumeFile = getResumeFile(applicantEmail, courseId);
+
+        if (resumeFile == null || !resumeFile.exists()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Resume file not found on server.");
+            return;
+        }
+
+        
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "inline; filename=\"" + resumeFile.getName() + "\"");
+        response.setContentLengthLong(resumeFile.length());
+
+       
+         try (FileInputStream fis = new FileInputStream(resumeFile);
+             OutputStream os = response.getOutputStream()) {
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = fis.read(buffer)) != -1) {
+                os.write(buffer, 0, bytesRead);
+            }
+            os.flush();
+        }
+    }
     private void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
         HttpSession session = request.getSession(false);
         if (session != null) {
@@ -175,6 +226,7 @@ public class AdminController extends HttpServlet {
         }
         response.sendRedirect(request.getContextPath() + "/start.html");
     }
+    
 }
 
 

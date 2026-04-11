@@ -1,4 +1,19 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="java.time.LocalDateTime" %>
+<%@ page import="java.time.format.DateTimeFormatter" %>
+<%
+    // 从 request 中获取已保存的 TA 截止日期对象
+    Object savedObj = request.getAttribute("savedDeadline");
+    String dateValue = "";
+    String timeValue = "";
+    
+    // 格式化为 input 标签能够识别的字符串格式
+    if (savedObj instanceof LocalDateTime) {
+        LocalDateTime savedDeadline = (LocalDateTime) savedObj;
+        dateValue = savedDeadline.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        timeValue = savedDeadline.format(DateTimeFormatter.ofPattern("HH:mm"));
+    }
+%>
 <!DOCTYPE html>
 <html>
 <head>
@@ -158,7 +173,8 @@
     </div>
 
     <div class="desc-box">
-        Please set the deadline for TA resume submission. After this deadline passes,
+        Please set the deadline for TA resume submission.
+        After this deadline passes,
         TAs will no longer be allowed to upload or modify their resumes.
     </div>
 
@@ -175,12 +191,6 @@
             </div>
         <% } %>
 
-        <% if (request.getAttribute("savedDeadline") != null) { %>
-            <div style="margin-bottom: 18px; padding: 12px 16px; border-radius: 10px; background: #eef2ff; color: #22223b; border: 1px solid #cfd7ff;">
-                Current saved deadline: <%= request.getAttribute("savedDeadline") %>
-            </div>
-        <% } %>
-
         <form action="<%= response.encodeURL("AdminController") %>" method="post">
             <input type="hidden" name="action" value="save_deadline">
 
@@ -191,6 +201,7 @@
                         type="date"
                         id="deadlineDate"
                         name="deadlineDate"
+                        value="<%= dateValue %>"
                         required>
                 <div class="hint-text">
                     Enter the closing date for TA resume submission.
@@ -204,9 +215,11 @@
                         type="time"
                         id="deadlineTime"
                         name="deadlineTime"
+                        value="<%= timeValue %>"
                         required>
                 <div class="hint-text">
-                    Set the exact closing time. After this time, TAs can no longer upload or update their resumes.
+                    Set the exact closing time.
+                    After this time, TAs can no longer upload or update their resumes.
                 </div>
             </div>
 
