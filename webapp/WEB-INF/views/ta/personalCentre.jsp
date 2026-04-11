@@ -53,8 +53,12 @@
     boolean isRejected = selectedStatus == ResumeSubmission.STATUS_REJECTED;
     boolean isEvaluating = !isAccepted && !isRejected;
 
-    String statusLabel = isEvaluating ? "Evaluating" : (isAccepted ? "Accepted" : "Rejected");
-    String terminatedLabel = isEvaluating ? "Awaiting result" : (isAccepted ? "Accepted" : "Rejected");
+    String terminatedLabel = isEvaluating ? "Awaiting result" : "Result available";
+    String resultTitle = isEvaluating ? "Review in progress" : "Final result";
+    String resultIcon = isEvaluating ? "..." : (isAccepted ? "&#10003;" : "&#10005;");
+    String resultDetail = isEvaluating
+            ? "Waiting for the MO to finish the review."
+            : (isAccepted ? "Accepted" : "Rejected");
 %>
 <!DOCTYPE html>
 <html>
@@ -227,34 +231,15 @@
         .empty-actions {
             margin-top: 16px;
         }
-        .status-pill {
-            display: inline-block;
-            padding: 12px 18px;
-            border-radius: 999px;
-            font-size: 1.02em;
-            font-weight: bold;
-            margin-bottom: 22px;
-        }
-        .status-pending {
-            background: #fff3da;
-            color: #9a6700;
-            border: 1px solid #f2cc60;
-        }
-        .status-accepted {
-            background: #edf9f0;
-            color: #256029;
-            border: 1px solid #93d5a0;
-        }
-        .status-rejected {
-            background: #fdeeee;
-            color: #a12626;
-            border: 1px solid #efb7b7;
-        }
         .progress-panel {
             border: 1px solid #dde3f0;
             border-radius: 14px;
             padding: 26px 20px 22px;
             background: #f9fbff;
+        }
+        .result-row {
+            display: block;
+            margin: 18px 0 18px;
         }
         .progress-track {
             position: relative;
@@ -312,6 +297,67 @@
         .step-subtitle {
             color: #556179;
             font-size: 1em;
+        }
+        .result-card {
+            border-radius: 14px;
+            border: 1px solid #d8dfef;
+            background: #fff;
+            padding: 22px 28px;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 22px;
+            text-align: left;
+            width: 100%;
+            min-height: 120px;
+            box-sizing: border-box;
+        }
+        .result-icon {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            font-weight: bold;
+            margin-bottom: 14px;
+            border: 3px solid #d3daea;
+            color: #3b5998;
+            background: #fff;
+        }
+        .result-card.accepted .result-icon {
+            border-color: #85c99b;
+            background: #edf9f0;
+            color: #256029;
+        }
+        .result-card.rejected .result-icon {
+            border-color: #e7a8a8;
+            background: #fdeeee;
+            color: #a12626;
+        }
+        .result-card.pending .result-icon {
+            border-color: #d8c27a;
+            background: #fff9ea;
+            color: #9a6700;
+            letter-spacing: 2px;
+        }
+        .result-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #1f315d;
+            margin-bottom: 6px;
+        }
+        .result-copy {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .result-text {
+            color: #5b6881;
+            font-size: 0.95em;
+            line-height: 1.5;
         }
         .status-summary {
             margin-top: 18px;
@@ -376,6 +422,16 @@
         }
         .modal-btn:hover {
             background: #d1d5db;
+        }
+        @media (max-width: 900px) {
+            .result-card {
+                width: 100%;
+                min-height: auto;
+                flex-direction: column;
+                text-align: center;
+                padding: 22px 18px;
+                gap: 14px;
+            }
         }
     </style>
 </head>
@@ -448,17 +504,25 @@
                         </div>
 
                         <% if (!applicationOpen) { %>
-                            <span class="status-pill <%= isEvaluating ? "status-pending" : (isAccepted ? "status-accepted" : "status-rejected") %>"><%= statusLabel %></span>
+                            <div class="result-row">
+                                <div class="result-card <%= isEvaluating ? "pending" : (isAccepted ? "accepted" : "rejected") %>">
+                                    <div class="result-icon"><%= resultIcon %></div>
+                                    <div class="result-copy">
+                                        <div class="result-title"><%= resultTitle %></div>
+                                        <div class="result-text"><%= resultDetail %></div>
+                                    </div>
+                                </div>
+                            </div>
 
                             <div class="progress-panel">
                                 <div class="progress-track <%= isEvaluating ? "" : "complete" %>">
                                     <div class="progress-step active">
-                                        <div class="step-circle"><%= isEvaluating ? "1" : "✓" %></div>
+                                        <div class="step-circle"><%= isEvaluating ? "1" : "&#10003;" %></div>
                                         <div class="step-title">Evaluating</div>
                                         <div class="step-subtitle"><%= isEvaluating ? "Under review" : "Review completed" %></div>
                                     </div>
                                     <div class="progress-step <%= isEvaluating ? "" : "done" %>">
-                                        <div class="step-circle"><%= isEvaluating ? "2" : "✓" %></div>
+                                        <div class="step-circle"><%= isEvaluating ? "2" : "&#10003;" %></div>
                                         <div class="step-title">Terminated</div>
                                         <div class="step-subtitle"><%= terminatedLabel %></div>
                                     </div>
@@ -466,10 +530,8 @@
                                 <div class="status-summary">
                                     <% if (isEvaluating) { %>
                                         Your application is currently being evaluated by the MO. Please wait for the final review result.
-                                    <% } else if (isAccepted) { %>
-                                        Your application has been evaluated and the final result for this course is Accepted.
                                     <% } else { %>
-                                        Your application has been evaluated and the final result for this course is Rejected.
+                                        Your application has been evaluated and the final result is now shown above.
                                     <% } %>
                                 </div>
                             </div>
