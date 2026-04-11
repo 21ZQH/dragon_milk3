@@ -4,6 +4,8 @@
     Course course = (Course) request.getAttribute("selectedCourse");
     String courseIndex = (String) request.getAttribute("courseIndex");
     String success = request.getParameter("success");
+    String error = (String) request.getAttribute("error");
+    Object moModifyDeadline = request.getAttribute("moModifyDeadline");
 %>
 <!DOCTYPE html>
 <html>
@@ -92,6 +94,26 @@
             font-weight: 700;
             box-shadow: 0 4px 12px rgba(29,107,42,0.10);
             animation: fadeIn 0.25s ease;
+        }
+
+        .error-box {
+            margin-bottom: 20px;
+            padding: 14px 18px;
+            border-radius: 12px;
+            background: #fdeaea;
+            color: #9f2d2d;
+            border: 1.5px solid #e6b8b8;
+            font-weight: 700;
+        }
+
+        .deadline-box {
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background: #eef2ff;
+            color: #22223b;
+            border: 1.5px solid #cfd7ff;
+            font-weight: 600;
         }
 
         @keyframes fadeIn {
@@ -231,6 +253,18 @@
     <% if ("1".equals(success)) { %>
         <div class="success-toast" id="successToast">
             Course information saved successfully.
+        </div>
+    <% } %>
+
+    <% if (error != null) { %>
+        <div class="error-box">
+            <%= error %>
+        </div>
+    <% } %>
+
+    <% if (moModifyDeadline != null) { %>
+        <div class="deadline-box">
+            MO course modification deadline: <%= moModifyDeadline %>
         </div>
     <% } %>
 
