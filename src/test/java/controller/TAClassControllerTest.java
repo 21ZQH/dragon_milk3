@@ -82,9 +82,11 @@ class TAClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         when(request.getParameter("action")).thenReturn("view_information");
         when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/job-list.jsp")).thenReturn(dispatcher);
 
         controller.doGet(request, response);
@@ -109,6 +111,7 @@ class TAClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         List<Course> courses = List.of(
                 new Course("Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"),
@@ -117,6 +120,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("show_all_information");
         when(request.getParameter("courseIndex")).thenReturn("1");
         when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp")).thenReturn(dispatcher);
 
@@ -133,6 +137,7 @@ class TAClassControllerTest {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         List<Course> courses = List.of(
                 new Course("Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
@@ -140,6 +145,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("show_all_information");
         when(request.getParameter("courseIndex")).thenReturn(null);
         when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(request.getContextPath()).thenReturn("/SE");
 
@@ -153,9 +159,13 @@ class TAClassControllerTest {
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         when(request.getParameter("action")).thenReturn("home");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp")).thenReturn(dispatcher);
 
         controller.doGet(request, response);
@@ -170,6 +180,7 @@ class TAClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         List<Course> courses = List.of(
                 new Course("Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
@@ -177,6 +188,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("go_apply");
         when(request.getParameter("courseIndex")).thenReturn("0");
         when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp")).thenReturn(dispatcher);
 
@@ -321,6 +333,7 @@ class TAClassControllerTest {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
 
         Course course = new Course("Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
         List<Course> courses = List.of(course);
@@ -330,11 +343,12 @@ class TAClassControllerTest {
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(session.getAttribute("user")).thenReturn(new Mo("secret123", "mo@example.com"));
-        when(request.getContextPath()).thenReturn("/SE");
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp")).thenReturn(dispatcher);
 
         controller.doPost(request, response);
 
-        verify(response).sendRedirect("/SE/TAclasscontroller?action=view_information");
+        verify(request).setAttribute("error", "Login has expired. Please log in again.");
+        verify(dispatcher).forward(request, response);
     }
 
     @Test
@@ -546,6 +560,7 @@ class TAClassControllerTest {
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
         RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        TA ta = new TA("secret123", "ta@example.com");
 
         List<Course> courses = List.of(
                 new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"),
@@ -554,6 +569,7 @@ class TAClassControllerTest {
         when(request.getParameter("action")).thenReturn("go_apply_by_id");
         when(request.getParameter("courseId")).thenReturn("course-2");
         when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
         when(session.getAttribute("courseList")).thenReturn(courses);
         when(request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp")).thenReturn(dispatcher);
 

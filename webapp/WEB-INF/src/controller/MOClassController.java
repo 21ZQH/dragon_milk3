@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.http.HttpServlet;
@@ -106,6 +107,7 @@ public class MOClassController extends HttpServlet {
 
     private void show_personal_center(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        request.setAttribute("reviewStageOpen", isReviewStageOpen(request));
         request.getRequestDispatcher("/WEB-INF/views/mo/personal-center.jsp").forward(request, response);
     }
 
@@ -245,6 +247,11 @@ public class MOClassController extends HttpServlet {
 
     private void show_review_candidates(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        if (!isReviewStageOpen(request)) {
+            redirectReviewLocked(request, response);
+            return;
+        }
+
         List<Course> courseList = getCurrentMoCourseList(request);
         if (courseList.isEmpty()) {
             request.setAttribute("courseList", courseList);
@@ -262,6 +269,11 @@ public class MOClassController extends HttpServlet {
 
     private void save_review_picks(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
+        if (!isReviewStageOpen(request)) {
+            redirectReviewLocked(request, response);
+            return;
+        }
+
         Course course = getCourseForReview(request);
         if (course == null) {
             response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");
@@ -284,6 +296,11 @@ public class MOClassController extends HttpServlet {
 
     private void publish_review(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
+        if (!isReviewStageOpen(request)) {
+            redirectReviewLocked(request, response);
+            return;
+        }
+
         Course course = getCourseForReview(request);
         if (course == null) {
             response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");
@@ -502,6 +519,25 @@ public class MOClassController extends HttpServlet {
         return value == null ? "" : value.trim();
     }
 
+    private boolean isReviewStageOpen(HttpServletRequest request) {
+        LocalDateTime deadline = resolveApplicationDeadline(request);
+        return deadline == null || LocalDateTime.now().isAfter(deadline);
+    }
+
+    private LocalDateTime resolveApplicationDeadline(HttpServletRequest request) {
+        ServletContext servletContext = request.getServletContext();
+        if (servletContext != null) {
+            Object deadline = servletContext.getAttribute("applicationDeadline");
+            if (deadline instanceof LocalDateTime localDateTime) {
+                return localDateTime;
+            }
+        }
+        return DeadlineStore.getDeadline();
+    }
+
+    private void redirectReviewLocked(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=personal_center&reviewLocked=1");
+    }
 }
 
 

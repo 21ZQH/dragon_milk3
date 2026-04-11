@@ -9,8 +9,10 @@ import static org.mockito.Mockito.when;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.List;
 
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -66,6 +68,27 @@ class MOClassControllerTest {
 
         controller.doGet(request, response);
 
+        verify(request).setAttribute("reviewStageOpen", true);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void personalCenterMarksReviewUnavailableBeforeDeadline() throws Exception {
+        StoreTestSupport.useCourseStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        ServletContext servletContext = mock(ServletContext.class);
+
+        when(request.getParameter("action")).thenReturn("personal_center");
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("applicationDeadline")).thenReturn(LocalDateTime.now().plusHours(1));
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/personal-center.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("reviewStageOpen", false);
         verify(dispatcher).forward(request, response);
     }
 
@@ -148,6 +171,35 @@ class MOClassControllerTest {
     }
 
     @Test
+    void reviewCandidatesBeforeDeadlineRedirectsToPersonalCenter() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        ServletContext servletContext = mock(ServletContext.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+
+        when(request.getParameter("action")).thenReturn("review_candidates");
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("applicationDeadline")).thenReturn(LocalDateTime.now().plusHours(1));
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doGet(request, response);
+
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=personal_center&reviewLocked=1");
+    }
+
+    @Test
     void reviewCandidatesWithoutCourseIndexDefaultsToFirstOwnedCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         StoreTestSupport.useUserStore(tempDir);
@@ -213,6 +265,43 @@ class MOClassControllerTest {
     }
 
     @Test
+    void saveReviewPicksBeforeDeadlineRedirectsWithoutChangingCourse() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@0");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        ServletContext servletContext = mock(ServletContext.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+
+        when(request.getParameter("action")).thenReturn("save_review_picks");
+        when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getParameterValues("pickedEmail")).thenReturn(new String[] {"alice@example.com"});
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("applicationDeadline")).thenReturn(LocalDateTime.now().plusHours(1));
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doPost(request, response);
+
+        List<String> lines = Files.readAllLines(courseFile);
+        assertEquals("course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills",
+                lines.get(0));
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=personal_center&reviewLocked=1");
+    }
+
+    @Test
     void publishReviewUpdatesTaStatusesAndLocksCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
@@ -252,5 +341,45 @@ class MOClassControllerTest {
         assertEquals(ResumeSubmission.STATUS_APPROVED, alice.getResumeStatusForCourse("course-1"));
         assertEquals(ResumeSubmission.STATUS_REJECTED, bob.getResumeStatusForCourse("course-1"));
         verify(response).sendRedirect("/SE/MOclasscontroller?action=review_candidates&courseIndex=0&published=1");
+    }
+
+    @Test
+    void publishReviewBeforeDeadlineRedirectsWithoutPublishing() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@0");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        ServletContext servletContext = mock(ServletContext.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+
+        when(request.getParameter("action")).thenReturn("publish_review");
+        when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getParameterValues("pickedEmail")).thenReturn(new String[] {"alice@example.com"});
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("applicationDeadline")).thenReturn(LocalDateTime.now().plusHours(1));
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doPost(request, response);
+
+        List<String> courseLines = Files.readAllLines(courseFile);
+        assertEquals("course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills",
+                courseLines.get(0));
+        TA alice = (TA) UserStore.validateUser("pass123", "alice@example.com");
+        Assertions.assertNotNull(alice);
+        assertEquals(ResumeSubmission.STATUS_PENDING, alice.getResumeStatusForCourse("course-1"));
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=personal_center&reviewLocked=1");
     }
 }
