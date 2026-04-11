@@ -3,6 +3,7 @@ setlocal
 
 set "SCRIPT_DIR=%~dp0"
 set "SOURCE_WEBAPP=%SCRIPT_DIR%webapp"
+set "SOURCE_USER_STORE=%SOURCE_WEBAPP%\WEB-INF\file\users.txt"
 set "TOMCAT_HOME=C:\Program Files (x86)\apache-tomcat-9.0.112"
 set "TARGET_DIR=%TOMCAT_HOME%\webapps\SE"
 set "BACKUP_DIR=%TEMP%\SE_file_backup"
@@ -29,6 +30,7 @@ if exist "%BACKUP_DIR%" (
 )
 if not exist "%TARGET_DIR%\WEB-INF\file\users.txt" type nul > "%TARGET_DIR%\WEB-INF\file\users.txt"
 if not exist "%TARGET_DIR%\WEB-INF\file\courses.txt" type nul > "%TARGET_DIR%\WEB-INF\file\courses.txt"
+if not exist "%SOURCE_USER_STORE%" type nul > "%SOURCE_USER_STORE%"
 if exist "%SOURCE_WEBAPP%\WEB-INF\file\candidates.txt" (
     copy /Y "%SOURCE_WEBAPP%\WEB-INF\file\candidates.txt" "%TARGET_DIR%\WEB-INF\file\candidates.txt" >nul
 )
@@ -43,9 +45,11 @@ echo [5/5] Starting Tomcat...
 if not exist "%TOMCAT_STARTUP%" goto :tomcat_start_failed
 set "CATALINA_HOME=%TOMCAT_HOME%"
 set "CATALINA_BASE=%TOMCAT_HOME%"
+set "CATALINA_OPTS=%CATALINA_OPTS% -Duser.store.path=%SOURCE_USER_STORE%"
 call "%TOMCAT_STARTUP%"
 if errorlevel 1 goto :tomcat_start_failed
 echo Tomcat startup script executed.
+echo User store path: %SOURCE_USER_STORE%
 
 echo Deployment finished.
 echo Open: http://localhost:8081/SE/start.html
