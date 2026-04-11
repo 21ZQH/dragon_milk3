@@ -28,6 +28,16 @@
     Boolean applicationOpenAttr = (Boolean) request.getAttribute("applicationOpen");
     boolean applicationOpen = applicationOpenAttr == null ? true : applicationOpenAttr.booleanValue();
 
+    boolean profileComplete = false;
+    if (currentTA != null) {
+        String taName = currentTA.getName();
+        String taCollege = currentTA.getCollege();
+        String taSkill = currentTA.getSkill();
+        profileComplete = taName != null && !taName.trim().isEmpty()
+                && taCollege != null && !taCollege.trim().isEmpty()
+                && taSkill != null && !taSkill.trim().isEmpty();
+    }
+
     Integer selectedStatus = (Integer) request.getAttribute("selectedStatus");
     if (selectedStatus == null && currentTA != null && selectedCourse != null) {
         selectedStatus = currentTA.getResumeStatusForCourse(selectedCourse.getId());
@@ -115,6 +125,15 @@
         .btn:hover {
             background: #d1d5db;
         }
+        .btn-text-disabled {
+            color: #9ea3b0;
+        }
+        .btn-disabled {
+            color: #9ea3b0;
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            cursor: not-allowed;
+        }
         .btn-danger {
             background: #fff4f4;
             border-color: #f1b4b4;
@@ -122,6 +141,12 @@
         }
         .btn-danger:hover {
             background: #fde1e1;
+        }
+        .btn-danger.btn-disabled,
+        .btn-danger.btn-disabled:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            color: #9ea3b0;
         }
         .section {
             border: 1px solid #c6cedc;
@@ -328,12 +353,33 @@
         }
         .modal-actions {
             display: flex;
-            justify-content: flex-end;
+            justify-content: center;
             gap: 10px;
+            flex-wrap: wrap;
+        }
+        .modal-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 150px;
+            height: 44px;
+            padding: 0 16px;
+            border-radius: 10px;
+            background: #e9ecf5;
+            color: #2d3651;
+            text-decoration: none;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 0.95em;
+            border: 1px solid #d1d5db;
+            cursor: pointer;
+        }
+        .modal-btn:hover {
+            background: #d1d5db;
         }
     </style>
 </head>
-<body>
+<body data-application-open="<%= applicationOpen %>">
     <div class="main-box">
         <div class="title">Personal Centre</div>
 
@@ -356,13 +402,16 @@
                 <div class="empty-state">Please log in as TA first.</div>
             <% } else if (appliedCourses == null || appliedCourses.isEmpty()) { %>
                 <div class="empty-state">
-                    <% if (applicationOpen) { %>
+                    <% if (applicationOpen && profileComplete) { %>
                         You have not applied to any course yet.
                         <div class="empty-actions">
                             <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find New Jobs</a>
                         </div>
                     <% } else { %>
-                        The application deadline has passed. You can no longer apply for new courses.
+                        You have not applied to any course yet.
+                        <div class="empty-actions">
+                            <button class="btn btn-text-disabled" type="button" onclick="openFindNewJobsUnavailableModal()">Find New Jobs</button>
+                        </div>
                     <% } %>
                 </div>
             <% } else { %>
@@ -388,12 +437,17 @@
                         <div class="course-name"><%= selectedCourse.getCourseName() %></div>
                         <div class="course-info"><%= selectedCourse.getJobTitle() %> | <%= selectedCourse.getWorkingHours() %></div>
 
-                        <% if (applicationOpen) { %>
-                            <div class="action-row">
+                        <div class="action-row">
+                            <% if (applicationOpen) { %>
                                 <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply_by_id&courseId=" + selectedCourse.getId()) %>">Modify (Re-upload Resume)</a>
                                 <button class="btn btn-danger" type="button" onclick="openWithdrawModal('<%= selectedCourse.getId() %>')">Withdraw</button>
-                            </div>
-                        <% } else { %>
+                            <% } else { %>
+                                <button class="btn btn-disabled" type="button" onclick="openDeadlinePassedModal()">Modify (Re-upload Resume)</button>
+                                <button class="btn btn-danger btn-disabled" type="button" onclick="openDeadlinePassedModal()">Withdraw</button>
+                            <% } %>
+                        </div>
+
+                        <% if (!applicationOpen) { %>
                             <span class="status-pill <%= isEvaluating ? "status-pending" : (isAccepted ? "status-accepted" : "status-rejected") %>"><%= statusLabel %></span>
 
                             <div class="progress-panel">
@@ -437,12 +491,34 @@
         </div>
     </div>
 
+    <div id="profileIncompleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileIncompleteTitle">
+        <div class="modal-box">
+            <div class="modal-title" id="profileIncompleteTitle">Profile Incomplete</div>
+            <div class="modal-text">Your profile information is incomplete. Please complete it first.</div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn" onclick="closeProfileIncompleteModal()">OK</button>
+                <button type="button" class="modal-btn" onclick="goToProfileCenter()">Go to Profile Centre</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="deadlinePassedModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="deadlinePassedTitle">
+        <div class="modal-box">
+            <div class="modal-title" id="deadlinePassedTitle">Application Closed</div>
+            <div class="modal-text">The application deadline has passed.</div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn" onclick="closeDeadlinePassedModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
     <form id="withdrawForm" action="<%= response.encodeURL("TAclasscontroller") %>" method="post" class="hidden">
         <input type="hidden" name="action" value="withdraw_application" />
         <input type="hidden" id="withdrawCourseId" name="courseId" value="" />
     </form>
 
     <script>
+        const applicationOpenFlag = document.body.dataset.applicationOpen === "true";
         let pendingWithdrawCourseId = "";
 
         function openWithdrawModal(courseId) {
@@ -462,6 +538,34 @@
             }
             document.getElementById("withdrawCourseId").value = pendingWithdrawCourseId;
             document.getElementById("withdrawForm").submit();
+        }
+
+        function openProfileIncompleteModal() {
+            document.getElementById("profileIncompleteModal").classList.remove("hidden");
+        }
+
+        function closeProfileIncompleteModal() {
+            document.getElementById("profileIncompleteModal").classList.add("hidden");
+        }
+
+        function goToProfileCenter() {
+            window.location.href = '<%= response.encodeURL("TAclasscontroller?action=profile_center") %>';
+        }
+
+        function openFindNewJobsUnavailableModal() {
+            if (!applicationOpenFlag) {
+                openDeadlinePassedModal();
+                return;
+            }
+            openProfileIncompleteModal();
+        }
+
+        function openDeadlinePassedModal() {
+            document.getElementById("deadlinePassedModal").classList.remove("hidden");
+        }
+
+        function closeDeadlinePassedModal() {
+            document.getElementById("deadlinePassedModal").classList.add("hidden");
         }
     </script>
 </body>

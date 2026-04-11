@@ -180,6 +180,7 @@
 
                 <div class="button-row">
                     <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + courseIndex) %>">Back to Details</a>
+                    <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Back to Personal Centre</a>
                     <button class="nav-btn" type="submit"><%= submitButtonText %></button>
                 </div>
             </form>

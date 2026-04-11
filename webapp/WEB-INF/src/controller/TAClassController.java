@@ -17,6 +17,10 @@ import jakarta.servlet.http.*;
 @MultipartConfig
 public class TAClassController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        if (!ensureTaSession(request, response)) {
+            return;
+        }
+
         String action = request.getParameter("action");
         if ("view_information".equals(action)) {
             view_information(request, response);
@@ -40,6 +44,10 @@ public class TAClassController extends HttpServlet {
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        if (!ensureTaSession(request, response)) {
+            return;
+        }
+
         String action = request.getParameter("action");
         if ("upload_resume".equals(action)) {
             upload_resume(request, response);
@@ -52,11 +60,37 @@ public class TAClassController extends HttpServlet {
         }
     }
 
+    private boolean ensureTaSession(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        User user = (User) request.getSession().getAttribute("user");
+        if (user instanceof TA) {
+            return true;
+        }
+
+        request.setAttribute("error", "Login has expired. Please log in again.");
+        request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
+        return false;
+    }
+
     private void home(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        request.setAttribute("applicationOpen", isApplicationOpen(request));
         request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
     }
 
     private void view_information(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        User user = (User) request.getSession().getAttribute("user");
+        if (!(user instanceof TA)) {
+            response.sendRedirect(request.getContextPath() + "/start.html");
+            return;
+        }
+
+        if (!isApplicationOpen(request)) {
+            request.setAttribute("applicationOpen", false);
+            request.setAttribute("showDeadlineModal", true);
+            request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
+            return;
+        }
+
         // Load all courses.
         List<Course> courseList = CourseStore.getCourseList();
         // Cache list in session.

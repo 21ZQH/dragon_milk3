@@ -11,10 +11,33 @@
     }
 %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page import="model.User" %>
+<%@ page import="model.TA" %>
 <%
     String username = (String) session.getAttribute("username");
     if (username == null) {
         username = "Guest";
+    }
+
+    User currentUser = (User) session.getAttribute("user");
+    TA currentTA = null;
+    if (currentUser instanceof TA) {
+        currentTA = (TA) currentUser;
+    }
+
+    Boolean applicationOpenAttr = (Boolean) request.getAttribute("applicationOpen");
+    boolean applicationOpen = applicationOpenAttr == null ? true : applicationOpenAttr.booleanValue();
+    Boolean showDeadlineModalAttr = (Boolean) request.getAttribute("showDeadlineModal");
+    boolean showDeadlineModal = showDeadlineModalAttr != null && showDeadlineModalAttr.booleanValue();
+
+    boolean profileComplete = false;
+    if (currentTA != null) {
+        String taName = currentTA.getName();
+        String taCollege = currentTA.getCollege();
+        String taSkill = currentTA.getSkill();
+        profileComplete = taName != null && !taName.trim().isEmpty()
+                && taCollege != null && !taCollege.trim().isEmpty()
+                && taSkill != null && !taSkill.trim().isEmpty();
     }
 %>
 
@@ -139,7 +162,7 @@
         .nav-logo img {
             width: 100%;
             height: 100%;
-            object-fit: contain; /* 保持图片比例，充满按钮 */
+            object-fit: contain;
             display: block;
         }
 
@@ -149,13 +172,81 @@
             background: #f5f6fa;
         }
 
+        .nav-btn-disabled {
+            color: #9ea3b0;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .modal-box {
+            width: 460px;
+            max-width: calc(100vw - 40px);
+            background: #fff;
+            border: 3px solid #18192b;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            padding: 22px;
+        }
+
+        .modal-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #18192b;
+            margin-bottom: 12px;
+        }
+
+        .modal-text {
+            color: #444;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 130px;
+            height: 48px;
+            padding: 0 18px;
+            background: #fff;
+            border: 3px solid #18192b;
+            border-radius: 14px;
+            color: #18192b;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .modal-btn:hover {
+            background: #f5f6fa;
+        }
+
        
         form {
             margin: 0;
         }
     </style>
 </head>
-<body>
+<body data-application-open="<%= applicationOpen %>" data-show-deadline-modal="<%= showDeadlineModal %>">
     <div class="container">
        
         <div class="title">TA Recruitment System</div>
@@ -164,9 +255,13 @@
             Welcome to the TA management system! Here you can find job opportunities, manage your profile, and more.
         </div>
          <div class="nav-row">
-     <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find a Job</a>
+        <% if (applicationOpen && profileComplete) { %>
+            <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find a Job</a>
+        <% } else { %>
+            <button class="nav-btn nav-btn-disabled" type="button" onclick="openFindJobUnavailableModal()">Find a Job</button>
+        <% } %>
 
-        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Personal centre</a>
+        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Personal Centre</a>
         <form action="<%= response.encodeURL("logout") %>" method="post" style="display:inline;">
         <button class="nav-btn" type="submit">Log out</button>
         </form>
@@ -176,6 +271,63 @@
         </a>
             </div>
         </div>
+
+    <div id="profileIncompleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileIncompleteTitle">
+        <div class="modal-box">
+            <div class="modal-title" id="profileIncompleteTitle">Profile Incomplete</div>
+            <div class="modal-text">Your profile information is incomplete. Please complete it first.</div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn" onclick="closeProfileIncompleteModal()">OK</button>
+                <button type="button" class="modal-btn" onclick="goToProfileCenter()">Go to Profile Centre</button>
+            </div>
+        </div>
     </div>
+
+    <div id="deadlinePassedModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="deadlinePassedTitle">
+        <div class="modal-box">
+            <div class="modal-title" id="deadlinePassedTitle">Application Closed</div>
+            <div class="modal-text">The application deadline has passed.</div>
+            <div class="modal-actions">
+                <button type="button" class="modal-btn" onclick="closeDeadlinePassedModal()">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const applicationOpenFlag = document.body.dataset.applicationOpen === "true";
+        const showDeadlineModalFlag = document.body.dataset.showDeadlineModal === "true";
+
+        function openFindJobUnavailableModal() {
+            if (!applicationOpenFlag) {
+                openDeadlinePassedModal();
+                return;
+            }
+            openProfileIncompleteModal();
+        }
+
+        function openProfileIncompleteModal() {
+            document.getElementById("profileIncompleteModal").classList.remove("hidden");
+        }
+
+        function closeProfileIncompleteModal() {
+            document.getElementById("profileIncompleteModal").classList.add("hidden");
+        }
+
+        function openDeadlinePassedModal() {
+            document.getElementById("deadlinePassedModal").classList.remove("hidden");
+        }
+
+        function closeDeadlinePassedModal() {
+            document.getElementById("deadlinePassedModal").classList.add("hidden");
+        }
+
+        function goToProfileCenter() {
+            window.location.href = '<%= response.encodeURL("TAclasscontroller?action=profile_center") %>';
+        }
+
+        if (showDeadlineModalFlag) {
+            openDeadlinePassedModal();
+        }
+    </script>
 </body>
 </html>
