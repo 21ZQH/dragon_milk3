@@ -34,6 +34,8 @@ public class MOClassController extends HttpServlet {
 
         if ("logout".equals(action)) {
             logout(request, response);
+        } else if ("dashboard".equals(action)) {
+            show_dashboard(request, response);
         } else if ("create_class".equals(action)) {
             create_class(request, response);
         } else if ("personal_center".equals(action)) {
@@ -105,6 +107,11 @@ public class MOClassController extends HttpServlet {
 
     }
 
+    private void show_dashboard(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
+    }
+
     private void show_personal_center(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setAttribute("reviewStageOpen", isReviewStageOpen(request));
@@ -164,8 +171,7 @@ public class MOClassController extends HttpServlet {
             }
 
             Course selectedCourse = courseList.get(courseIndex);
-            request.setAttribute("selectedCourse", selectedCourse);
-            request.setAttribute("courseIndex", String.valueOf(courseIndex));
+            prepareProjectDetailAttributes(request, selectedCourse, String.valueOf(courseIndex));
             request.getRequestDispatcher("/WEB-INF/views/mo/project-detail.jsp").forward(request, response);
 
         } catch (NumberFormatException e) {
@@ -181,15 +187,14 @@ public class MOClassController extends HttpServlet {
                 try {
                     int courseIndex = Integer.parseInt(courseIndexParam);
                     if (courseIndex >= 0 && courseIndex < courseList.size()) {
-                        request.setAttribute("selectedCourse", courseList.get(courseIndex));
-                        request.setAttribute("courseIndex", courseIndexParam);
+                        prepareProjectDetailAttributes(request, courseList.get(courseIndex), courseIndexParam);
                     }
                 } catch (NumberFormatException ignored) {
                 }
             }
 
             request.setAttribute("error", "The deadline for MO to modify course information has passed.");
-            request.setAttribute("moModifyDeadline", resolveMoModifyDeadline(request));
+            request.setAttribute("moModifyOpen", false);
             request.getRequestDispatcher("/WEB-INF/views/mo/project-detail.jsp").forward(request, response);
             return;
         }
@@ -492,6 +497,13 @@ public class MOClassController extends HttpServlet {
 
         mo.replaceOwnedCourse(course);
         request.getSession().setAttribute("user", mo);
+    }
+
+    private void prepareProjectDetailAttributes(HttpServletRequest request, Course selectedCourse, String courseIndex) {
+        request.setAttribute("selectedCourse", selectedCourse);
+        request.setAttribute("courseIndex", courseIndex);
+        request.setAttribute("moModifyOpen", isMoModifyOpen(request));
+        request.setAttribute("moModifyDeadline", resolveMoModifyDeadline(request));
     }
 
     private boolean isMoModifyOpen(HttpServletRequest request) {

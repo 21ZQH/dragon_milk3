@@ -6,6 +6,8 @@
     String success = request.getParameter("success");
     String error = (String) request.getAttribute("error");
     Object moModifyDeadline = request.getAttribute("moModifyDeadline");
+    Boolean moModifyOpenAttr = (Boolean) request.getAttribute("moModifyOpen");
+    boolean moModifyOpen = moModifyOpenAttr == null ? true : moModifyOpenAttr.booleanValue();
 %>
 <!DOCTYPE html>
 <html>
@@ -164,6 +166,16 @@
             color: #fff;
         }
 
+        .edit-btn.disabled,
+        .edit-btn.disabled:hover {
+            background: #f3f4f6;
+            border-color: #d1d5db;
+            color: #9ea3b0;
+            cursor: not-allowed;
+            box-shadow: none;
+            transform: none;
+        }
+
         .edit-btn.active {
             background: #22223b;
             color: #fff;
@@ -224,6 +236,14 @@
             transform: translateY(-1px);
         }
 
+        .save-btn.disabled,
+        .save-btn.disabled:hover {
+            background: #f3f4f6;
+            color: #9ea3b0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .empty-box {
             border: 2px dashed #bbb;
             border-radius: 14px;
@@ -233,6 +253,72 @@
             background: #fafafa;
             font-size: 1.1em;
             margin-top: 24px;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .modal-box {
+            width: 430px;
+            max-width: calc(100vw - 40px);
+            background: #fff;
+            border: 2px solid #222;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            padding: 20px;
+        }
+
+        .modal-title {
+            font-size: 1.25em;
+            font-weight: bold;
+            color: #2d3651;
+            margin-bottom: 10px;
+        }
+
+        .modal-text {
+            color: #444;
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .modal-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 150px;
+            height: 44px;
+            padding: 0 16px;
+            border-radius: 10px;
+            background: #e9ecf5;
+            color: #2d3651;
+            text-decoration: none;
+            font-weight: bold;
+            font-family: inherit;
+            font-size: 0.95em;
+            border: 1px solid #d1d5db;
+            cursor: pointer;
+        }
+
+        .modal-btn:hover {
+            background: #d1d5db;
         }
     </style>
 </head>
@@ -248,7 +334,7 @@
         <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>">Back</a>
     </div>
 
-    <div class="notice">// check course detail information</div>
+    <!-- <div class="notice">// check course detail information</div> -->
 
     <% if ("1".equals(success)) { %>
         <div class="success-toast" id="successToast">
@@ -278,7 +364,10 @@
         <div class="section">
             <div class="section-header">
                 <h2 class="section-title">Course Name</h2>
-                <button type="button" class="edit-btn" data-target="courseName">Edit</button>
+                <button type="button"
+                        class="edit-btn <%= moModifyOpen ? "" : "disabled" %>"
+                        data-target="courseName"
+                        data-locked="<%= !moModifyOpen %>">Edit</button>
             </div>
             <input
                 id="courseName"
@@ -293,7 +382,10 @@
         <div class="section">
             <div class="section-header">
                 <h2 class="section-title">Job Title</h2>
-                <button type="button" class="edit-btn" data-target="jobTitle">Edit</button>
+                <button type="button"
+                        class="edit-btn <%= moModifyOpen ? "" : "disabled" %>"
+                        data-target="jobTitle"
+                        data-locked="<%= !moModifyOpen %>">Edit</button>
             </div>
             <input
                 id="jobTitle"
@@ -308,7 +400,10 @@
         <div class="section">
             <div class="section-header">
                 <h2 class="section-title">Working Hours</h2>
-                <button type="button" class="edit-btn" data-target="workingHours">Edit</button>
+                <button type="button"
+                        class="edit-btn <%= moModifyOpen ? "" : "disabled" %>"
+                        data-target="workingHours"
+                        data-locked="<%= !moModifyOpen %>">Edit</button>
             </div>
             <input
                 id="workingHours"
@@ -323,7 +418,10 @@
         <div class="section">
             <div class="section-header">
                 <h2 class="section-title">Job Description</h2>
-                <button type="button" class="edit-btn" data-target="jobDescription">Edit</button>
+                <button type="button"
+                        class="edit-btn <%= moModifyOpen ? "" : "disabled" %>"
+                        data-target="jobDescription"
+                        data-locked="<%= !moModifyOpen %>">Edit</button>
             </div>
             <textarea
                 id="jobDescription"
@@ -335,7 +433,10 @@
         <div class="section">
             <div class="section-header">
                 <h2 class="section-title">Job Requirement</h2>
-                <button type="button" class="edit-btn" data-target="jobRequirement">Edit</button>
+                <button type="button"
+                        class="edit-btn <%= moModifyOpen ? "" : "disabled" %>"
+                        data-target="jobRequirement"
+                        data-locked="<%= !moModifyOpen %>">Edit</button>
             </div>
             <textarea
                 id="jobRequirement"
@@ -345,7 +446,11 @@
         </div>
 
         <div class="save-section">
-            <button type="submit" class="save-btn">Save changes</button>
+            <% if (moModifyOpen) { %>
+                <button type="submit" class="save-btn">Save changes</button>
+            <% } else { %>
+                <button type="button" class="save-btn disabled" onclick="openMoModifyLockedModal()">Save changes</button>
+            <% } %>
         </div>
     </form>
     <%
@@ -357,11 +462,26 @@
     %>
 </div>
 
+<div id="moModifyLockedModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="moModifyLockedTitle">
+    <div class="modal-box">
+        <div class="modal-title" id="moModifyLockedTitle">Course Modification Closed</div>
+        <div class="modal-text">The deadline for MO to modify course information has passed.</div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn" onclick="closeMoModifyLockedModal()">OK</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const editButtons = document.querySelectorAll(".edit-btn");
 
     editButtons.forEach(button => {
         button.addEventListener("click", function () {
+            if (this.dataset.locked === "true") {
+                openMoModifyLockedModal();
+                return;
+            }
+
             const targetId = this.getAttribute("data-target");
             const field = document.getElementById(targetId);
 
@@ -379,6 +499,14 @@
             }
         });
     });
+
+    function openMoModifyLockedModal() {
+        document.getElementById("moModifyLockedModal").classList.remove("hidden");
+    }
+
+    function closeMoModifyLockedModal() {
+        document.getElementById("moModifyLockedModal").classList.add("hidden");
+    }
 
     const successToast = document.getElementById("successToast");
     if (successToast) {

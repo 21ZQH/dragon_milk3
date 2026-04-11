@@ -175,6 +175,23 @@ class TAClassControllerTest {
     }
 
     @Test
+    void logoutActionInvalidatesSessionAndRedirectsToStartPage() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        when(request.getParameter("action")).thenReturn("logout");
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doPost(request, response);
+
+        verify(session).invalidate();
+        verify(response).sendRedirect("/SE/start.html");
+    }
+
+    @Test
     void goApplySetsSelectedCourseAndForwards() throws Exception {
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);

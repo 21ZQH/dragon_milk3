@@ -3,6 +3,7 @@ package controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,6 +50,22 @@ class MOClassControllerTest {
 
         when(request.getParameter("action")).thenReturn("create_class");
         when(request.getRequestDispatcher("/WEB-INF/views/mo/create-project.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void dashboardActionForwardsToDashboardPage() throws Exception {
+        StoreTestSupport.useCourseStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        when(request.getParameter("action")).thenReturn("dashboard");
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp")).thenReturn(dispatcher);
 
         controller.doGet(request, response);
 
@@ -228,6 +245,78 @@ class MOClassControllerTest {
 
         verify(request).setAttribute("courseIndex", "0");
         verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void projectDetailExposesMoModifyAvailabilityAndDeadline() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        ServletContext servletContext = mock(ServletContext.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+        LocalDateTime moDeadline = LocalDateTime.now().plusHours(2);
+
+        when(request.getParameter("action")).thenReturn("project_detail");
+        when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("moCourseModifyDeadline")).thenReturn(moDeadline);
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/project-detail.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("courseIndex", "0");
+        verify(request).setAttribute("moModifyOpen", true);
+        verify(request).setAttribute("moModifyDeadline", moDeadline);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void saveCourseChangesAfterMoModifyDeadlineForwardsWithLockedState() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        ServletContext servletContext = mock(ServletContext.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills"));
+        LocalDateTime moDeadline = LocalDateTime.now().minusHours(1);
+
+        when(request.getParameter("action")).thenReturn("save_course_changes");
+        when(request.getParameter("courseIndex")).thenReturn("0");
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getServletContext()).thenReturn(servletContext);
+        when(servletContext.getAttribute("moCourseModifyDeadline")).thenReturn(moDeadline);
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/project-detail.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(request).setAttribute("error", "The deadline for MO to modify course information has passed.");
+        verify(request, atLeastOnce()).setAttribute("moModifyOpen", false);
+        verify(request).setAttribute("moModifyDeadline", moDeadline);
+        verify(dispatcher).forward(request, response);
+        assertEquals("course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills",
+                Files.readAllLines(courseFile).get(0));
     }
 
     @Test

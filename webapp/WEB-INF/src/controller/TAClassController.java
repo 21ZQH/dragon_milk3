@@ -30,11 +30,16 @@ import store.UserStore;
 @MultipartConfig
 public class TAClassController extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String action = request.getParameter("action");
+        if ("logout".equals(action)) {
+            logout(request, response);
+            return;
+        }
+
         if (!ensureTaSession(request, response)) {
             return;
         }
 
-        String action = request.getParameter("action");
         if ("view_information".equals(action)) {
             view_information(request, response);
         } else if ("home".equals(action)) {
@@ -59,11 +64,16 @@ public class TAClassController extends HttpServlet {
     }
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String action = request.getParameter("action");
+        if ("logout".equals(action)) {
+            logout(request, response);
+            return;
+        }
+
         if (!ensureTaSession(request, response)) {
             return;
         }
 
-        String action = request.getParameter("action");
         if ("upload_resume".equals(action)) {
             upload_resume(request, response);
         } else if ("save_personal_information".equals(action)) {
@@ -85,6 +95,14 @@ public class TAClassController extends HttpServlet {
         request.setAttribute("error", "Login has expired. Please log in again.");
         request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
         return false;
+    }
+
+    private void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate();
+        }
+        response.sendRedirect(request.getContextPath() + "/start.html");
     }
 
     private void home(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {

@@ -51,7 +51,7 @@ public class AccountController extends HttpServlet {
             }
 
             UserStore.saveUser(user);
-            request.getSession().setAttribute("user", user);
+            storeAuthenticatedUser(request, user);
             request.setAttribute("name", name);
             request.setAttribute("email", email);
             forwardByRole(request, response, user.getRole());
@@ -73,7 +73,7 @@ public class AccountController extends HttpServlet {
             }
 
             if (user != null) {
-                request.getSession().setAttribute("user", user);
+                storeAuthenticatedUser(request, user);
                 request.setAttribute("name", name);
                 request.setAttribute("email", email);
                 forwardByRole(request, response, user.getRole());
@@ -103,6 +103,14 @@ public class AccountController extends HttpServlet {
         return null;
     }
 
+    private void storeAuthenticatedUser(HttpServletRequest request, User user) {
+        request.getSession().setAttribute("user", user);
+        String username = user.getName();
+        if (username != null && !username.trim().isEmpty()) {
+            request.getSession().setAttribute("username", username.trim());
+        }
+    }
+
     private void forwardByRole(HttpServletRequest request, HttpServletResponse response, String role)
             throws ServletException, IOException {
         if ("Mo".equalsIgnoreCase(role)) {
@@ -110,7 +118,7 @@ public class AccountController extends HttpServlet {
         }else if ("Admin".equalsIgnoreCase(role)) {
             request.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp").forward(request, response);
         }else {
-            request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp").forward(request, response);
+            response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=home");
         }
     }
 }

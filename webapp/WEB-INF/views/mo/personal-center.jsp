@@ -37,13 +37,42 @@
             box-sizing: border-box;
         }
 
+        .top-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 10px;
+        }
+
         .page-title {
             font-size: 2.2em;
             font-weight: 700;
             color: #22223b;
-            margin-bottom: 5px;
+            margin: 0;
             border-bottom: 2px solid #22223b;
             padding-bottom: 15px;
+            flex: 1 1 auto;
+        }
+
+        .back-link {
+            display: inline-block;
+            text-decoration: none;
+            color: #22223b;
+            font-weight: 600;
+            border: 2px solid #22223b;
+            padding: 10px 16px;
+            border-radius: 12px;
+            background: #fff;
+            transition: all 0.2s ease;
+        }
+
+        .back-link:hover {
+            background: #22223b;
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(34,34,59,0.12);
         }
 
         .welcome-text {
@@ -164,7 +193,10 @@
 <body>
 
     <div class="container">
-        <div class="page-title">Personal Centre</div>
+        <div class="top-line">
+            <div class="page-title">Personal Centre</div>
+            <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=dashboard") %>">Back</a>
+        </div>
 
         <div class="welcome-text">Hi, <%= username %></div>
 

@@ -14,15 +14,19 @@
 <%@ page import="model.User" %>
 <%@ page import="model.TA" %>
 <%
-    String username = (String) session.getAttribute("username");
-    if (username == null) {
-        username = "Guest";
-    }
-
     User currentUser = (User) session.getAttribute("user");
     TA currentTA = null;
     if (currentUser instanceof TA) {
         currentTA = (TA) currentUser;
+    }
+
+    String username = (String) session.getAttribute("username");
+    if ((username == null || username.trim().isEmpty()) && currentTA != null
+            && currentTA.getName() != null && !currentTA.getName().trim().isEmpty()) {
+        username = currentTA.getName().trim();
+    }
+    if (username == null || username.trim().isEmpty()) {
+        username = "Guest";
     }
 
     Boolean applicationOpenAttr = (Boolean) request.getAttribute("applicationOpen");
@@ -324,8 +328,9 @@
                 <span class="notification-tooltip">Review result updated</span>
             <% } %>
         </div>
-        <form action="<%= response.encodeURL("logout") %>" method="post" style="display:inline;">
-        <button class="nav-btn" type="submit">Log out</button>
+        <form action="<%= response.encodeURL("TAclasscontroller") %>" method="post" style="display:inline;">
+            <input type="hidden" name="action" value="logout">
+            <button class="nav-btn" type="submit">Log out</button>
         </form>
 
         <a class="nav-btn nav-logo" href="#">
