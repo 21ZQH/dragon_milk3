@@ -131,6 +131,26 @@ class MOClassControllerTest {
     }
 
     @Test
+    void profileCenterActionForwardsToProfileCenterPage() throws Exception {
+        StoreTestSupport.useCourseStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = createCompleteMo("mo@example.com");
+
+        when(request.getParameter("action")).thenReturn("profile_center");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/profile-center.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
     void personalCenterMarksReviewUnavailableBeforeDeadline() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
         MOClassController controller = new MOClassController();
@@ -151,6 +171,28 @@ class MOClassControllerTest {
         controller.doGet(request, response);
 
         verify(request).setAttribute("reviewStageOpen", false);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void dashboardShowsProfileIncompleteModalAfterRedirectFlag() throws Exception {
+        StoreTestSupport.useCourseStore(tempDir);
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+
+        when(request.getParameter("action")).thenReturn("dashboard");
+        when(request.getParameter("profileIncomplete")).thenReturn("1");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("showProfileIncompleteModal", true);
         verify(dispatcher).forward(request, response);
     }
 
@@ -223,6 +265,40 @@ class MOClassControllerTest {
         assertEquals("Molly,secret123,Mo,mo@example.com,Master of Science,School of Software," + courses.get(0).getId(),
                 java.nio.file.Files.readAllLines(usersFile).get(0));
         verify(session).setAttribute("user", mo);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void savePersonalInformationUpdatesMoAndPersistsFields() throws Exception {
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(usersFile, "Molly,secret123,Mo,mo@example.com,");
+
+        MOClassController controller = new MOClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Mo mo = new Mo("secret123", "mo@example.com");
+        mo.setName("Molly");
+
+        when(request.getParameter("action")).thenReturn("save_personal_information");
+        when(request.getParameter("name")).thenReturn("  Molly Zhang  ");
+        when(request.getParameter("degree")).thenReturn("  PhD  ");
+        when(request.getParameter("college")).thenReturn("  School of Engineering  ");
+        when(request.getSession(false)).thenReturn(session);
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(mo);
+        when(request.getRequestDispatcher("/WEB-INF/views/mo/profile-center.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        assertEquals("Molly Zhang", mo.getName());
+        assertEquals("PhD", mo.getDegree());
+        assertEquals("School of Engineering", mo.getCollege());
+        assertEquals("Molly Zhang,secret123,Mo,mo@example.com,PhD,School of Engineering,",
+                Files.readAllLines(usersFile).get(0));
+        verify(session).setAttribute("user", mo);
+        verify(request).setAttribute("success", "Personal information saved successfully.");
         verify(dispatcher).forward(request, response);
     }
 

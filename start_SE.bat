@@ -63,8 +63,12 @@ if not exist "%TOMCAT_STARTUP%" goto :tomcat_start_failed
 call "%TOMCAT_STARTUP%"
 if errorlevel 1 goto :tomcat_start_failed
 
+set "APP_URL=http://localhost:8081/SE/start.html"
+timeout /t 2 /nobreak >nul
+start "" "%APP_URL%"
+
 echo Deployment finished.
-echo Open: http://localhost:8081/SE/start.html
+echo Opened: %APP_URL%
 exit /b 0
 
 :resolve_tomcat_home
