@@ -197,7 +197,7 @@ class MOClassControllerTest {
     }
 
     @Test
-    void unauthenticatedMoRequestRedirectsToStartPage() throws Exception {
+    void unauthenticatedMoRequestRedirectsToMoEntry() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
         MOClassController controller = new MOClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -209,7 +209,7 @@ class MOClassControllerTest {
 
         controller.doGet(request, response);
 
-        verify(response).sendRedirect("/SE/start.html");
+        verify(response).sendRedirect("/SE/mo");
     }
 
     @Test

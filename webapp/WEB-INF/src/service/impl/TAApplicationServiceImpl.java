@@ -77,20 +77,42 @@ public class TAApplicationServiceImpl implements TAApplicationService {
 
     @Override
     public SubmitResumeResult submitResume(TA ta, Course course, Part resumePart) throws IOException {
-        if (resumePart == null || resumePart.getSize() <= 0) {
+        String resumeDirectory = ta == null ? null : ta.getMasterResumeDirectory();
+        String submittedFileName = "profile resume";
+
+        if (resumePart != null && resumePart.getSize() > 0) {
+            SubmitResumeResult uploadResult = uploadMasterResume(ta, resumePart);
+            if (!uploadResult.isSuccess()) {
+                return uploadResult;
+            }
+            resumeDirectory = ta.getMasterResumeDirectory();
+            submittedFileName = uploadResult.getSubmittedFileName();
+        }
+
+        if (resumeDirectory == null || resumeDirectory.isBlank()) {
             return SubmitResumeResult.error("Please upload your resume before submitting.");
         }
 
+        ta.addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING);
+        course.addApplication(ta, resumeDirectory);
+        userProfileService.updateAppliedCourseIds(ta);
+        return SubmitResumeResult.success(submittedFileName);
+    }
+
+    @Override
+    public SubmitResumeResult uploadMasterResume(TA ta, Part resumePart) throws IOException {
+        if (resumePart == null || resumePart.getSize() <= 0) {
+            return SubmitResumeResult.error("Please upload your resume before submitting.");
+        }
         String submittedFileName = resumePart.getSubmittedFileName();
         submittedFileName = submittedFileName == null ? "" : new File(submittedFileName).getName();
         if (!submittedFileName.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
             return SubmitResumeResult.error("Only PDF resumes are accepted.");
         }
 
-        String resumeDirectory = resumeStorageService.storeResume(resumePart, ta, course);
-        ta.addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING);
-        course.addApplication(ta, resumeDirectory);
-        userProfileService.updateAppliedCourseIds(ta);
+        String resumeDirectory = resumeStorageService.storeMasterResume(resumePart, ta);
+        ta.setMasterResumeDirectory(resumeDirectory);
+        userProfileService.updateTaProfile(ta);
         return SubmitResumeResult.success(submittedFileName);
     }
 
@@ -120,7 +142,8 @@ public class TAApplicationServiceImpl implements TAApplicationService {
             return new WithdrawApplicationResult(true);
         }
         String resumeDirectory = ta.getResumeDirectoryForCourse(course.getId());
-        boolean resumeDeleted = resumeStorageService.deleteStoredResumeFileIfPresent(ta, resumeDirectory);
+        boolean isMasterResume = resumeDirectory != null && resumeDirectory.equals(ta.getMasterResumeDirectory());
+        boolean resumeDeleted = isMasterResume || resumeStorageService.deleteStoredResumeFileIfPresent(ta, resumeDirectory);
         ta.withdrawApplication(course.getId());
         course.removeApplicationByTaEmail(ta.getEmail());
         userProfileService.updateAppliedCourseIds(ta);

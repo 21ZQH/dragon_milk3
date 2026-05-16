@@ -33,36 +33,25 @@ class AccountControllerTest {
     }
 
     @Test
-    void registeringMoUserSavesAccountAndForwardsToMoDashboard() throws Exception {
-        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+    void registeringMoUserIsForbidden() throws Exception {
+        StoreTestSupport.useUserStore(tempDir);
         AccountController controller = new AccountController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
-        HttpSession session = mock(HttpSession.class);
 
         when(request.getParameter("action")).thenReturn("Register");
         when(request.getParameter("name")).thenReturn("Molly");
         when(request.getParameter("password")).thenReturn("secret123");
         when(request.getParameter("role")).thenReturn("Mo");
         when(request.getParameter("email")).thenReturn("mo@example.com");
-        when(request.getSession()).thenReturn(session);
-        when(request.getContextPath()).thenReturn("/SE");
 
         controller.doPost(request, response);
 
-        verify(session).setAttribute(eq("user"), argThat(value ->
-                value instanceof User
-                        && "Mo".equals(((User) value).getRole())
-                        && "mo@example.com".equals(((User) value).getEmail())));
-        verify(response).sendRedirect("/SE/MOclasscontroller?action=dashboard");
-        verify(response, never()).sendError(anyInt(), anyString());
-
-        assertTrue(Files.exists(usersFile));
-        assertEquals(1, Files.readAllLines(usersFile).size());
+        verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Registration is only available for TA.");
     }
 
     @Test
-    void duplicateRegistrationRedirectsBackToStartPageWithError() throws Exception {
+    void duplicateRegistrationRedirectsBackToTaAuthWithError() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
         StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com");
 
@@ -79,7 +68,7 @@ class AccountControllerTest {
 
         controller.doPost(request, response);
 
-        verify(response).sendRedirect("/SE/start.html?error=The+email+is+already+registered.");
+        verify(response).sendRedirect("/SE/ta?action=auth&error=The+email+is+already+registered.");
     }
 
     @Test
@@ -139,7 +128,7 @@ class AccountControllerTest {
     }
 
     @Test
-    void invalidLoginRedirectsBackToStartPageWithError() throws Exception {
+    void invalidLoginRedirectsBackToTaAuthWithError() throws Exception {
         StoreTestSupport.useUserStore(tempDir);
 
         AccountController controller = new AccountController();
@@ -155,7 +144,7 @@ class AccountControllerTest {
 
         controller.doPost(request, response);
 
-        verify(response).sendRedirect("/SE/start.html?error=Invalid+password+or+email.");
+        verify(response).sendRedirect("/SE/ta?action=auth&error=Invalid+password+or+email.");
     }
 
     @Test

@@ -13,6 +13,9 @@
     if (currentUser instanceof TA) {
         currentTA = (TA) currentUser;
     }
+    String listUrl = currentTA == null
+            ? request.getContextPath() + "/ta"
+            : response.encodeURL("TAclasscontroller?action=view_information");
 
     boolean hasApplied = false;
     if (course != null && currentTA != null && course.getId() != null) {
@@ -131,10 +134,10 @@
                 <div class="value"><%= course.getJobRequirement() %></div>
             </div>
             <div class="button-row">
-                <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Back to List</a>
+                <a class="nav-btn" href="<%= listUrl %>">Back to List</a>
                 <% if (applicationOpen) { %>
                     <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply&courseIndex=" + courseIndex) %>">
-                        <%= hasApplied ? "Modify Resume" : "Go Apply" %>
+                        <%= hasApplied ? "Modify Application" : "Go Apply" %>
                     </a>
                 <% } %>
             </div>
@@ -146,7 +149,7 @@
                 <div class="value">Course information is unavailable.</div>
             </div>
             <div class="button-row">
-                <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Back to List</a>
+                <a class="nav-btn" href="<%= listUrl %>">Back to List</a>
             </div>
         <% } %>
     </div>

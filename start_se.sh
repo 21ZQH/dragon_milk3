@@ -68,4 +68,4 @@ export CATALINA_BASE="$TOMCAT_HOME"
 "$TOMCAT_HOME/bin/startup.sh"
 
 echo "Deployment finished."
-echo "Open: http://localhost:8081/SE/start.html"
+echo "Open: http://localhost:8081/SE/ta"

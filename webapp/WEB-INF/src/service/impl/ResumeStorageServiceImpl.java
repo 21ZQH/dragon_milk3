@@ -52,6 +52,14 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
     }
 
     @Override
+    public File getMasterResumeFile(TA ta) {
+        if (ta == null || ta.getMasterResumeDirectory() == null || ta.getMasterResumeDirectory().isBlank()) {
+            return null;
+        }
+        return buildResumeFile(ta, ta.getMasterResumeDirectory());
+    }
+
+    @Override
     public File getApplicantResumeFile(Course course, String applicantEmail) {
         if (course == null || applicantEmail == null || applicantEmail.isBlank()) {
             return null;
@@ -88,6 +96,21 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
                 ? "unknown-course"
                 : course.getId();
         File uploadDirectory = new File(resolveResumeUploadDirectory(), courseDirectoryName);
+        if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
+            throw new IOException("Failed to create upload directory.");
+        }
+
+        File targetFile = new File(uploadDirectory, buildStoredResumeFileName(ta));
+        if (targetFile.exists() && !targetFile.delete()) {
+            throw new IOException("Failed to replace existing resume file.");
+        }
+        resumePart.write(targetFile.getAbsolutePath());
+        return uploadDirectory.getAbsolutePath();
+    }
+
+    @Override
+    public String storeMasterResume(Part resumePart, TA ta) throws IOException {
+        File uploadDirectory = new File(resolveResumeUploadDirectory(), "master");
         if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
             throw new IOException("Failed to create upload directory.");
         }

@@ -45,7 +45,7 @@ class AdminControllerTest {
     }
 
     @Test
-    void unauthenticatedUserRedirectsToStartHtml() throws Exception {
+    void unauthenticatedUserRedirectsToAdminEntry() throws Exception {
         AdminController controller = new AdminController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -55,7 +55,7 @@ class AdminControllerTest {
 
         controller.doGet(request, response);
 
-        verify(response).sendRedirect("/SE/start.html");
+        verify(response).sendRedirect("/SE/admin");
     }
 
     @Test
@@ -268,7 +268,7 @@ class AdminControllerTest {
     }
 
     @Test
-    void adminLogoutInvalidatesSessionAndRedirectsToStartPage() throws Exception {
+    void adminLogoutInvalidatesSessionAndRedirectsToAdminEntry() throws Exception {
         AdminController controller = new AdminController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -283,7 +283,7 @@ class AdminControllerTest {
         controller.doGet(request, response);
 
         verify(session).invalidate();
-        verify(response).sendRedirect("/SE/start.html");
+        verify(response).sendRedirect("/SE/admin");
     }
 
     @Test

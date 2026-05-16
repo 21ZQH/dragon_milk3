@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -52,12 +51,10 @@ public class TAClassController extends HttpServlet {
             go_apply_by_id(request, response);
         } else if ("view_resume".equals(action)) {
             view_resume(request, response);
+        } else if ("view_master_resume".equals(action)) {
+            view_master_resume(request, response);
         } else if ("personal_centre".equals(action)) {
             personal_centre(request, response);
-        } else if ("profile_center".equals(action)) {
-            profile_center(request, response);
-        } else if ("edit_skill".equals(action)) {
-            edit_skill(request, response);
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
         }
@@ -76,8 +73,8 @@ public class TAClassController extends HttpServlet {
 
         if ("upload_resume".equals(action)) {
             upload_resume(request, response);
-        } else if ("save_personal_information".equals(action)) {
-            save_personal_information(request, response);
+        } else if ("upload_master_resume".equals(action)) {
+            upload_master_resume(request, response);
         } else if ("withdraw_application".equals(action)) {
             withdraw_application(request, response);
         } else {
@@ -98,7 +95,7 @@ public class TAClassController extends HttpServlet {
         }
 
         if (currentUser == null) {
-            response.sendRedirect(request.getContextPath() + "/start.html");
+            response.sendRedirect(request.getContextPath() + "/ta?action=auth");
             return false;
         }
 
@@ -111,7 +108,7 @@ public class TAClassController extends HttpServlet {
         if (session != null) {
             session.invalidate();
         }
-        response.sendRedirect(request.getContextPath() + "/start.html");
+        response.sendRedirect(request.getContextPath() + "/ta");
     }
 
     private void home(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -122,7 +119,7 @@ public class TAClassController extends HttpServlet {
     private void view_information(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         User user = (User) request.getSession().getAttribute("user");
         if (!(user instanceof TA)) {
-            response.sendRedirect(request.getContextPath() + "/start.html");
+            response.sendRedirect(request.getContextPath() + "/ta?action=auth");
             return;
         }
 
@@ -246,6 +243,38 @@ public class TAClassController extends HttpServlet {
         }
     }
 
+    private void view_master_resume(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        User user = (User) request.getSession().getAttribute("user");
+        if (!(user instanceof TA ta)) {
+            response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=view_information");
+            return;
+        }
+
+        String resumeDirectory = ta.getMasterResumeDirectory();
+        if (resumeDirectory == null || resumeDirectory.isBlank()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Resume not found");
+            return;
+        }
+
+        File resumeFile = new File(resumeDirectory, buildStoredResumeFileName(ta));
+        if (!resumeFile.exists() || !resumeFile.isFile()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Resume file not found");
+            return;
+        }
+
+        boolean download = "true".equalsIgnoreCase(request.getParameter("download"));
+        response.setContentType("application/pdf");
+        response.setHeader(
+                "Content-Disposition",
+                (download ? "attachment" : "inline") + "; filename=\"" + buildStoredResumeFileName(ta) + "\"");
+
+        try (InputStream inputStream = new FileInputStream(resumeFile);
+                OutputStream outputStream = response.getOutputStream()) {
+            inputStream.transferTo(outputStream);
+            outputStream.flush();
+        }
+    }
+
     private void personal_centre(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         User user = (User) request.getSession().getAttribute("user");
         if (!(user instanceof TA ta)) {
@@ -254,26 +283,6 @@ public class TAClassController extends HttpServlet {
         }
 
         forwardPersonalCentre(request, response, ta, null, null, request.getParameter("courseId"));
-    }
-
-    private void profile_center(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        User user = (User) request.getSession().getAttribute("user");
-        if (!(user instanceof TA)) {
-            response.sendRedirect(request.getContextPath() + "/start.html");
-            return;
-        }
-
-        request.getRequestDispatcher("/WEB-INF/views/ta/profile-center.jsp").forward(request, response);
-    }
-
-    private void edit_skill(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        User user = (User) request.getSession().getAttribute("user");
-        if (!(user instanceof TA)) {
-            response.sendRedirect(request.getContextPath() + "/start.html");
-            return;
-        }
-
-        request.getRequestDispatcher("/WEB-INF/views/ta/edit-skill.jsp").forward(request, response);
     }
 
     private void upload_resume(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -299,7 +308,19 @@ public class TAClassController extends HttpServlet {
         }
 
         Part resumePart = request.getPart("resumeFile");
-        if (resumePart == null || resumePart.getSize() <= 0) {
+        boolean hasMasterResume = ta.getMasterResumeDirectory() != null && !ta.getMasterResumeDirectory().isBlank();
+        if (hasMasterResume && resumePart != null && resumePart.getSize() > 0) {
+            request.setAttribute("selectedCourse", course);
+            request.setAttribute("courseIndex", request.getParameter("courseIndex"));
+            request.setAttribute("hasMasterResume", hasMasterResume(ta));
+            request.setAttribute("masterResumeFileName", buildStoredResumeFileName(ta));
+            request.setAttribute("error", "Please replace your resume from Personal Centre.");
+            request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp").forward(request, response);
+            return;
+        }
+
+        if ((resumePart == null || resumePart.getSize() <= 0)
+                && !hasMasterResume) {
             request.setAttribute("selectedCourse", course);
             request.setAttribute("courseIndex", request.getParameter("courseIndex"));
             request.setAttribute("error", "Please upload your resume before submitting.");
@@ -307,39 +328,40 @@ public class TAClassController extends HttpServlet {
             return;
         }
 
-        String submittedFileName = resumePart.getSubmittedFileName();
-        submittedFileName = submittedFileName == null ? "" : new File(submittedFileName).getName();
+        String resumeName = "profile resume";
+        if (resumePart != null && resumePart.getSize() > 0) {
+            String submittedFileName = resumePart.getSubmittedFileName();
+            submittedFileName = submittedFileName == null ? "" : new File(submittedFileName).getName();
 
-        if (!submittedFileName.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
-            request.setAttribute("selectedCourse", course);
-            request.setAttribute("courseIndex", request.getParameter("courseIndex"));
-            request.setAttribute("error", "Only PDF resumes are accepted.");
-            request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp").forward(request, response);
-            return;
+            if (!submittedFileName.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+                request.setAttribute("selectedCourse", course);
+                request.setAttribute("courseIndex", request.getParameter("courseIndex"));
+                request.setAttribute("error", "Only PDF resumes are accepted.");
+                request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp").forward(request, response);
+                return;
+            }
+
+            String normalizedEmail = (ta.getEmail() == null || ta.getEmail().trim().isEmpty())
+                    ? "unknown"
+                    : ta.getEmail().replaceAll("[^a-zA-Z0-9._-]", "_");
+
+            String safeFileName = normalizedEmail + ".pdf";
+            String uploadDirectoryPath = resolveResumeUploadDirectory() + File.separator + "master";
+            File uploadDirectory = new File(uploadDirectoryPath);
+            if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
+                throw new IOException("Failed to create upload directory.");
+            }
+
+            File targetFile = new File(uploadDirectory, safeFileName);
+            if (targetFile.exists() && !targetFile.delete()) {
+                throw new IOException("Failed to replace existing resume file.");
+            }
+            resumePart.write(targetFile.getAbsolutePath());
+            ta.setMasterResumeDirectory(uploadDirectory.getAbsolutePath());
+            resumeName = submittedFileName;
         }
 
-        String normalizedEmail = (ta.getEmail() == null || ta.getEmail().trim().isEmpty())
-                ? "unknown"
-                : ta.getEmail().replaceAll("[^a-zA-Z0-9._-]", "_");
-        String courseDirectoryName = (course.getId() == null || course.getId().trim().isEmpty())
-                ? "unknown-course"
-                : course.getId();
-
-        String safeFileName = normalizedEmail + ".pdf";
-        String uploadDirectoryPath = resolveResumeUploadDirectory() + File.separator + courseDirectoryName;
-        File uploadDirectory = new File(uploadDirectoryPath);
-        if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
-            throw new IOException("Failed to create upload directory.");
-        }
-
-        File targetFile = new File(uploadDirectory, safeFileName);
-        if (targetFile.exists() && !targetFile.delete()) {
-            throw new IOException("Failed to replace existing resume file.");
-        }
-        resumePart.write(targetFile.getAbsolutePath());
-
-        String resumeName = submittedFileName;
-        String resumeDirectory = uploadDirectory.getAbsolutePath();
+        String resumeDirectory = ta.getMasterResumeDirectory();
 
         ta.addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING);
         course.addApplication(ta, resumeDirectory);
@@ -352,39 +374,45 @@ public class TAClassController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp").forward(request, response);
     }
 
-    private void save_personal_information(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private void upload_master_resume(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         HttpSession session = request.getSession();
         User user = (User) session.getAttribute("user");
-        if (!(user instanceof TA)) {
-            response.sendRedirect(request.getContextPath() + "/start.html");
+        if (!(user instanceof TA ta)) {
+            response.sendRedirect(request.getContextPath() + "/ta?action=auth");
             return;
         }
 
-        TA ta = (TA) user;
-        ta.setName(trimValue(request.getParameter("name")));
-        ta.setCollege(trimValue(request.getParameter("college")));
-
-        boolean skillFormSubmitted = "true".equalsIgnoreCase(request.getParameter("skillFormSubmitted"));
-        if (skillFormSubmitted) {
-            String[] selectedSkills = request.getParameterValues("skill");
-            List<String> skills = new ArrayList<>();
-            if (selectedSkills != null) {
-                for (String skill : selectedSkills) {
-                    String trimmedSkill = trimValue(skill);
-                    if (!trimmedSkill.isEmpty()) {
-                        skills.add(trimmedSkill);
-                    }
-                }
-            }
-            ta.setSkill(String.join(", ", skills));
+        Part resumePart = request.getPart("resumeFile");
+        if (resumePart == null || resumePart.getSize() <= 0) {
+            forwardPersonalCentre(request, response, ta, null, "Please upload your resume before submitting.", request.getParameter("courseId"));
+            return;
         }
 
-        UserStore.updateTaProfile(ta);
+        String submittedFileName = resumePart.getSubmittedFileName();
+        submittedFileName = submittedFileName == null ? "" : new File(submittedFileName).getName();
+        if (!submittedFileName.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+            forwardPersonalCentre(request, response, ta, null, "Only PDF resumes are accepted.", request.getParameter("courseId"));
+            return;
+        }
 
+        String normalizedEmail = (ta.getEmail() == null || ta.getEmail().trim().isEmpty())
+                ? "unknown"
+                : ta.getEmail().replaceAll("[^a-zA-Z0-9._-]", "_");
+        File uploadDirectory = new File(resolveResumeUploadDirectory(), "master");
+        if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
+            throw new IOException("Failed to create upload directory.");
+        }
+
+        File targetFile = new File(uploadDirectory, normalizedEmail + ".pdf");
+        if (targetFile.exists() && !targetFile.delete()) {
+            throw new IOException("Failed to replace existing resume file.");
+        }
+        resumePart.write(targetFile.getAbsolutePath());
+
+        ta.setMasterResumeDirectory(uploadDirectory.getAbsolutePath());
+        UserStore.updateTaProfile(ta);
         session.setAttribute("user", ta);
-        session.setAttribute("username", ta.getName());
-        request.setAttribute("success", "Personal information saved successfully.");
-        request.getRequestDispatcher("/WEB-INF/views/ta/profile-center.jsp").forward(request, response);
+        forwardPersonalCentre(request, response, ta, "Resume uploaded successfully: " + submittedFileName, null, request.getParameter("courseId"));
     }
 
     private void withdraw_application(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -414,7 +442,8 @@ public class TAClassController extends HttpServlet {
         }
 
         String resumeDirectory = ta.getResumeDirectoryForCourse(courseId);
-        boolean resumeDeleted = deleteStoredResumeFileIfPresent(ta, resumeDirectory);
+        boolean isMasterResume = resumeDirectory != null && resumeDirectory.equals(ta.getMasterResumeDirectory());
+        boolean resumeDeleted = isMasterResume || deleteStoredResumeFileIfPresent(ta, resumeDirectory);
 
         ta.withdrawApplication(courseId);
 
@@ -461,10 +490,6 @@ public class TAClassController extends HttpServlet {
         } catch (NumberFormatException e) {
             return null;
         }
-    }
-
-    private String trimValue(String value) {
-        return value == null ? "" : value.trim();
     }
 
     private String resolveResumeUploadDirectory() {
@@ -526,6 +551,9 @@ public class TAClassController extends HttpServlet {
             return;
         }
 
+        request.setAttribute("hasMasterResume", hasMasterResume(ta));
+        request.setAttribute("masterResumeFileName", buildStoredResumeFileName(ta));
+
         String resumeDirectory = ta.getResumeDirectoryForCourse(course.getId());
         if (resumeDirectory == null || resumeDirectory.isBlank()) {
             return;
@@ -581,6 +609,8 @@ public class TAClassController extends HttpServlet {
         request.setAttribute("selectedCourseId", selectedCourse == null ? null : selectedCourse.getId());
         request.setAttribute("applicationOpen", isApplicationOpen(request));
         request.setAttribute("applicationDeadline", resolveApplicationDeadline(request));
+        request.setAttribute("hasMasterResume", hasMasterResume(ta));
+        request.setAttribute("masterResumeFileName", buildStoredResumeFileName(ta));
         if (selectedCourse != null) {
             request.setAttribute("selectedStatus", resolveResumeStatus(ta, selectedCourse.getId()));
         }
@@ -612,6 +642,14 @@ public class TAClassController extends HttpServlet {
     private int resolveResumeStatus(TA ta, String courseId) {
         Integer status = ta.getResumeStatusForCourse(courseId);
         return status == null ? ResumeSubmission.STATUS_PENDING : status;
+    }
+
+    private boolean hasMasterResume(TA ta) {
+        if (ta == null || ta.getMasterResumeDirectory() == null || ta.getMasterResumeDirectory().isBlank()) {
+            return false;
+        }
+        File resumeFile = new File(ta.getMasterResumeDirectory(), buildStoredResumeFileName(ta));
+        return resumeFile.exists() && resumeFile.isFile();
     }
 
     private boolean isApplicationOpen(HttpServletRequest request) {

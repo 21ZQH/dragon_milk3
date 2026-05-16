@@ -18,6 +18,8 @@ public interface TAApplicationService {
 
     SubmitResumeResult submitResume(TA ta, Course course, Part resumePart) throws IOException;
 
+    SubmitResumeResult uploadMasterResume(TA ta, Part resumePart) throws IOException;
+
     void updateProfile(TA ta, String name, String college, boolean skillFormSubmitted, String[] selectedSkills);
 
     WithdrawApplicationResult withdrawApplication(TA ta, Course course);

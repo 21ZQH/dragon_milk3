@@ -207,6 +207,7 @@ public class UserStore {
         if (user instanceof TA ta) {
             ta.setCollege(parsedLine.taCollege);
             ta.setSkill(parsedLine.taSkill);
+            ta.setMasterResumeDirectory(parsedLine.masterResumeDirectory);
             if (!parsedLine.appliedCourseIds.isBlank()) {
                 ta.setAppliedClasses(resolveCourses(parsedLine.appliedCourseIds, availableCourses));
             }
@@ -257,6 +258,9 @@ public class UserStore {
             parsedLine.taSkill = parts[5];
             parsedLine.appliedCourseIds = parts[6];
             parsedLine.resumeMappings = parts[7];
+            if (parts.length >= 9) {
+                parsedLine.masterResumeDirectory = parts[8];
+            }
             return;
         }
 
@@ -299,8 +303,13 @@ public class UserStore {
     }
 
     private static String toTaLine(TA ta) {
-        return baseLine(ta) + "," + safe(ta.getCollege()) + "," + safe(ta.getSkill()) + ","
+        String line = baseLine(ta) + "," + safe(ta.getCollege()) + "," + safe(ta.getSkill()) + ","
                 + serializeAppliedCourseIds(ta) + "," + serializeResumeSubmissions(ta);
+        String masterResumeDirectory = safe(ta.getMasterResumeDirectory());
+        if (!masterResumeDirectory.isBlank()) {
+            line += "," + masterResumeDirectory;
+        }
+        return line;
     }
 
     private static String toMoLine(Mo mo) {
@@ -440,5 +449,6 @@ public class UserStore {
         private String ownedCourseIds = "";
         private String appliedCourseIds = "";
         private String resumeMappings = "";
+        private String masterResumeDirectory = "";
     }
 }

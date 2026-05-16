@@ -63,7 +63,7 @@ if not exist "%TOMCAT_STARTUP%" goto :tomcat_start_failed
 call "%TOMCAT_STARTUP%"
 if errorlevel 1 goto :tomcat_start_failed
 
-set "APP_URL=http://localhost:8081/SE/start.html"
+set "APP_URL=http://localhost:8081/SE/ta"
 timeout /t 2 /nobreak >nul
 start "" "%APP_URL%"
 

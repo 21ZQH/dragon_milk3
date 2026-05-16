@@ -15,10 +15,21 @@ public interface AccountService {
 
     User login(String password, String role, String email);
 
+    AuthResult registerTaWithBuptEmail(String name, String email);
+
+    User loginTaByAccessKey(String accessKey);
+
+    User loginBuiltInMo(String email, String password);
+
+    User loginBuiltInAdmin(String email, String password);
+
+    void ensureBuiltInAccounts();
+
     enum AuthStatus {
         SUCCESS,
         EMAIL_REGISTERED,
-        UNKNOWN_ROLE
+        UNKNOWN_ROLE,
+        INVALID_EMAIL_DOMAIN
     }
 
     final class AuthResult {
@@ -40,6 +51,10 @@ public interface AccountService {
 
         public static AuthResult unknownRole() {
             return new AuthResult(AuthStatus.UNKNOWN_ROLE, null);
+        }
+
+        public static AuthResult invalidEmailDomain() {
+            return new AuthResult(AuthStatus.INVALID_EMAIL_DOMAIN, null);
         }
 
         public AuthStatus getStatus() {

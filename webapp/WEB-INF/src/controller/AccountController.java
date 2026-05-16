@@ -8,13 +8,21 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import model.Admin;
-import model.Mo;
-import model.TA;
 import model.User;
-import store.UserStore;
+import service.AccountService;
+import service.impl.AccountServiceImpl;
 
 public class AccountController extends HttpServlet {
+    private final AccountService accountService;
+
+    public AccountController() {
+        this(new AccountServiceImpl());
+    }
+
+    AccountController(AccountService accountService) {
+        this.accountService = accountService;
+    }
+
     @Override
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -24,7 +32,15 @@ public class AccountController extends HttpServlet {
         String role = request.getParameter("role");
         String email = request.getParameter("email");
 
-        if ("Register".equalsIgnoreCase(action)) {
+        if ("RegisterTA".equalsIgnoreCase(action)) {
+            handleTaRegister(request, response, email);
+        } else if ("LoginTA".equalsIgnoreCase(action)) {
+            handleTaLogin(request, response, password);
+        } else if ("LoginMo".equalsIgnoreCase(action)) {
+            handleRoleLogin(request, response, email, password, "Mo");
+        } else if ("LoginAdmin".equalsIgnoreCase(action)) {
+            handleRoleLogin(request, response, email, password, "Admin");
+        } else if ("Register".equalsIgnoreCase(action)) {
             handleRegister(request, response, name, password, role, email);
         } else if ("Login".equalsIgnoreCase(action)) {
             handleLogin(request, response, name, password, role, email);
@@ -36,22 +52,22 @@ public class AccountController extends HttpServlet {
     private void handleRegister(HttpServletRequest request, HttpServletResponse response,
             String name, String password, String role, String email)
             throws ServletException, IOException {
+        if (!"TA".equals(role)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Registration is only available for TA.");
+            return;
+        }
         try {
-            if (UserStore.isEmailRegistered(email)) {
-                redirectToStartWithError(request, response, "The email is already registered.");
+            AccountService.AuthResult result = accountService.register(name, password, role, email);
+            if (result.getStatus() == AccountService.AuthStatus.EMAIL_REGISTERED) {
+                redirectToTaAuthWithError(request, response, "The email is already registered.");
+                return;
+            }
+            if (result.getStatus() == AccountService.AuthStatus.UNKNOWN_ROLE) {
+                response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown role");
                 return;
             }
 
-            User user = buildUser(role, password, email, response);
-            if (user == null) {
-                return;
-            }
-
-            if (name != null && !name.trim().isEmpty()) {
-                user.setName(name.trim());
-            }
-
-            UserStore.saveUser(user);
+            User user = result.getUser();
             storeAuthenticatedUser(request, user);
             request.setAttribute("name", name);
             request.setAttribute("email", email);
@@ -66,12 +82,7 @@ public class AccountController extends HttpServlet {
             String name, String password, String role, String email)
             throws ServletException, IOException {
         try {
-            User user;
-            if (role == null || role.trim().isEmpty()) {
-                user = UserStore.validateUser(password, email);
-            } else {
-                user = UserStore.validateUser(password, role, email);
-            }
+            User user = accountService.login(password, role, email);
 
             if (user != null) {
                 storeAuthenticatedUser(request, user);
@@ -79,7 +90,7 @@ public class AccountController extends HttpServlet {
                 request.setAttribute("email", email);
                 forwardByRole(request, response, user.getRole());
             } else {
-                redirectToStartWithError(request, response, "Invalid password or email.");
+                redirectToRoleEntryWithError(request, response, role, "Invalid password or email.");
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -87,20 +98,46 @@ public class AccountController extends HttpServlet {
         }
     }
 
-    private User buildUser(String role, String password, String email, HttpServletResponse response)
-            throws IOException {
-        if ("TA".equals(role)) {
-            return new TA(password, email);
+    private void handleTaRegister(HttpServletRequest request, HttpServletResponse response, String email)
+            throws IOException, ServletException {
+        AccountService.AuthResult result = accountService.registerTaWithBuptEmail(null, email);
+        if (result.getStatus() == AccountService.AuthStatus.INVALID_EMAIL_DOMAIN) {
+            redirectToTaAuthWithError(request, response, "Only @bupt.edu.cn email addresses can register.");
+            return;
         }
-        if ("Admin".equals(role)) {
-            return new Admin(password, email);
+        if (result.getStatus() == AccountService.AuthStatus.EMAIL_REGISTERED) {
+            redirectToTaAuthWithError(request, response, "The email is already registered.");
+            return;
         }
-        if ("Mo".equals(role)) {
-            return new Mo(password, email);
-        }
+        storeAuthenticatedUser(request, result.getUser());
+        request.setAttribute("accessKey", result.getUser().getPassword());
+        request.getRequestDispatcher("/WEB-INF/views/entry/ta-key.jsp").forward(request, response);
+    }
 
-        response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown role");
-        return null;
+    private void handleTaLogin(HttpServletRequest request, HttpServletResponse response, String accessKey)
+            throws IOException {
+        User user = accountService.loginTaByAccessKey(accessKey);
+        if (user == null) {
+            redirectToTaAuthWithError(request, response, "Invalid TA access key.");
+            return;
+        }
+        storeAuthenticatedUser(request, user);
+        response.sendRedirect(request.getContextPath() + "/ta");
+    }
+
+    private void handleRoleLogin(HttpServletRequest request, HttpServletResponse response,
+            String email, String password, String role) throws IOException, ServletException {
+        User user = "Admin".equals(role)
+                ? accountService.loginBuiltInAdmin(email, password)
+                : accountService.loginBuiltInMo(email, password);
+        if (user == null) {
+            String entry = "Admin".equals(role) ? "/admin" : "/mo";
+            response.sendRedirect(request.getContextPath() + entry + "?error="
+                    + URLEncoder.encode("Invalid account or password.", StandardCharsets.UTF_8));
+            return;
+        }
+        storeAuthenticatedUser(request, user);
+        forwardByRole(request, response, user.getRole());
     }
 
     private void storeAuthenticatedUser(HttpServletRequest request, User user) {
@@ -111,10 +148,23 @@ public class AccountController extends HttpServlet {
         }
     }
 
-    private void redirectToStartWithError(HttpServletRequest request, HttpServletResponse response, String errorMessage)
+    private void redirectToRoleEntryWithError(HttpServletRequest request, HttpServletResponse response,
+            String role, String errorMessage)
             throws IOException {
         String encodedMessage = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
-        response.sendRedirect(request.getContextPath() + "/start.html?error=" + encodedMessage);
+        if ("Admin".equalsIgnoreCase(role)) {
+            response.sendRedirect(request.getContextPath() + "/admin?error=" + encodedMessage);
+        } else if ("Mo".equalsIgnoreCase(role)) {
+            response.sendRedirect(request.getContextPath() + "/mo?error=" + encodedMessage);
+        } else {
+            response.sendRedirect(request.getContextPath() + "/ta?action=auth&error=" + encodedMessage);
+        }
+    }
+
+    private void redirectToTaAuthWithError(HttpServletRequest request, HttpServletResponse response, String errorMessage)
+            throws IOException {
+        String encodedMessage = URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
+        response.sendRedirect(request.getContextPath() + "/ta?action=auth&error=" + encodedMessage);
     }
 
     private void forwardByRole(HttpServletRequest request, HttpServletResponse response, String role)
