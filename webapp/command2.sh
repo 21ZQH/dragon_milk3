@@ -56,6 +56,8 @@ CP="$API_JAR:$CLASSES_DIR:."
 cd "$SRC_DIR"
 javac -encoding UTF-8 -classpath "$CP" -d "$CLASSES_DIR" model/*.java
 javac -encoding UTF-8 -classpath "$CP" -d "$CLASSES_DIR" store/*.java
+javac -encoding UTF-8 -classpath "$CP" -d "$CLASSES_DIR" service/*.java
+javac -encoding UTF-8 -classpath "$CP" -d "$CLASSES_DIR" service/impl/*.java
 javac -encoding UTF-8 -classpath "$CP" -d "$CLASSES_DIR" listener/*.java
 javac -encoding UTF-8 -classpath "$CP" -d "$CLASSES_DIR" controller/*.java
 
