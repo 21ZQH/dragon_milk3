@@ -55,7 +55,8 @@ touch \
   "$TARGET_DIR/WEB-INF/file/users.txt" \
   "$TARGET_DIR/WEB-INF/file/courses.txt" \
   "$TARGET_DIR/WEB-INF/file/deadline.txt" \
-  "$TARGET_DIR/WEB-INF/file/mo-deadline.txt"
+  "$TARGET_DIR/WEB-INF/file/mo-deadline.txt" \
+  "$TARGET_DIR/WEB-INF/file/application-forms.txt"
 if [[ -f "$SOURCE_WEBAPP/WEB-INF/file/candidates.txt" ]]; then
   cp "$SOURCE_WEBAPP/WEB-INF/file/candidates.txt" "$TARGET_DIR/WEB-INF/file/candidates.txt"
 fi

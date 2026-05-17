@@ -18,16 +18,21 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
+import model.ApplicationForm;
 import model.Course;
 import model.ResumeSubmission;
 import model.TA;
 import model.User;
+import service.ApplicationFormService;
+import service.impl.ApplicationFormServiceImpl;
 import store.CourseStore;
 import store.DeadlineStore;
 import store.UserStore;
 
 @MultipartConfig
 public class TAClassController extends HttpServlet {
+    private final ApplicationFormService applicationFormService = new ApplicationFormServiceImpl();
+
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
         if ("logout".equals(action)) {
@@ -49,6 +54,10 @@ public class TAClassController extends HttpServlet {
             go_apply(request, response);
         } else if ("go_apply_by_id".equals(action)) {
             go_apply_by_id(request, response);
+        } else if ("generate_application_form".equals(action)) {
+            generate_application_form(request, response);
+        } else if ("edit_application_form".equals(action)) {
+            edit_application_form(request, response);
         } else if ("view_resume".equals(action)) {
             view_resume(request, response);
         } else if ("view_master_resume".equals(action)) {
@@ -77,6 +86,10 @@ public class TAClassController extends HttpServlet {
             upload_master_resume(request, response);
         } else if ("withdraw_application".equals(action)) {
             withdraw_application(request, response);
+        } else if ("save_application_form".equals(action)) {
+            save_application_form(request, response, false);
+        } else if ("submit_application_form".equals(action)) {
+            save_application_form(request, response, true);
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
         }
@@ -205,6 +218,55 @@ public class TAClassController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp").forward(request, response);
     }
 
+    private void generate_application_form(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Course course = getCourseFromSession(request);
+        User user = (User) request.getSession().getAttribute("user");
+        if (course == null || !(user instanceof TA ta)) {
+            response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=view_information");
+            return;
+        }
+
+        if (!isApplicationOpen(request)) {
+            forwardPersonalCentre(
+                    request,
+                    response,
+                    ta,
+                    null,
+                    "The application deadline has passed. You can no longer submit or modify applications.",
+                    course.getId());
+            return;
+        }
+
+        if (!hasMasterResume(ta)) {
+            populateCurrentResumeAttributes(request, course);
+            request.setAttribute("selectedCourse", course);
+            request.setAttribute("courseIndex", request.getParameter("courseIndex"));
+            request.setAttribute("error", "Please upload your resume before generating the application form.");
+            request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp").forward(request, response);
+            return;
+        }
+
+        ApplicationForm form = applicationFormService.generateInitialForm(ta, course);
+        forwardApplicationForm(request, response, course, request.getParameter("courseIndex"), form, null, null);
+    }
+
+    private void edit_application_form(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        String courseId = request.getParameter("courseId");
+        Course course = getCourseById(request, courseId);
+        Integer courseIndex = findCourseIndexById(getCourseListFromSession(request), courseId);
+        User user = (User) request.getSession().getAttribute("user");
+        if (course == null || courseIndex == null || !(user instanceof TA ta)) {
+            response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=personal_centre");
+            return;
+        }
+
+        ApplicationForm form = applicationFormService.getForm(ta.getEmail(), course.getId());
+        if (form == null) {
+            form = applicationFormService.generateInitialForm(ta, course);
+        }
+        forwardApplicationForm(request, response, course, String.valueOf(courseIndex), form, null, null);
+    }
+
     private void view_resume(HttpServletRequest request, HttpServletResponse response) throws IOException {
         User user = (User) request.getSession().getAttribute("user");
         if (!(user instanceof TA ta)) {
@@ -309,6 +371,12 @@ public class TAClassController extends HttpServlet {
 
         Part resumePart = request.getPart("resumeFile");
         boolean hasMasterResume = ta.getMasterResumeDirectory() != null && !ta.getMasterResumeDirectory().isBlank();
+        if (hasMasterResume && (resumePart == null || resumePart.getSize() <= 0)) {
+            ApplicationForm form = applicationFormService.generateInitialForm(ta, course);
+            forwardApplicationForm(request, response, course, request.getParameter("courseIndex"), form, null, null);
+            return;
+        }
+
         if (hasMasterResume && resumePart != null && resumePart.getSize() > 0) {
             request.setAttribute("selectedCourse", course);
             request.setAttribute("courseIndex", request.getParameter("courseIndex"));
@@ -358,20 +426,74 @@ public class TAClassController extends HttpServlet {
             }
             resumePart.write(targetFile.getAbsolutePath());
             ta.setMasterResumeDirectory(uploadDirectory.getAbsolutePath());
+            UserStore.updateTaProfile(ta);
             resumeName = submittedFileName;
         }
 
-        String resumeDirectory = ta.getMasterResumeDirectory();
-
-        ta.addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING);
-        course.addApplication(ta, resumeDirectory);
-        UserStore.updateAppliedCourseIds(ta);
-
         session.setAttribute("user", ta);
-        request.setAttribute("success", "Resume submitted successfully: " + resumeName);
-        request.setAttribute("selectedCourse", course);
-        request.setAttribute("courseIndex", request.getParameter("courseIndex"));
-        request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp").forward(request, response);
+        ApplicationForm form = applicationFormService.generateInitialForm(ta, course);
+        forwardApplicationForm(request, response, course, request.getParameter("courseIndex"), form,
+                "Resume uploaded successfully: " + resumeName, null);
+    }
+
+    private void save_application_form(HttpServletRequest request, HttpServletResponse response, boolean submitted)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        if (!(user instanceof TA ta)) {
+            response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=view_information");
+            return;
+        }
+
+        String courseId = request.getParameter("courseId");
+        Course course = getCourseById(request, courseId);
+        Integer courseIndex = findCourseIndexById(getCourseListFromSession(request), courseId);
+        if (course == null || courseIndex == null) {
+            response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=view_information");
+            return;
+        }
+
+        if (!isApplicationOpen(request)) {
+            forwardPersonalCentre(
+                    request,
+                    response,
+                    ta,
+                    null,
+                    "The application deadline has passed. You can no longer submit or modify applications.",
+                    course.getId());
+            return;
+        }
+
+        ApplicationForm form = applicationFormService.buildFormFromRequest(
+                ta,
+                course,
+                request.getParameter("applicantName"),
+                request.getParameter("email"),
+                request.getParameter("education"),
+                request.getParameter("skills"),
+                request.getParameter("relevantExperience"),
+                request.getParameter("projectExperience"),
+                request.getParameter("courseFit"),
+                request.getParameter("feedback"),
+                submitted);
+        applicationFormService.saveForm(form);
+
+        if (submitted) {
+            String resumeDirectory = ta.getMasterResumeDirectory();
+            ta.addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING);
+            course.addApplication(ta, resumeDirectory);
+            UserStore.updateAppliedCourseIds(ta);
+            session.setAttribute("user", ta);
+            request.setAttribute("success", "Application form submitted successfully.");
+            request.setAttribute("selectedCourse", course);
+            request.setAttribute("courseIndex", String.valueOf(courseIndex));
+            request.setAttribute("applicationOpen", isApplicationOpen(request));
+            request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp").forward(request, response);
+            return;
+        }
+
+        forwardApplicationForm(request, response, course, String.valueOf(courseIndex), form,
+                "Application form saved.", null);
     }
 
     private void upload_master_resume(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -621,6 +743,21 @@ public class TAClassController extends HttpServlet {
             request.setAttribute("error", error);
         }
         request.getRequestDispatcher("/WEB-INF/views/ta/personalCentre.jsp").forward(request, response);
+    }
+
+    private void forwardApplicationForm(HttpServletRequest request, HttpServletResponse response, Course course,
+            String courseIndex, ApplicationForm form, String success, String error) throws ServletException, IOException {
+        request.setAttribute("selectedCourse", course);
+        request.setAttribute("courseIndex", courseIndex);
+        request.setAttribute("applicationForm", form);
+        request.setAttribute("applicationOpen", isApplicationOpen(request));
+        if (success != null) {
+            request.setAttribute("success", success);
+        }
+        if (error != null) {
+            request.setAttribute("error", error);
+        }
+        request.getRequestDispatcher("/WEB-INF/views/ta/application-form.jsp").forward(request, response);
     }
 
     private Course resolveSelectedAppliedCourse(List<Course> appliedCourses, String selectedCourseId) {

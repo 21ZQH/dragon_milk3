@@ -13,7 +13,6 @@
     String masterResumeFileName = (String) request.getAttribute("masterResumeFileName");
     boolean isModifyMode = Boolean.TRUE.equals(hasCurrentResume);
     String pageTitle = isModifyMode ? "Modify Application" : "Application";
-    String submitButtonText = hasMasterResume ? "Apply with Profile Resume" : "Submit Resume";
     User currentUser = (User) session.getAttribute("user");
     TA currentTA = null;
     if (currentUser instanceof TA) {
@@ -179,11 +178,16 @@
                 <div><strong>Course:</strong> <%= course.getCourseName() %></div>
                 <div><strong>Job Title:</strong> <%= course.getJobTitle() %></div>
             </div>
-            <form action="<%= response.encodeURL("TAclasscontroller") %>" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="action" value="upload_resume">
-                <input type="hidden" name="courseIndex" value="<%= courseIndex %>">
-
-                <% if (!hasMasterResume) { %>
+            <% if (hasMasterResume) { %>
+                <div class="button-row">
+                    <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + courseIndex) %>">Back to Details</a>
+                    <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Back to Personal Centre</a>
+                    <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=generate_application_form&courseIndex=" + courseIndex) %>">Generate Standard Form</a>
+                </div>
+            <% } else { %>
+                <form action="<%= response.encodeURL("TAclasscontroller") %>" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="upload_resume">
+                    <input type="hidden" name="courseIndex" value="<%= courseIndex %>">
                     <div class="detail-box">
                         <div class="sub-title">Upload your resume</div>
                         <label class="label" for="resumeFile">Resume File</label>
@@ -192,14 +196,14 @@
                             Only PDF resumes are accepted. This file will also become your profile resume.
                         </div>
                     </div>
-                <% } %>
 
-                <div class="button-row">
-                    <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + courseIndex) %>">Back to Details</a>
-                    <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Back to Personal Centre</a>
-                    <button class="nav-btn" type="submit"><%= submitButtonText %></button>
-                </div>
-            </form>
+                    <div class="button-row">
+                        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + courseIndex) %>">Back to Details</a>
+                        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Back to Personal Centre</a>
+                        <button class="nav-btn" type="submit">Generate Standard Form</button>
+                    </div>
+                </form>
+            <% } %>
         <% } else { %>
             <div class="detail-box">Current course or TA information is unavailable.</div>
             <div class="button-row">

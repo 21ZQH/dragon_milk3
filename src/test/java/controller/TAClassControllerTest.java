@@ -27,6 +27,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
+import model.ApplicationForm;
 import model.Course;
 import model.Mo;
 import model.ResumeSubmission;
@@ -35,6 +36,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import store.UserStore;
+import store.ApplicationFormStore;
 import org.mockito.ArgumentCaptor;
 import testsupport.StoreTestSupport;
 
@@ -68,6 +70,7 @@ class TAClassControllerTest {
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
+        System.clearProperty(ApplicationFormStore.FILE_PATH_PROPERTY);
     }
 
     @Test
@@ -366,6 +369,8 @@ class TAClassControllerTest {
     void uploadResumeStoresResumeDirectoryAgainstCourseAndPersistsUserData() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        Path formsFile = tempDir.resolve("application-forms.txt");
+        System.setProperty(ApplicationFormStore.FILE_PATH_PROPERTY, formsFile.toString());
         System.setProperty("catalina.base", tempDir.toString());
 
         Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
@@ -396,24 +401,23 @@ class TAClassControllerTest {
         when(resumePart.getSize()).thenReturn(128L);
         when(resumePart.getSubmittedFileName()).thenReturn("resume.pdf");
         doNothing().when(resumePart).write(org.mockito.ArgumentMatchers.anyString());
-        when(request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp")).thenReturn(dispatcher);
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/application-form.jsp")).thenReturn(dispatcher);
 
         controller.doPost(request, response);
 
-        assertEquals(1, ta.getAppliedClasses().size());
-        assertEquals(1, ta.getResumeSubmissions().size());
-        assertEquals(course, ta.getResumeSubmissions().get(0).getCourse());
-        assertNotNull(ta.getResumeDirectoryForCourse("course-1"));
-        assertEquals(ResumeSubmission.STATUS_PENDING, ta.getResumeStatusForCourse("course-1"));
+        assertEquals(0, ta.getAppliedClasses().size());
+        assertEquals(0, ta.getResumeSubmissions().size());
         assertEquals(
                 tempDir.resolve("webapps").resolve("SE").resolve("WEB-INF").resolve("file").resolve("resume").resolve("master").toString(),
-                ta.getResumeDirectoryForCourse("course-1"));
-        assertEquals(ta.getMasterResumeDirectory(), ta.getResumeDirectoryForCourse("course-1"));
+                ta.getMasterResumeDirectory());
         assertEquals(
-                "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@"
-                        + ta.getResumeDirectoryForCourse("course-1") + "@0@false,"
+                "Alice,secret123,TA,ta@example.com,School of Software,Java,,,"
                         + ta.getMasterResumeDirectory(),
                 Files.readAllLines(usersFile).get(0));
+        ApplicationForm form = ApplicationFormStore.findForm("ta@example.com", "course-1");
+        assertNotNull(form);
+        assertEquals("ta@example.com", form.getEmail());
+        assertFalse(form.isSubmitted());
         verify(dispatcher).forward(request, response);
     }
 

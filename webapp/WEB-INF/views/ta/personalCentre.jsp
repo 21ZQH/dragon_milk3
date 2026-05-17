@@ -537,7 +537,7 @@
 
                         <div class="action-row">
                             <% if (applicationOpen) { %>
-                                <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply_by_id&courseId=" + selectedCourse.getId()) %>">Modify Application</a>
+                                <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=edit_application_form&courseId=" + selectedCourse.getId()) %>">Modify Application Form</a>
                                 <button class="btn btn-danger" type="button" onclick="openWithdrawModal('<%= selectedCourse.getId() %>')">Withdraw</button>
                             <% } else { %>
                                 <button class="btn btn-disabled" type="button" onclick="openDeadlinePassedModal()">Modify Application</button>

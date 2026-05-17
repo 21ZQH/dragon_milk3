@@ -136,8 +136,8 @@
             <div class="button-row">
                 <a class="nav-btn" href="<%= listUrl %>">Back to List</a>
                 <% if (applicationOpen) { %>
-                    <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply&courseIndex=" + courseIndex) %>">
-                        <%= hasApplied ? "Modify Application" : "Go Apply" %>
+                    <a class="nav-btn" href="<%= response.encodeURL((hasApplied ? "TAclasscontroller?action=edit_application_form&courseId=" + course.getId() : "TAclasscontroller?action=generate_application_form&courseIndex=" + courseIndex)) %>">
+                        <%= hasApplied ? "Modify Application Form" : "Generate Standard Form" %>
                     </a>
                 <% } %>
             </div>
