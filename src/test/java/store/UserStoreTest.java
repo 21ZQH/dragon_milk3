@@ -136,20 +136,20 @@ class UserStoreTest {
     }
 
     @Test
-    void validateUserRestoresResumeDirectoryForMatchingCourse() throws Exception {
+    void validateUserRestoresApplicationFormSubmissionForMatchingCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
         StoreTestSupport.writeLines(
                 courseFile,
                 "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
-        StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com,course-1,course-1@D:\\resume\\course-1");
+        StoreTestSupport.writeLines(usersFile, "Alice,pass123,TA,alice@example.com,course-1,course-1@0@false");
 
         TA ta = (TA) UserStore.validateUser("pass123", "alice@example.com");
 
         assertEquals(1, ta.getResumeSubmissions().size());
         ResumeSubmission submission = ta.getResumeSubmissions().get(0);
         assertEquals("course-1", submission.getCourse().getId());
-        assertEquals("D:\\resume\\course-1", submission.getResumeDirectory());
+        assertEquals("course-1", submission.getApplicationFormId());
         assertEquals(ResumeSubmission.STATUS_PENDING, submission.getStatus());
         assertFalse(submission.isReviewUnread());
     }
@@ -163,7 +163,7 @@ class UserStoreTest {
                 "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
         StoreTestSupport.writeLines(
                 usersFile,
-                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@2");
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@2@false");
 
         TA ta = (TA) UserStore.validateUser("pass123", "alice@example.com");
 
@@ -172,7 +172,7 @@ class UserStoreTest {
         assertEquals("Java", ta.getSkill());
         assertEquals(1, ta.getAppliedClasses().size());
         assertEquals("course-1", ta.getAppliedClasses().get(0).getId());
-        assertEquals("D:\\resume\\course-1", ta.getResumeDirectoryForCourse("course-1"));
+        assertEquals("course-1", ta.getApplicationFormIdForCourse("course-1"));
         assertEquals(ResumeSubmission.STATUS_REJECTED, ta.getResumeStatusForCourse("course-1"));
         assertFalse(ta.hasUnreadReviewUpdates());
     }
@@ -186,7 +186,7 @@ class UserStoreTest {
                 "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
         StoreTestSupport.writeLines(
                 usersFile,
-                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1");
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@0@false");
 
         Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
         TA ta = new TA("pass123", "alice@example.com");
@@ -194,12 +194,12 @@ class UserStoreTest {
         ta.setCollege("New College");
         ta.setSkill("Java, Python, SQL");
         ta.addClass(course);
-        ta.addOrUpdateResume(course, "D:\\resume\\course-1");
+        ta.addOrUpdateApplication(course, course.getId());
 
         UserStore.updateTaProfile(ta);
 
         List<String> lines = Files.readAllLines(usersFile);
-        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,Java  Python  SQL,course-1,course-1@D:\\resume\\course-1@0@false", lines.get(0));
+        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,Java  Python  SQL,course-1,course-1@0@false", lines.get(0));
     }
 
     @Test
@@ -211,7 +211,7 @@ class UserStoreTest {
                 "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
         StoreTestSupport.writeLines(
                 usersFile,
-                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@1@true");
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@1@true");
 
         TA ta = (TA) UserStore.validateUser("pass123", "alice@example.com");
 

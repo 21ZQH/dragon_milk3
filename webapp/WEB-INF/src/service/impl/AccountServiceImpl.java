@@ -1,23 +1,26 @@
 package service.impl;
 
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.List;
 
 import model.Admin;
+import model.Course;
 import model.Mo;
 import model.TA;
 import model.User;
 import service.AccountService;
+import store.CourseStore;
 import store.UserStore;
 
 public class AccountServiceImpl implements AccountService {
     private static final String BUPT_EMAIL_SUFFIX = "@bupt.edu.cn";
     private static final String[][] BUILT_IN_MO_ACCOUNTS = {
-            {"Built-in MO 1", "mo1@bupt.edu.cn", "mo123456"},
-            {"Built-in MO 2", "mo2@bupt.edu.cn", "mo223456"},
-            {"Built-in MO 3", "mo3@bupt.edu.cn", "mo323456"},
-            {"Built-in MO 4", "mo4@bupt.edu.cn", "mo423456"},
-            {"Built-in MO 5", "mo5@bupt.edu.cn", "mo523456"}
+            {"Built-in MO 1", "mo1@bupt.edu.cn", "mo123456", "seed-course-se", "Software Engineering", "seed-course-db", "Database Systems"},
+            {"Built-in MO 2", "mo2@bupt.edu.cn", "mo223456", "seed-course-cn", "Communication Networks", "seed-course-sp", "Signal Processing"},
+            {"Built-in MO 3", "mo3@bupt.edu.cn", "mo323456", "seed-course-ai", "Artificial Intelligence", "seed-course-ml", "Machine Learning"},
+            {"Built-in MO 4", "mo4@bupt.edu.cn", "mo423456", "seed-course-ca", "Computer Architecture", "seed-course-embedded", "Embedded Systems"},
+            {"Built-in MO 5", "mo5@bupt.edu.cn", "mo523456", "seed-course-de", "Data Engineering", "seed-course-iot", "Internet of Things"}
     };
     private static final String[][] BUILT_IN_ADMIN_ACCOUNTS = {
             {"Built-in Admin 1", "admin1@bupt.edu.cn", "admin123456"},
@@ -119,11 +122,20 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void ensureBuiltInAccounts() {
+        List<Course> availableCourses = CourseStore.getCourseList();
         for (String[] account : BUILT_IN_MO_ACCOUNTS) {
+            List<Course> assignedCourses = ensureBuiltInCourses(availableCourses, account);
             if (!isEmailRegistered(account[1])) {
                 Mo mo = new Mo(account[2], account[1]);
                 mo.setName(account[0]);
+                mo.setOwnedCourses(assignedCourses);
                 saveUser(mo);
+            } else {
+                User existingUser = validateUser(account[2], "Mo", account[1]);
+                if (existingUser instanceof Mo mo && isMissingAssignedCourse(mo, assignedCourses)) {
+                    mo.setOwnedCourses(assignedCourses);
+                    UserStore.updateOwnedCourseIds(mo);
+                }
             }
         }
         for (String[] account : BUILT_IN_ADMIN_ACCOUNTS) {
@@ -133,6 +145,36 @@ public class AccountServiceImpl implements AccountService {
                 saveUser(admin);
             }
         }
+    }
+
+    private List<Course> ensureBuiltInCourses(List<Course> availableCourses, String[] account) {
+        List<Course> assignedCourses = new ArrayList<>();
+        assignedCourses.add(ensureBuiltInCourse(availableCourses, account[3], account[4]));
+        assignedCourses.add(ensureBuiltInCourse(availableCourses, account[5], account[6]));
+        return assignedCourses;
+    }
+
+    private Course ensureBuiltInCourse(List<Course> availableCourses, String courseId, String courseName) {
+        for (Course course : availableCourses) {
+            if (courseId.equals(course.getId()) || courseName.equalsIgnoreCase(course.getCourseName())) {
+                return course;
+            }
+        }
+
+        Course course = new Course(courseId, courseName, "", "", "TBD", "", "");
+        course.setRecruitmentPublished(false);
+        CourseStore.saveCourse(course);
+        availableCourses.add(course);
+        return course;
+    }
+
+    private boolean isMissingAssignedCourse(Mo mo, List<Course> assignedCourses) {
+        for (Course assignedCourse : assignedCourses) {
+            if (assignedCourse != null && !mo.getOwnedCourses().contains(assignedCourse)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private User buildUser(String role, String password, String email) {

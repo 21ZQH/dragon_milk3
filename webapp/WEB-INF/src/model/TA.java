@@ -68,9 +68,9 @@ public class TA extends User {
         if (resumeSubmissions != null) {
             for (ResumeSubmission submission : resumeSubmissions) {
                 if (submission != null && submission.getCourse() != null) {
-                    addOrUpdateResume(
+                    addOrUpdateApplication(
                             submission.getCourse(),
-                            submission.getResumeDirectory(),
+                            submission.getApplicationFormId(),
                             submission.getStatus(),
                             submission.isReviewUnread());
                 }
@@ -85,15 +85,27 @@ public class TA extends User {
     }
 
     public void addOrUpdateResume(Course course, String resumeDirectory) {
-        addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING, false);
+        addOrUpdateApplication(course, resumeDirectory, ResumeSubmission.STATUS_PENDING, false);
     }
 
     public void addOrUpdateResume(Course course, String resumeDirectory, int status) {
-        addOrUpdateResume(course, resumeDirectory, status, false);
+        addOrUpdateApplication(course, resumeDirectory, status, false);
     }
 
     public void addOrUpdateResume(Course course, String resumeDirectory, int status, boolean reviewUnread) {
-        if (course == null || resumeDirectory == null || resumeDirectory.isBlank()) {
+        addOrUpdateApplication(course, resumeDirectory, status, reviewUnread);
+    }
+
+    public void addOrUpdateApplication(Course course, String applicationFormId) {
+        addOrUpdateApplication(course, applicationFormId, ResumeSubmission.STATUS_PENDING, false);
+    }
+
+    public void addOrUpdateApplication(Course course, String applicationFormId, int status) {
+        addOrUpdateApplication(course, applicationFormId, status, false);
+    }
+
+    public void addOrUpdateApplication(Course course, String applicationFormId, int status, boolean reviewUnread) {
+        if (course == null || applicationFormId == null || applicationFormId.isBlank()) {
             return;
         }
 
@@ -102,17 +114,21 @@ public class TA extends User {
         for (ResumeSubmission submission : resumeSubmissions) {
             if (course.equals(submission.getCourse())) {
                 submission.setCourse(course);
-                submission.setResumeDirectory(resumeDirectory);
+                submission.setApplicationFormId(applicationFormId);
                 submission.setStatus(status);
                 submission.setReviewUnread(reviewUnread);
                 return;
             }
         }
 
-        resumeSubmissions.add(new ResumeSubmission(course, resumeDirectory, status, reviewUnread));
+        resumeSubmissions.add(new ResumeSubmission(course, applicationFormId, status, reviewUnread));
     }
 
     public String getResumeDirectoryForCourse(String courseId) {
+        return getApplicationFormIdForCourse(courseId);
+    }
+
+    public String getApplicationFormIdForCourse(String courseId) {
         if (courseId == null || courseId.isBlank()) {
             return null;
         }
@@ -120,7 +136,7 @@ public class TA extends User {
         for (ResumeSubmission submission : resumeSubmissions) {
             Course course = submission.getCourse();
             if (course != null && courseId.equals(course.getId())) {
-                return submission.getResumeDirectory();
+                return submission.getApplicationFormId();
             }
         }
         return null;

@@ -155,12 +155,8 @@
         <% if (course != null && currentTA != null) { %>
             <% if (Boolean.TRUE.equals(hasCurrentResume)) { %>
                 <div class="current-resume-box">
-                    <strong>Current resume:</strong> <%= currentResumeFileName %>
-                    <div class="hint">This application is currently linked to your profile resume.</div>
-                    <div class="resume-actions">
-                        <a class="nav-btn" target="_blank" href="<%= response.encodeURL("TAclasscontroller?action=view_resume&courseId=" + course.getId()) %>">View</a>
-                        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_resume&courseId=" + course.getId() + "&download=true") %>">Download</a>
-                    </div>
+                    <strong>Current application:</strong> <%= currentResumeFileName %>
+                    <div class="hint">This course now uses your submitted application form, not a per-job resume file.</div>
                 </div>
             <% } %>
             <% if (hasMasterResume && !Boolean.TRUE.equals(hasCurrentResume)) { %>
@@ -207,7 +203,7 @@
         <% } else { %>
             <div class="detail-box">Current course or TA information is unavailable.</div>
             <div class="button-row">
-                <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Back to List</a>
+                <a class="nav-btn" href="<%= request.getContextPath() %>/ta">Back to List</a>
             </div>
         <% } %>
     </div>

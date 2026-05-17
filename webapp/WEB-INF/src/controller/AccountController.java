@@ -174,7 +174,7 @@ public class AccountController extends HttpServlet {
         }else if ("Admin".equalsIgnoreCase(role)) {
             response.sendRedirect(request.getContextPath() + "/AdminController?action=dashboard");
         }else {
-            response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=home");
+            response.sendRedirect(request.getContextPath() + "/ta");
         }
     }
 }

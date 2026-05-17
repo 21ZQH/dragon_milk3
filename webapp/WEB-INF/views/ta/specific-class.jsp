@@ -15,12 +15,12 @@
     }
     String listUrl = currentTA == null
             ? request.getContextPath() + "/ta"
-            : response.encodeURL("TAclasscontroller?action=view_information");
+            : request.getContextPath() + "/ta";
 
     boolean hasApplied = false;
     if (course != null && currentTA != null && course.getId() != null) {
-        String resumeDirectory = currentTA.getResumeDirectoryForCourse(course.getId());
-        hasApplied = (resumeDirectory != null && !resumeDirectory.isBlank());
+        String applicationFormId = currentTA.getApplicationFormIdForCourse(course.getId());
+        hasApplied = (applicationFormId != null && !applicationFormId.isBlank());
     }
 %>
 <html>

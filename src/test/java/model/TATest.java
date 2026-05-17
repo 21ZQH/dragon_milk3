@@ -22,26 +22,26 @@ class TATest {
     }
 
     @Test
-    void addOrUpdateResumeReplacesExistingResumeForSameCourse() {
+    void addOrUpdateApplicationReplacesExistingFormForSameCourse() {
         TA ta = new TA("secret123", "ta@example.com");
         Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
 
-        ta.addOrUpdateResume(course, "D:\\resume\\old");
-        ta.addOrUpdateResume(course, "D:\\resume\\new");
+        ta.addOrUpdateApplication(course, "course-1-draft");
+        ta.addOrUpdateApplication(course, "course-1");
 
         assertEquals(1, ta.getAppliedClasses().size());
         assertEquals(1, ta.getResumeSubmissions().size());
-        assertEquals("D:\\resume\\new", ta.getResumeDirectoryForCourse("course-1"));
+        assertEquals("course-1", ta.getApplicationFormIdForCourse("course-1"));
         assertEquals(ResumeSubmission.STATUS_PENDING, ta.getResumeStatusForCourse("course-1"));
     }
 
     @Test
-    void addOrUpdateResumeCanReplaceStatusForSameCourse() {
+    void addOrUpdateApplicationCanReplaceStatusForSameCourse() {
         TA ta = new TA("secret123", "ta@example.com");
         Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
 
-        ta.addOrUpdateResume(course, "D:\\resume\\old", ResumeSubmission.STATUS_PENDING);
-        ta.addOrUpdateResume(course, "D:\\resume\\old", ResumeSubmission.STATUS_APPROVED);
+        ta.addOrUpdateApplication(course, "course-1", ResumeSubmission.STATUS_PENDING);
+        ta.addOrUpdateApplication(course, "course-1", ResumeSubmission.STATUS_APPROVED);
 
         assertEquals(1, ta.getResumeSubmissions().size());
         assertEquals(ResumeSubmission.STATUS_APPROVED, ta.getResumeStatusForCourse("course-1"));
@@ -52,7 +52,7 @@ class TATest {
         TA ta = new TA("secret123", "ta@example.com");
         Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
 
-        ta.addOrUpdateResume(course, "D:\\resume\\course-1", ResumeSubmission.STATUS_APPROVED, true);
+        ta.addOrUpdateApplication(course, "course-1", ResumeSubmission.STATUS_APPROVED, true);
 
         assertTrue(ta.hasUnreadReviewUpdates());
         assertTrue(ta.isReviewUnreadForCourse("course-1"));
@@ -62,15 +62,15 @@ class TATest {
     }
 
     @Test
-    void withdrawApplicationRemovesCourseAndResumeSubmission() {
+    void withdrawApplicationRemovesCourseAndApplicationSubmission() {
         TA ta = new TA("secret123", "ta@example.com");
         Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
 
-        ta.addOrUpdateResume(course, "D:\\resume\\course-1");
+        ta.addOrUpdateApplication(course, "course-1");
         ta.withdrawApplication("course-1");
 
         assertEquals(0, ta.getAppliedClasses().size());
         assertEquals(0, ta.getResumeSubmissions().size());
-        assertNull(ta.getResumeDirectoryForCourse("course-1"));
+        assertNull(ta.getApplicationFormIdForCourse("course-1"));
     }
 }

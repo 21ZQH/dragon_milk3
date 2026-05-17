@@ -24,7 +24,7 @@
         <h2>Register</h2>
         <form action="<%= request.getContextPath() %>/account" method="post">
             <input type="hidden" name="action" value="RegisterTA">
-            <input type="email" name="email" placeholder="BUPT email (@bupt.edu.cn)" required>
+            <input type="email" name="email" placeholder="BUPT account (@bupt.edu.cn)" required>
             <button type="submit">Create access key</button>
         </form>
         <p class="hint">Only @bupt.edu.cn email addresses can register.</p>
@@ -33,10 +33,10 @@
         <h2>Log in</h2>
         <form action="<%= request.getContextPath() %>/account" method="post">
             <input type="hidden" name="action" value="LoginTA">
-            <input type="password" name="password" placeholder="Access key" required>
+            <input type="password" name="password" placeholder="Account key" required>
             <button type="submit">Log in with key</button>
         </form>
-        <p class="hint">Use the key generated when you registered.</p>
+        <p class="hint">Use the account key generated when you registered.</p>
     </div>
     <a href="<%= request.getContextPath() %>/ta">Back to jobs</a>
 </div>

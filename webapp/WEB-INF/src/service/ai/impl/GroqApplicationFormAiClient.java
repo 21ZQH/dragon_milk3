@@ -2,17 +2,12 @@ package service.ai.impl;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.LocalDateTime;
-import java.time.Duration;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -23,14 +18,8 @@ import service.ai.ApplicationFormAiClient;
 
 public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
     private static final String ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
-    private final HttpClient httpClient;
 
     public GroqApplicationFormAiClient() {
-        this(HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(20)).build());
-    }
-
-    GroqApplicationFormAiClient(HttpClient httpClient) {
-        this.httpClient = httpClient;
     }
 
     @Override
@@ -48,45 +37,13 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
     }
 
     private String sendRequest(String apiKey, String body) throws IOException, InterruptedException {
-        try {
-            String responseBody = sendWithJavaHttpClient(apiKey, body);
-            System.out.println("[Groq] transport=java-http");
-            logTransport("java-http");
-            return responseBody;
-        } catch (IOException javaHttpError) {
-            if (!isWindows()) {
-                throw javaHttpError;
-            }
-
-            try {
-                String responseBody = sendWithPowerShell(apiKey, body);
-                System.out.println("[Groq] transport=powershell fallback; javaHttpError=" + javaHttpError.getMessage());
-                logTransport("powershell fallback; javaHttpError=" + javaHttpError.getMessage());
-                return responseBody;
-            } catch (IOException powerShellError) {
-                powerShellError.addSuppressed(javaHttpError);
-                throw powerShellError;
-            }
+        if (!isWindows()) {
+            throw new IOException("PowerShell Groq transport is only available on Windows.");
         }
-    }
-
-    private String sendWithJavaHttpClient(String apiKey, String body) throws IOException, InterruptedException {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(ENDPOINT))
-                .timeout(Duration.ofSeconds(60))
-                .header("Authorization", "Bearer " + apiKey)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(body))
-                .build();
-
-        HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new IOException("Groq API request failed through Java HTTP: HTTP "
-                    + response.statusCode() + " " + limitText(response.body(), 500));
-        }
-
-        return response.body();
+        String responseBody = sendWithPowerShell(apiKey, body);
+        System.out.println("[Groq] transport=powershell");
+        logTransport("powershell");
+        return responseBody;
     }
 
     private String sendWithPowerShell(String apiKey, String body) throws IOException, InterruptedException {
@@ -160,6 +117,9 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
                 + "\"model\":\"" + escapeJson(model) + "\","
                 + "\"temperature\":0.2,"
                 + "\"max_completion_tokens\":1200,"
+                + "\"top_p\":1,"
+                + "\"stream\":false,"
+                + "\"stop\":null,"
                 + "\"response_format\":{\"type\":\"json_object\"},"
                 + "\"messages\":["
                 + "{\"role\":\"system\",\"content\":\"" + escapeJson(systemPrompt) + "\"},"

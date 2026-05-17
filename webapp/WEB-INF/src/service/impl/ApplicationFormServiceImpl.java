@@ -47,8 +47,8 @@ public class ApplicationFormServiceImpl implements ApplicationFormService {
     @Override
     public ApplicationForm buildFormFromRequest(TA ta, Course course,
             String applicantName, String email, String education, String skills,
-            String relevantExperience, String projectExperience, String courseFit,
-            String feedback, boolean submitted) {
+            String relevantExperience, String projectExperience, String feedback, boolean submitted) {
+        ApplicationForm existingForm = ApplicationFormStore.findForm(ta.getEmail(), course.getId());
         ApplicationForm form = new ApplicationForm(ta.getEmail(), course.getId());
         form.setApplicantName(trimValue(applicantName));
         form.setEmail(trimValue(email));
@@ -56,7 +56,7 @@ public class ApplicationFormServiceImpl implements ApplicationFormService {
         form.setSkills(trimValue(skills));
         form.setRelevantExperience(trimValue(relevantExperience));
         form.setProjectExperience(trimValue(projectExperience));
-        form.setCourseFit(trimValue(courseFit));
+        form.setCourseFit(existingForm == null ? "" : trimValue(existingForm.getCourseFit()));
         form.setFeedback(trimValue(feedback));
         form.setSubmitted(submitted);
         return form;

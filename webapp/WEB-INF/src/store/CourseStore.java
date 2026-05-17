@@ -29,7 +29,7 @@ public class CourseStore {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",", -1);
-                if (parts.length >= 9) {
+                if (parts.length >= 10) {
                     String courseId = parts[0];
                     String courseName = parts[1];
                     String jobTitle = parts[2];
@@ -40,6 +40,20 @@ public class CourseStore {
                     Course course = new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
                     course.setPickedApplicantEmails(parsePickedApplicantEmails(parts[7]));
                     course.setReviewPublished(Boolean.parseBoolean(parts[8]));
+                    course.setRecruitmentPublished(Boolean.parseBoolean(parts[9]));
+                    courseList.add(course);
+                } else if (parts.length >= 9) {
+                    String courseId = parts[0];
+                    String courseName = parts[1];
+                    String jobTitle = parts[2];
+                    String workingHours = parts[3];
+                    String salary = parts[4];
+                    String jobDescription = parts[5];
+                    String jobRequirement = parts[6];
+                    Course course = new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
+                    course.setPickedApplicantEmails(parsePickedApplicantEmails(parts[7]));
+                    course.setReviewPublished(Boolean.parseBoolean(parts[8]));
+                    course.setRecruitmentPublished(false);
                     courseList.add(course);
                 } else if (parts.length == 7) {
                     String courseId = parts[0];
@@ -49,7 +63,9 @@ public class CourseStore {
                     String salary = parts[4];
                     String jobDescription = parts[5];
                     String jobRequirement = parts[6];
-                    courseList.add(new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement));
+                    Course course = new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
+                    course.setRecruitmentPublished(false);
+                    courseList.add(course);
                 } else if (parts.length == 6) {
                     String courseId = buildLegacyCourseId(line);
                     String courseName = parts[0];
@@ -58,7 +74,9 @@ public class CourseStore {
                     String salary = parts[3];
                     String jobDescription = parts[4];
                     String jobRequirement = parts[5];
-                    courseList.add(new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement));
+                    Course course = new Course(courseId, courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
+                    course.setRecruitmentPublished(false);
+                    courseList.add(course);
                 }
             }
         } catch (Exception e) {
@@ -145,7 +163,8 @@ public class CourseStore {
                 + safe(course.getJobDescription()) + ","
                 + safe(course.getJobRequirement()) + ","
                 + safe(serializePickedApplicantEmails(course)) + ","
-                + course.isReviewPublished();
+                + course.isReviewPublished() + ","
+                + course.isRecruitmentPublished();
     }
 
     private static String safe(String value) {
@@ -209,8 +228,8 @@ public class CourseStore {
         List<TA> taUsers = UserStore.getTaUsersForCourses(courseList);
         for (TA ta : taUsers) {
             for (Course appliedCourse : ta.getAppliedClasses()) {
-                String resumeDirectory = ta.getResumeDirectoryForCourse(appliedCourse.getId());
-                appliedCourse.addApplication(ta, resumeDirectory);
+                String applicationFormId = ta.getApplicationFormIdForCourse(appliedCourse.getId());
+                appliedCourse.addApplication(ta, applicationFormId);
             }
         }
     }

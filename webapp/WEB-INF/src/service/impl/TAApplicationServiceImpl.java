@@ -93,8 +93,9 @@ public class TAApplicationServiceImpl implements TAApplicationService {
             return SubmitResumeResult.error("Please upload your resume before submitting.");
         }
 
-        ta.addOrUpdateResume(course, resumeDirectory, ResumeSubmission.STATUS_PENDING);
-        course.addApplication(ta, resumeDirectory);
+        String applicationFormId = course.getId();
+        ta.addOrUpdateApplication(course, applicationFormId, ResumeSubmission.STATUS_PENDING);
+        course.addApplication(ta, applicationFormId);
         userProfileService.updateAppliedCourseIds(ta);
         return SubmitResumeResult.success(submittedFileName);
     }
@@ -141,13 +142,10 @@ public class TAApplicationServiceImpl implements TAApplicationService {
         if (ta == null || course == null) {
             return new WithdrawApplicationResult(true);
         }
-        String resumeDirectory = ta.getResumeDirectoryForCourse(course.getId());
-        boolean isMasterResume = resumeDirectory != null && resumeDirectory.equals(ta.getMasterResumeDirectory());
-        boolean resumeDeleted = isMasterResume || resumeStorageService.deleteStoredResumeFileIfPresent(ta, resumeDirectory);
         ta.withdrawApplication(course.getId());
         course.removeApplicationByTaEmail(ta.getEmail());
         userProfileService.updateAppliedCourseIds(ta);
-        return new WithdrawApplicationResult(resumeDeleted);
+        return new WithdrawApplicationResult(true);
     }
 
     @Override

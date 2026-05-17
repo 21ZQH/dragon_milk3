@@ -11,8 +11,7 @@ public interface ApplicationFormService {
 
     ApplicationForm buildFormFromRequest(TA ta, Course course,
             String applicantName, String email, String education, String skills,
-            String relevantExperience, String projectExperience, String courseFit,
-            String feedback, boolean submitted);
+            String relevantExperience, String projectExperience, String feedback, boolean submitted);
 
     void saveForm(ApplicationForm form);
 }

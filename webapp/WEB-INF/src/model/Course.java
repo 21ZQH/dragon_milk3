@@ -15,9 +15,10 @@ public class Course {
     private String jobDescription;
     private String jobRequirement;
     private List<TA> taApplicants;
-    private List<String> applicantResumes;
+    private List<String> applicantFormIds;
     private List<String> pickedApplicantEmails;
     private boolean reviewPublished;
+    private boolean recruitmentPublished;
 
     public Course(String courseName, String jobTitle, String workingHours, String salary, String jobDescription, String jobRequirement) {
         this(UUID.randomUUID().toString(), courseName, jobTitle, workingHours, salary, jobDescription, jobRequirement);
@@ -32,9 +33,10 @@ public class Course {
         this.jobDescription = jobDescription;
         this.jobRequirement = jobRequirement;
         this.taApplicants = new ArrayList<>();
-        this.applicantResumes = new ArrayList<>();
+        this.applicantFormIds = new ArrayList<>();
         this.pickedApplicantEmails = new ArrayList<>();
         this.reviewPublished = false;
+        this.recruitmentPublished = false;
     }
 
     public String getId() {
@@ -93,8 +95,8 @@ public class Course {
         return taApplicants;
     }
 
-    public List<String> getApplicantResumes() {
-        return applicantResumes;
+    public List<String> getApplicantFormIds() {
+        return applicantFormIds;
     }
 
     public List<String> getPickedApplicantEmails() {
@@ -127,18 +129,26 @@ public class Course {
         this.reviewPublished = reviewPublished;
     }
 
-    public void addApplication(TA ta, String resumeDirectory) {
+    public boolean isRecruitmentPublished() {
+        return recruitmentPublished;
+    }
+
+    public void setRecruitmentPublished(boolean recruitmentPublished) {
+        this.recruitmentPublished = recruitmentPublished;
+    }
+
+    public void addApplication(TA ta, String applicationFormId) {
         for (int i = 0; i < taApplicants.size(); i++) {
             TA existingApplicant = taApplicants.get(i);
             if (existingApplicant != null && ta != null && Objects.equals(existingApplicant.getEmail(), ta.getEmail())) {
                 taApplicants.set(i, ta);
-                applicantResumes.set(i, resumeDirectory);
+                applicantFormIds.set(i, applicationFormId);
                 return;
             }
         }
 
         taApplicants.add(ta);
-        applicantResumes.add(resumeDirectory);
+        applicantFormIds.add(applicationFormId);
     }
 
     public void removeApplicationByTaEmail(String taEmail) {
@@ -150,8 +160,8 @@ public class Course {
             TA applicant = taApplicants.get(i);
             if (applicant != null && Objects.equals(taEmail, applicant.getEmail())) {
                 taApplicants.remove(i);
-                if (i < applicantResumes.size()) {
-                    applicantResumes.remove(i);
+                if (i < applicantFormIds.size()) {
+                    applicantFormIds.remove(i);
                 }
             }
         }

@@ -189,21 +189,21 @@
 
         <div class="desc">
             Welcome to the MO management system!<br>
-            Here you can create new project, manage your profile, and more.
+            Here you can publish recruitment for courses assigned by Admin and manage your profile.
         </div>
 
         <div class="nav-row">
             <% if (moModifyOpen && moProfileComplete) { %>
                 <a class="nav-btn" href="<%= response.encodeURL("MOclasscontroller?action=create_class") %>">
-                    Create new project
+                    Publish recruitment
                 </a>
             <% } else if (!moModifyOpen) { %>
                 <button class="nav-btn nav-btn-disabled" type="button" onclick="openMoModifyLockedModal()">
-                    Create new project
+                    Publish recruitment
                 </button>
             <% } else { %>
                 <button class="nav-btn nav-btn-disabled" type="button" onclick="openProfileIncompleteModal()">
-                    Create new project
+                    Publish recruitment
                 </button>
             <% } %>
 
@@ -226,7 +226,7 @@
     <div id="moModifyLockedModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="moModifyLockedTitle">
         <div class="modal-box">
             <div class="modal-title" id="moModifyLockedTitle">Course Modification Closed</div>
-            <div class="modal-text">The deadline for MO to create or modify course information has passed.</div>
+            <div class="modal-text">The deadline for MO to publish or modify recruitment information has passed.</div>
             <div class="modal-actions">
                 <button type="button" class="modal-btn" onclick="closeMoModifyLockedModal()">OK</button>
             </div>
@@ -236,7 +236,7 @@
     <div id="profileIncompleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileIncompleteTitle">
         <div class="modal-box">
             <div class="modal-title" id="profileIncompleteTitle">Complete Your Profile</div>
-            <div class="modal-text">Please complete your personal information before creating or modifying course projects.</div>
+            <div class="modal-text">Please complete your personal information before publishing or modifying recruitment information.</div>
             <div class="modal-actions">
                 <button type="button" class="modal-btn" onclick="closeProfileIncompleteModal()">OK</button>
                 <a class="modal-btn" href="<%= response.encodeURL("MOclasscontroller?action=profile_center") %>">Go to Profile</a>

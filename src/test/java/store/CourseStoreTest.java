@@ -75,15 +75,15 @@ class CourseStoreTest {
                 "course-1,Java,TA,8 hours/week,TBD,Mark assignments,Java basics");
         StoreTestSupport.writeLines(
                 usersFile,
-                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1");
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@0@false");
 
         List<Course> courses = CourseStore.getCourseList();
 
         assertEquals(1, courses.size());
         Course course = courses.get(0);
         assertEquals(1, course.getTaApplicants().size());
-        assertEquals(1, course.getApplicantResumes().size());
-        assertEquals("D:\\resume\\course-1", course.getApplicantResumes().get(0));
+        assertEquals(1, course.getApplicantFormIds().size());
+        assertEquals("course-1", course.getApplicantFormIds().get(0));
 
         TA applicant = course.getTaApplicants().get(0);
         assertEquals("alice@example.com", applicant.getEmail());
@@ -92,8 +92,8 @@ class CourseStoreTest {
         assertEquals("Java", applicant.getSkill());
         assertEquals(1, applicant.getAppliedClasses().size());
         assertEquals("course-1", applicant.getAppliedClasses().get(0).getId());
-        assertNotNull(applicant.getResumeDirectoryForCourse("course-1"));
-        assertEquals("D:\\resume\\course-1", applicant.getResumeDirectoryForCourse("course-1"));
+        assertNotNull(applicant.getApplicationFormIdForCourse("course-1"));
+        assertEquals("course-1", applicant.getApplicationFormIdForCourse("course-1"));
     }
 
     @Test

@@ -100,7 +100,7 @@ class AccountControllerTest {
     }
 
     @Test
-    void taLoginRedirectsThroughTaControllerHome() throws Exception {
+    void taLoginRedirectsToUnifiedTaHome() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
         StoreTestSupport.writeLines(usersFile, "Alice Zhang,secret123,TA,alice@example.com");
 
@@ -124,7 +124,7 @@ class AccountControllerTest {
                         && "TA".equals(((User) value).getRole())
                         && "Alice Zhang".equals(((User) value).getName())));
         verify(session).setAttribute("username", "Alice Zhang");
-        verify(response).sendRedirect("/SE/TAclasscontroller?action=home");
+        verify(response).sendRedirect("/SE/ta");
     }
 
     @Test

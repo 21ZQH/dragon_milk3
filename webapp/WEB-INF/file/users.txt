@@ -1,16 +1,9 @@
-﻿Molly,mo123,Mo,molly.mo@example.com,course-mo-001|course-mo-003
-Brian,mo123,Mo,brian.mo@example.com,course-mo-002|course-mo-004
-Alice,ta123,TA,alice.ta@example.com,School of Software,Java,course-mo-001,
-David,ta123,TA,david.ta@example.com,School of Computer Science,C++,course-mo-002,
-Emma,ta123,TA,emma.ta@example.com,School of Information,SQL,course-mo-003,
-Frank,ta123,TA,frank.ta@example.com,School of Cyberspace,Networking,course-mo-004,
+Built-in MO 1,mo123456,Mo,mo1@bupt.edu.cn,seed-course-se|seed-course-db
+Built-in MO 2,mo223456,Mo,mo2@bupt.edu.cn,seed-course-cn|seed-course-sp
+Built-in MO 3,mo323456,Mo,mo3@bupt.edu.cn,seed-course-ai|seed-course-ml
+Built-in MO 4,mo423456,Mo,mo4@bupt.edu.cn,seed-course-ca|seed-course-embedded
+Built-in MO 5,mo523456,Mo,mo5@bupt.edu.cn,seed-course-de|seed-course-iot
 Admin,admin123,Admin,admin@example.com
-DLZDCCCCCCCCC,123,Mo,154668696@qq.com,123,123,
-Built-in MO 1,mo123456,Mo,mo1@bupt.edu.cn,
-Built-in MO 2,mo223456,Mo,mo2@bupt.edu.cn,
-Built-in MO 3,mo323456,Mo,mo3@bupt.edu.cn,
-Built-in MO 4,mo423456,Mo,mo4@bupt.edu.cn,
-Built-in MO 5,mo523456,Mo,mo5@bupt.edu.cn,
 Built-in Admin 1,admin123456,Admin,admin1@bupt.edu.cn
 Built-in Admin 2,admin223456,Admin,admin2@bupt.edu.cn
 Built-in Admin 3,admin323456,Admin,admin3@bupt.edu.cn

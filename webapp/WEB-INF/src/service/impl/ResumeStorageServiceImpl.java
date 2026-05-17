@@ -72,8 +72,8 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
             }
 
             String resumeDirectory = applicant.getResumeDirectoryForCourse(course.getId());
-            if ((resumeDirectory == null || resumeDirectory.isBlank()) && i < course.getApplicantResumes().size()) {
-                resumeDirectory = course.getApplicantResumes().get(i);
+            if ((resumeDirectory == null || resumeDirectory.isBlank()) && i < course.getApplicantFormIds().size()) {
+                resumeDirectory = course.getApplicantFormIds().get(i);
             }
             return buildResumeFile(applicant, resumeDirectory);
         }

@@ -468,7 +468,7 @@
         <% } %>
 
         <div class="top-actions">
-            <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=home") %>">Back Home</a>
+            <a class="btn" href="<%= request.getContextPath() %>/ta">Back Home</a>
         </div>
 
         <div class="section">
@@ -503,7 +503,7 @@
                     <% if (applicationOpen) { %>
                         You have not applied to any course yet.
                         <div class="empty-actions">
-                            <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find New Jobs</a>
+                            <a class="btn" href="<%= request.getContextPath() %>/ta">Find New Jobs</a>
                         </div>
                     <% } else { %>
                         You have not applied to any course yet.

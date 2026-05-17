@@ -19,6 +19,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Course;
+import model.ApplicationForm;
 import model.Mo;
 import model.ResumeSubmission;
 import model.TA;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
+import store.ApplicationFormStore;
 import store.CourseStore;
 import store.UserStore;
 import testsupport.StoreTestSupport;
@@ -38,6 +40,7 @@ class MOClassControllerTest {
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
+        System.clearProperty(ApplicationFormStore.FILE_PATH_PROPERTY);
     }
 
     private Mo createCompleteMo(String email) {
@@ -46,6 +49,24 @@ class MOClassControllerTest {
         mo.setDegree("Master of Science");
         mo.setCollege("School of Software");
         return mo;
+    }
+
+    private void useApplicationFormStore() {
+        System.setProperty(ApplicationFormStore.FILE_PATH_PROPERTY, tempDir.resolve("application-forms.txt").toString());
+    }
+
+    private void saveSubmittedForm(String email, String courseId) {
+        ApplicationForm form = new ApplicationForm(email, courseId);
+        form.setApplicantName(email);
+        form.setEmail(email);
+        form.setEducation("BSc Software Engineering");
+        form.setSkills("Java");
+        form.setRelevantExperience("Lab support");
+        form.setProjectExperience("Course project");
+        form.setCourseFit("Strong fit");
+        form.setFeedback("Private feedback");
+        form.setSubmitted(true);
+        ApplicationFormStore.saveOrUpdate(form);
     }
 
     @Test
@@ -230,19 +251,22 @@ class MOClassControllerTest {
     }
 
     @Test
-    void publishCourseSavesCourseAndReturnsToDashboard() throws Exception {
+    void publishCoursePublishesAssignedCourseAndRedirectsToDetail() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
-        StoreTestSupport.writeLines(usersFile, "Molly,secret123,Mo,mo@example.com,");
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,, ,TBD,,");
+        StoreTestSupport.writeLines(usersFile, "Molly,secret123,Mo,mo@example.com,Master of Science,School of Software,course-1");
         MOClassController controller = new MOClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
-        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
         Mo mo = createCompleteMo("mo@example.com");
+        mo.addOwnedCourse(new Course("course-1", "Software Engineering", "", "", "TBD", "", ""));
 
         when(request.getParameter("action")).thenReturn("publish_course");
-        when(request.getParameter("courseName")).thenReturn("Software Engineering");
+        when(request.getParameter("courseIndex")).thenReturn("0");
         when(request.getParameter("jobTitle")).thenReturn("TA");
         when(request.getParameter("workingHours")).thenReturn("10 hours/week");
         when(request.getParameter("jobDescription")).thenReturn("Support lectures");
@@ -250,22 +274,21 @@ class MOClassControllerTest {
         when(request.getSession(false)).thenReturn(session);
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("user")).thenReturn(mo);
-        when(request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp")).thenReturn(dispatcher);
+        when(request.getContextPath()).thenReturn("/SE");
 
         controller.doPost(request, response);
 
         List<Course> courses = CourseStore.getCourseList();
         assertEquals(1, courses.size());
-        assertTrue(courses.get(0).getId() != null && !courses.get(0).getId().isBlank());
+        assertEquals("course-1", courses.get(0).getId());
         assertEquals("Software Engineering", courses.get(0).getCourseName());
         assertEquals("Support lectures", courses.get(0).getJobDescription());
+        assertTrue(courses.get(0).isRecruitmentPublished());
         assertTrue(courses.get(0).getSalary().contains("TBD"));
         assertEquals(1, mo.getOwnedCourses().size());
         assertEquals(courses.get(0).getId(), mo.getOwnedCourses().get(0).getId());
-        assertEquals("Molly,secret123,Mo,mo@example.com,Master of Science,School of Software," + courses.get(0).getId(),
-                java.nio.file.Files.readAllLines(usersFile).get(0));
-        verify(session).setAttribute("user", mo);
-        verify(dispatcher).forward(request, response);
+        verify(session, atLeastOnce()).setAttribute("user", mo);
+        verify(response).sendRedirect("/SE/MOclasscontroller?action=project_detail&courseIndex=0&success=1");
     }
 
     @Test
@@ -399,12 +422,14 @@ class MOClassControllerTest {
     void reviewCandidatesLoadsSelectedCourseApplicants() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        useApplicationFormStore();
         StoreTestSupport.writeLines(
                 courseFile,
                 "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
         StoreTestSupport.writeLines(
                 usersFile,
-                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@0");
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@0@false");
+        saveSubmittedForm("alice@example.com", "course-1");
 
         MOClassController controller = new MOClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -606,12 +631,14 @@ class MOClassControllerTest {
     void saveReviewPicksStoresPickedApplicantEmailsOnCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        useApplicationFormStore();
         StoreTestSupport.writeLines(
                 courseFile,
                 "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
         StoreTestSupport.writeLines(
                 usersFile,
-                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@0");
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@0@false");
+        saveSubmittedForm("alice@example.com", "course-1");
 
         MOClassController controller = new MOClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -631,7 +658,7 @@ class MOClassControllerTest {
         controller.doPost(request, response);
 
         List<String> lines = Files.readAllLines(courseFile);
-        assertEquals("course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills,alice@example.com,false",
+        assertEquals("course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills,alice@example.com,false,false",
                 lines.get(0));
         verify(response).sendRedirect("/SE/MOclasscontroller?action=review_candidates&courseIndex=0&saved=1");
     }
@@ -677,13 +704,16 @@ class MOClassControllerTest {
     void publishReviewUpdatesTaStatusesAndLocksCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        useApplicationFormStore();
         StoreTestSupport.writeLines(
                 courseFile,
                 "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
         StoreTestSupport.writeLines(
                 usersFile,
-                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@0",
-                "Bob,pass123,TA,bob@example.com,School of Computer Science,C++,course-1,course-1@D:\\resume\\course-1-bob@0");
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@0@false",
+                "Bob,pass123,TA,bob@example.com,School of Computer Science,C++,course-1,course-1@0@false");
+        saveSubmittedForm("alice@example.com", "course-1");
+        saveSubmittedForm("bob@example.com", "course-1");
 
         MOClassController controller = new MOClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -703,7 +733,7 @@ class MOClassControllerTest {
         controller.doPost(request, response);
 
         List<String> courseLines = Files.readAllLines(courseFile);
-        assertEquals("course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills,alice@example.com,true",
+        assertEquals("course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills,alice@example.com,true,false",
                 courseLines.get(0));
 
         TA alice = (TA) UserStore.validateUser("pass123", "alice@example.com");
