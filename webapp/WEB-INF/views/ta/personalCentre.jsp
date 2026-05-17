@@ -28,16 +28,6 @@
     Boolean applicationOpenAttr = (Boolean) request.getAttribute("applicationOpen");
     boolean applicationOpen = applicationOpenAttr == null ? true : applicationOpenAttr.booleanValue();
 
-    boolean profileComplete = false;
-    if (currentTA != null) {
-        String taName = currentTA.getName();
-        String taCollege = currentTA.getCollege();
-        String taSkill = currentTA.getSkill();
-        profileComplete = taName != null && !taName.trim().isEmpty()
-                && taCollege != null && !taCollege.trim().isEmpty()
-                && taSkill != null && !taSkill.trim().isEmpty();
-    }
-
     Integer selectedStatus = (Integer) request.getAttribute("selectedStatus");
     if (selectedStatus == null && currentTA != null && selectedCourse != null) {
         selectedStatus = currentTA.getResumeStatusForCourse(selectedCourse.getId());
@@ -48,6 +38,9 @@
 
     String success = (String) request.getAttribute("success");
     String error = (String) request.getAttribute("error");
+    Boolean hasMasterResumeAttr = (Boolean) request.getAttribute("hasMasterResume");
+    boolean hasMasterResume = hasMasterResumeAttr != null && hasMasterResumeAttr.booleanValue();
+    String masterResumeFileName = (String) request.getAttribute("masterResumeFileName");
 
     boolean isAccepted = selectedStatus == ResumeSubmission.STATUS_APPROVED;
     boolean isRejected = selectedStatus == ResumeSubmission.STATUS_REJECTED;
@@ -66,17 +59,18 @@
     <title>Personal Centre</title>
     <style>
         body {
-            background: #f7f7f7;
+            background: #fff;
             font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
         }
         .main-box {
             background: #fff;
             width: 980px;
             max-width: calc(100vw - 56px);
             margin: 36px auto;
-            border: 2px solid #222;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
             padding: 34px 30px;
         }
         .title {
@@ -154,9 +148,10 @@
         }
         .section {
             border: 1px solid #c6cedc;
-            border-radius: 16px;
+            border-radius: 8px;
             padding: 28px;
-            background: #f5f7fc;
+            background: #fff;
+            margin-bottom: 24px;
         }
         .section-title {
             font-size: 1.95em;
@@ -227,6 +222,32 @@
             color: #43506a;
             font-size: 1.05em;
             line-height: 1.7;
+        }
+        .resume-panel {
+            border: 1px solid #cfd6e4;
+            border-radius: 8px;
+            padding: 22px;
+            background: #fff;
+        }
+        .resume-status {
+            color: #3d4a63;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+        .resume-form {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .resume-input {
+            flex: 1;
+            min-width: 260px;
+            box-sizing: border-box;
+            border: 1px solid #c7ccd8;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 1em;
         }
         .empty-actions {
             margin-top: 16px;
@@ -447,8 +468,29 @@
         <% } %>
 
         <div class="top-actions">
-            <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=profile_center") %>">Go to Profile Centre</a>
             <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=home") %>">Back Home</a>
+        </div>
+
+        <div class="section">
+            <div class="section-title">My Resume</div>
+            <div class="resume-panel">
+                <% if (hasMasterResume) { %>
+                    <div class="resume-status">
+                        Current resume: <strong><%= masterResumeFileName %></strong>
+                    </div>
+                    <div class="action-row">
+                        <a class="btn" target="_blank" href="<%= response.encodeURL("TAclasscontroller?action=view_master_resume") %>">View</a>
+                        <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=view_master_resume&download=true") %>">Download</a>
+                    </div>
+                <% } else { %>
+                    <div class="resume-status">No resume uploaded yet. Upload one here, or upload it when applying for your first job.</div>
+                <% } %>
+                <form class="resume-form" action="<%= response.encodeURL("TAclasscontroller") %>" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="upload_master_resume">
+                    <input class="resume-input" type="file" name="resumeFile" accept=".pdf,application/pdf" required>
+                    <button class="btn" type="submit"><%= hasMasterResume ? "Replace Resume" : "Upload Resume" %></button>
+                </form>
+            </div>
         </div>
 
         <div class="section">
@@ -458,7 +500,7 @@
                 <div class="empty-state">Please log in as TA first.</div>
             <% } else if (appliedCourses == null || appliedCourses.isEmpty()) { %>
                 <div class="empty-state">
-                    <% if (applicationOpen && profileComplete) { %>
+                    <% if (applicationOpen) { %>
                         You have not applied to any course yet.
                         <div class="empty-actions">
                             <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find New Jobs</a>
@@ -495,10 +537,10 @@
 
                         <div class="action-row">
                             <% if (applicationOpen) { %>
-                                <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=go_apply_by_id&courseId=" + selectedCourse.getId()) %>">Modify (Re-upload Resume)</a>
+                                <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=edit_application_form&courseId=" + selectedCourse.getId()) %>">Modify Application Form</a>
                                 <button class="btn btn-danger" type="button" onclick="openWithdrawModal('<%= selectedCourse.getId() %>')">Withdraw</button>
                             <% } else { %>
-                                <button class="btn btn-disabled" type="button" onclick="openDeadlinePassedModal()">Modify (Re-upload Resume)</button>
+                                <button class="btn btn-disabled" type="button" onclick="openDeadlinePassedModal()">Modify Application</button>
                                 <button class="btn btn-danger btn-disabled" type="button" onclick="openDeadlinePassedModal()">Withdraw</button>
                             <% } %>
                         </div>
@@ -545,21 +587,10 @@
     <div id="withdrawModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="withdrawTitle">
         <div class="modal-box">
             <div class="modal-title" id="withdrawTitle">Confirm Withdraw</div>
-            <div class="modal-text">Are you sure you want to withdraw this application and delete the uploaded resume file?</div>
+            <div class="modal-text">Are you sure you want to withdraw this application? Your profile resume will be kept.</div>
             <div class="modal-actions">
                 <button type="button" class="btn" onclick="closeWithdrawModal()">Cancel</button>
                 <button type="button" class="btn btn-danger" onclick="confirmWithdraw()">Yes, Withdraw</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="profileIncompleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileIncompleteTitle">
-        <div class="modal-box">
-            <div class="modal-title" id="profileIncompleteTitle">Profile Incomplete</div>
-            <div class="modal-text">Your profile information is incomplete. Please complete it first.</div>
-            <div class="modal-actions">
-                <button type="button" class="modal-btn" onclick="closeProfileIncompleteModal()">OK</button>
-                <button type="button" class="modal-btn" onclick="goToProfileCenter()">Go to Profile Centre</button>
             </div>
         </div>
     </div>
@@ -602,24 +633,8 @@
             document.getElementById("withdrawForm").submit();
         }
 
-        function openProfileIncompleteModal() {
-            document.getElementById("profileIncompleteModal").classList.remove("hidden");
-        }
-
-        function closeProfileIncompleteModal() {
-            document.getElementById("profileIncompleteModal").classList.add("hidden");
-        }
-
-        function goToProfileCenter() {
-            window.location.href = '<%= response.encodeURL("TAclasscontroller?action=profile_center") %>';
-        }
-
         function openFindNewJobsUnavailableModal() {
-            if (!applicationOpenFlag) {
-                openDeadlinePassedModal();
-                return;
-            }
-            openProfileIncompleteModal();
+            openDeadlinePassedModal();
         }
 
         function openDeadlinePassedModal() {

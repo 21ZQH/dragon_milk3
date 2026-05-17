@@ -27,7 +27,7 @@ public class AdminController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("user") == null) {
-            response.sendRedirect(request.getContextPath() + "/start.html");
+            response.sendRedirect(request.getContextPath() + "/admin");
             return;
         }
 
@@ -68,7 +68,7 @@ public class AdminController extends HttpServlet {
 
         HttpSession session = request.getSession(false);
         if (session == null || session.getAttribute("user") == null) {
-            response.sendRedirect(request.getContextPath() + "/start.html");
+            response.sendRedirect(request.getContextPath() + "/admin");
             return;
         }
 
@@ -224,7 +224,7 @@ public class AdminController extends HttpServlet {
         if (session != null) {
             session.invalidate();
         }
-        response.sendRedirect(request.getContextPath() + "/start.html");
+        response.sendRedirect(request.getContextPath() + "/admin");
     }
     
 }

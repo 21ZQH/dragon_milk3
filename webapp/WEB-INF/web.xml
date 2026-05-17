@@ -10,6 +10,23 @@ http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd"
 </listener>
 
 <servlet>
+ <servlet-name>EntryController</servlet-name>
+ <servlet-class>controller.EntryController</servlet-class>
+</servlet>
+<servlet-mapping>
+ <servlet-name>EntryController</servlet-name>
+ <url-pattern>/ta</url-pattern>
+</servlet-mapping>
+<servlet-mapping>
+ <servlet-name>EntryController</servlet-name>
+ <url-pattern>/mo</url-pattern>
+</servlet-mapping>
+<servlet-mapping>
+ <servlet-name>EntryController</servlet-name>
+ <url-pattern>/admin</url-pattern>
+</servlet-mapping>
+
+<servlet>
  <servlet-name>AccountController</servlet-name>
  <servlet-class>controller.AccountController</servlet-class>
 </servlet>

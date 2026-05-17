@@ -1,0 +1,120 @@
+package model;
+
+import java.time.LocalDateTime;
+
+public class ApplicationForm {
+    private String taEmail;
+    private String courseId;
+    private String applicantName;
+    private String email;
+    private String education;
+    private String skills;
+    private String relevantExperience;
+    private String projectExperience;
+    private String courseFit;
+    private String feedback;
+    private boolean submitted;
+    private LocalDateTime updatedAt;
+
+    public ApplicationForm(String taEmail, String courseId) {
+        this.taEmail = taEmail;
+        this.courseId = courseId;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public String getTaEmail() {
+        return taEmail;
+    }
+
+    public void setTaEmail(String taEmail) {
+        this.taEmail = taEmail;
+    }
+
+    public String getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(String courseId) {
+        this.courseId = courseId;
+    }
+
+    public String getApplicantName() {
+        return applicantName;
+    }
+
+    public void setApplicantName(String applicantName) {
+        this.applicantName = applicantName;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getEducation() {
+        return education;
+    }
+
+    public void setEducation(String education) {
+        this.education = education;
+    }
+
+    public String getSkills() {
+        return skills;
+    }
+
+    public void setSkills(String skills) {
+        this.skills = skills;
+    }
+
+    public String getRelevantExperience() {
+        return relevantExperience;
+    }
+
+    public void setRelevantExperience(String relevantExperience) {
+        this.relevantExperience = relevantExperience;
+    }
+
+    public String getProjectExperience() {
+        return projectExperience;
+    }
+
+    public void setProjectExperience(String projectExperience) {
+        this.projectExperience = projectExperience;
+    }
+
+    public String getCourseFit() {
+        return courseFit;
+    }
+
+    public void setCourseFit(String courseFit) {
+        this.courseFit = courseFit;
+    }
+
+    public String getFeedback() {
+        return feedback;
+    }
+
+    public void setFeedback(String feedback) {
+        this.feedback = feedback;
+    }
+
+    public boolean isSubmitted() {
+        return submitted;
+    }
+
+    public void setSubmitted(boolean submitted) {
+        this.submitted = submitted;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+}

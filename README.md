@@ -178,7 +178,6 @@ This project aims to turn that real process into a clear, demo-friendly web plat
 |   |   `-- web.xml               Servlet mappings
 |   |-- command2.bat              Local compile helper
 |   |-- command2.sh               macOS compile helper
-|   `-- start.html                Login and registration entry
 |-- pom.xml                       Maven test configuration
 |-- start_SE.bat                  Windows deployment helper
 |-- start_se.sh                   macOS deployment helper
@@ -270,10 +269,12 @@ chmod +x start_se.sh webapp/command2.sh webapp/WEB-INF/command2.sh
 ./start_se.sh
 ```
 
-### Open the System
+### Open the Role Entries
 
 ```text
-http://localhost:8081/SE/start.html
+TA:    http://localhost:8081/SE/ta
+MO:    http://localhost:8081/SE/mo
+Admin: http://localhost:8081/SE/admin
 ```
 
 ### Local Notes

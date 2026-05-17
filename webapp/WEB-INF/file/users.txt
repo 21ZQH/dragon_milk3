@@ -6,3 +6,13 @@ Emma,ta123,TA,emma.ta@example.com,School of Information,SQL,course-mo-003,
 Frank,ta123,TA,frank.ta@example.com,School of Cyberspace,Networking,course-mo-004,
 Admin,admin123,Admin,admin@example.com
 DLZDCCCCCCCCC,123,Mo,154668696@qq.com,123,123,
+Built-in MO 1,mo123456,Mo,mo1@bupt.edu.cn,
+Built-in MO 2,mo223456,Mo,mo2@bupt.edu.cn,
+Built-in MO 3,mo323456,Mo,mo3@bupt.edu.cn,
+Built-in MO 4,mo423456,Mo,mo4@bupt.edu.cn,
+Built-in MO 5,mo523456,Mo,mo5@bupt.edu.cn,
+Built-in Admin 1,admin123456,Admin,admin1@bupt.edu.cn
+Built-in Admin 2,admin223456,Admin,admin2@bupt.edu.cn
+Built-in Admin 3,admin323456,Admin,admin3@bupt.edu.cn
+Built-in Admin 4,admin423456,Admin,admin4@bupt.edu.cn
+Built-in Admin 5,admin523456,Admin,admin5@bupt.edu.cn

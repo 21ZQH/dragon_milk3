@@ -132,7 +132,7 @@ public class MOClassController extends HttpServlet {
     private boolean ensureMoSession(HttpServletRequest request, HttpServletResponse response) throws IOException {
         HttpSession session = request.getSession(false);
         if (session == null) {
-            response.sendRedirect(request.getContextPath() + "/start.html");
+            response.sendRedirect(request.getContextPath() + "/mo");
             return false;
         }
 
@@ -169,7 +169,7 @@ public class MOClassController extends HttpServlet {
             throws ServletException, IOException {
         Mo mo = getCurrentMo(request);
         if (mo == null) {
-            response.sendRedirect(request.getContextPath() + "/start.html");
+            response.sendRedirect(request.getContextPath() + "/mo");
             return;
         }
 
@@ -602,7 +602,7 @@ public class MOClassController extends HttpServlet {
         if (session != null) {
             session.invalidate();
         }
-        response.sendRedirect(request.getContextPath() + "/start.html");
+        response.sendRedirect(request.getContextPath() + "/mo");
     }
 
     private String trimValue(String value) {

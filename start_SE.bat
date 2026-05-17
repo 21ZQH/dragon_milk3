@@ -23,6 +23,9 @@ if not defined TOMCAT_HOME (
 set "TARGET_DIR=%TOMCAT_HOME%\webapps\SE"
 set "TOMCAT_STARTUP=%TOMCAT_HOME%\bin\startup.bat"
 
+call :load_user_env GROQ_API_KEY
+call :load_user_env GROQ_MODEL
+
 echo [1/5] Using Tomcat at: %TOMCAT_HOME%
 echo [2/5] Backing up runtime data...
 if exist "%BACKUP_DIR%" rmdir /s /q "%BACKUP_DIR%"
@@ -47,6 +50,7 @@ if not exist "%TARGET_DIR%\WEB-INF\file\users.txt" type nul > "%TARGET_DIR%\WEB-
 if not exist "%TARGET_DIR%\WEB-INF\file\courses.txt" type nul > "%TARGET_DIR%\WEB-INF\file\courses.txt"
 if not exist "%TARGET_DIR%\WEB-INF\file\deadline.txt" type nul > "%TARGET_DIR%\WEB-INF\file\deadline.txt"
 if not exist "%TARGET_DIR%\WEB-INF\file\mo-deadline.txt" type nul > "%TARGET_DIR%\WEB-INF\file\mo-deadline.txt"
+if not exist "%TARGET_DIR%\WEB-INF\file\application-forms.txt" type nul > "%TARGET_DIR%\WEB-INF\file\application-forms.txt"
 if exist "%SOURCE_WEBAPP%\WEB-INF\file\candidates.txt" (
     copy /Y "%SOURCE_WEBAPP%\WEB-INF\file\candidates.txt" "%TARGET_DIR%\WEB-INF\file\candidates.txt" >nul
 )
@@ -63,8 +67,12 @@ if not exist "%TOMCAT_STARTUP%" goto :tomcat_start_failed
 call "%TOMCAT_STARTUP%"
 if errorlevel 1 goto :tomcat_start_failed
 
+set "APP_URL=http://localhost:8081/SE/ta"
+timeout /t 2 /nobreak >nul
+start "" "%APP_URL%"
+
 echo Deployment finished.
-echo Open: http://localhost:8081/SE/start.html
+echo Opened: %APP_URL%
 exit /b 0
 
 :resolve_tomcat_home
@@ -93,6 +101,13 @@ if exist "C:\Program Files (x86)\apache-tomcat-9.0.112\bin\startup.bat" (
     set "TOMCAT_HOME=C:\Program Files (x86)\apache-tomcat-9.0.112"
 )
 :resolved
+exit /b 0
+
+:load_user_env
+if defined %~1 exit /b 0
+for /f "usebackq delims=" %%V in (`powershell -NoProfile -Command "[Environment]::GetEnvironmentVariable('%~1','User')"`) do (
+    if not "%%V"=="" set "%~1=%%V"
+)
 exit /b 0
 
 :copy_failed

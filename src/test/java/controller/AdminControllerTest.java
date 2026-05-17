@@ -1,5 +1,7 @@
 package controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -10,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.junit.jupiter.api.AfterEach;
@@ -18,6 +21,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +31,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Admin;
 import model.TA;
+import store.DeadlineStore;
 import testsupport.StoreTestSupport;
 
 class AdminControllerTest {
@@ -38,7 +45,7 @@ class AdminControllerTest {
     }
 
     @Test
-    void unauthenticatedUserRedirectsToStartHtml() throws Exception {
+    void unauthenticatedUserRedirectsToAdminEntry() throws Exception {
         AdminController controller = new AdminController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -48,7 +55,7 @@ class AdminControllerTest {
 
         controller.doGet(request, response);
 
-        verify(response).sendRedirect("/SE/start.html");
+        verify(response).sendRedirect("/SE/admin");
     }
 
     @Test
@@ -112,17 +119,171 @@ class AdminControllerTest {
         controller.doGet(request, response);
 
         verify(request).setAttribute(eq("taList"), argThat(list -> {
-            if (!(list instanceof List)) {
-                return false;
-            }
-            List<?> taList = (List<?>) list;
-            if (taList.size() != 1) {
+            if (!(list instanceof List<?> taList) || taList.size() != 1) {
                 return false;
             }
             TA ta = (TA) taList.get(0);
             return "Alice".equals(ta.getName()) && "alice@example.com".equals(ta.getEmail());
         }));
         verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void setDeadlinePageForwardsWithSavedDeadline() throws Exception {
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        LocalDateTime deadline = LocalDateTime.of(2026, 4, 20, 18, 0);
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("set_deadline");
+        when(servletContext.getAttribute("applicationDeadline")).thenReturn(deadline);
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/set-deadline.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("savedDeadline", deadline);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void saveDeadlineStoresValueInServletContextAndForwardsSuccess() throws Exception {
+        Path deadlineFile = StoreTestSupport.useApplicationDeadlineStore(tempDir);
+
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        LocalDateTime expectedDeadline = LocalDateTime.of(2026, 4, 18, 23, 45);
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("save_deadline");
+        when(request.getParameter("deadlineDate")).thenReturn("2026-04-18");
+        when(request.getParameter("deadlineTime")).thenReturn("23:45");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/set-deadline.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(servletContext).setAttribute("applicationDeadline", expectedDeadline);
+        verify(request).setAttribute("success", "TA resume submission deadline has been saved successfully.");
+        verify(request).setAttribute("savedDeadline", expectedDeadline);
+        verify(dispatcher).forward(request, response);
+        assertEquals(expectedDeadline, DeadlineStore.getDeadline());
+        assertTrue(Files.exists(deadlineFile));
+    }
+
+    @Test
+    void saveDeadlineRejectsBlankInput() throws Exception {
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("save_deadline");
+        when(request.getParameter("deadlineDate")).thenReturn("");
+        when(request.getParameter("deadlineTime")).thenReturn("");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/set-deadline.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(request).setAttribute("error", "Please complete both deadline date and deadline time.");
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void setMoDeadlinePageForwardsWithSavedDeadline() throws Exception {
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        LocalDateTime deadline = LocalDateTime.of(2026, 4, 30, 12, 30);
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("set_mo_deadline");
+        when(servletContext.getAttribute("moCourseModifyDeadline")).thenReturn(deadline);
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/set-mo-deadline.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("savedMoDeadline", deadline);
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void saveMoDeadlineStoresValueInServletContextAndForwardsSuccess() throws Exception {
+        Path deadlineFile = StoreTestSupport.useMoDeadlineStore(tempDir);
+
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        LocalDateTime expectedDeadline = LocalDateTime.of(2026, 5, 1, 9, 15);
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("save_mo_deadline");
+        when(request.getParameter("deadlineDate")).thenReturn("2026-05-01");
+        when(request.getParameter("deadlineTime")).thenReturn("09:15");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/set-mo-deadline.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(servletContext).setAttribute("moCourseModifyDeadline", expectedDeadline);
+        verify(request).setAttribute("success", "MO course modification deadline has been saved successfully.");
+        verify(request).setAttribute("savedMoDeadline", expectedDeadline);
+        verify(dispatcher).forward(request, response);
+        assertEquals(expectedDeadline, DeadlineStore.getMoModifyDeadline());
+        assertTrue(Files.exists(deadlineFile));
+    }
+
+    @Test
+    void adminLogoutInvalidatesSessionAndRedirectsToAdminEntry() throws Exception {
+        AdminController controller = new AdminController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("logout");
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doGet(request, response);
+
+        verify(session).invalidate();
+        verify(response).sendRedirect("/SE/admin");
     }
 
     @Test
@@ -171,6 +332,12 @@ class AdminControllerTest {
         controller.doGet(request, response);
 
         verify(response).sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
+    }
+
+    private void initController(AdminController controller, ServletContext servletContext) throws ServletException {
+        ServletConfig config = mock(ServletConfig.class);
+        when(config.getServletContext()).thenReturn(servletContext);
+        controller.init(config);
     }
 
     private static final class ByteArrayServletOutputStream extends ServletOutputStream {

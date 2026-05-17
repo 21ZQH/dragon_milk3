@@ -4,7 +4,7 @@
 %>
     <script>
         alert("<%= error %>");
-        window.location.href = "start.html";
+        window.location.href = "<%= request.getContextPath() %>/ta";
     </script>
 <%
         return;
@@ -34,15 +34,8 @@
     Boolean showDeadlineModalAttr = (Boolean) request.getAttribute("showDeadlineModal");
     boolean showDeadlineModal = showDeadlineModalAttr != null && showDeadlineModalAttr.booleanValue();
 
-    boolean profileComplete = false;
     boolean hasUnreadReviewUpdate = false;
     if (currentTA != null) {
-        String taName = currentTA.getName();
-        String taCollege = currentTA.getCollege();
-        String taSkill = currentTA.getSkill();
-        profileComplete = taName != null && !taName.trim().isEmpty()
-                && taCollege != null && !taCollege.trim().isEmpty()
-                && taSkill != null && !taSkill.trim().isEmpty();
         hasUnreadReviewUpdate = currentTA.hasUnreadReviewUpdates();
     }
 %>
@@ -312,10 +305,10 @@
         <div class="title">TA Recruitment System</div>
         <div class="welcome">Hi, <%= username %></div>
         <div class="desc">
-            Welcome to the TA management system! Here you can find job opportunities, manage your profile, and more.
+            Welcome to the TA management system! Here you can find job opportunities and manage your applications.
         </div>
          <div class="nav-row">
-        <% if (applicationOpen && profileComplete) { %>
+        <% if (applicationOpen) { %>
             <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Find a Job</a>
         <% } else { %>
             <button class="nav-btn nav-btn-disabled" type="button" onclick="openFindJobUnavailableModal()">Find a Job</button>
@@ -339,17 +332,6 @@
             </div>
         </div>
 
-    <div id="profileIncompleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileIncompleteTitle">
-        <div class="modal-box">
-            <div class="modal-title" id="profileIncompleteTitle">Profile Incomplete</div>
-            <div class="modal-text">Your profile information is incomplete. Please complete it first.</div>
-            <div class="modal-actions">
-                <button type="button" class="modal-btn" onclick="closeProfileIncompleteModal()">OK</button>
-                <button type="button" class="modal-btn" onclick="goToProfileCenter()">Go to Profile Centre</button>
-            </div>
-        </div>
-    </div>
-
     <div id="deadlinePassedModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="deadlinePassedTitle">
         <div class="modal-box">
             <div class="modal-title" id="deadlinePassedTitle">Application Closed</div>
@@ -365,19 +347,7 @@
         const showDeadlineModalFlag = document.body.dataset.showDeadlineModal === "true";
 
         function openFindJobUnavailableModal() {
-            if (!applicationOpenFlag) {
-                openDeadlinePassedModal();
-                return;
-            }
-            openProfileIncompleteModal();
-        }
-
-        function openProfileIncompleteModal() {
-            document.getElementById("profileIncompleteModal").classList.remove("hidden");
-        }
-
-        function closeProfileIncompleteModal() {
-            document.getElementById("profileIncompleteModal").classList.add("hidden");
+            openDeadlinePassedModal();
         }
 
         function openDeadlinePassedModal() {
@@ -386,10 +356,6 @@
 
         function closeDeadlinePassedModal() {
             document.getElementById("deadlinePassedModal").classList.add("hidden");
-        }
-
-        function goToProfileCenter() {
-            window.location.href = '<%= response.encodeURL("TAclasscontroller?action=profile_center") %>';
         }
 
         if (showDeadlineModalFlag) {

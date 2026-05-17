@@ -8,10 +8,11 @@
     String error = (String) request.getAttribute("error");
     Boolean hasCurrentResume = (Boolean) request.getAttribute("hasCurrentResume");
     String currentResumeFileName = (String) request.getAttribute("currentResumeFileName");
+    Boolean hasMasterResumeAttr = (Boolean) request.getAttribute("hasMasterResume");
+    boolean hasMasterResume = hasMasterResumeAttr != null && hasMasterResumeAttr.booleanValue();
+    String masterResumeFileName = (String) request.getAttribute("masterResumeFileName");
     boolean isModifyMode = Boolean.TRUE.equals(hasCurrentResume);
-    String pageTitle = isModifyMode ? "Modify Resume" : "Application";
-    String uploadTitle = isModifyMode ? "Upload a new resume" : "Upload your resume";
-    String submitButtonText = isModifyMode ? "Update Resume" : "Submit Resume";
+    String pageTitle = isModifyMode ? "Modify Application" : "Application";
     User currentUser = (User) session.getAttribute("user");
     TA currentTA = null;
     if (currentUser instanceof TA) {
@@ -155,10 +156,20 @@
             <% if (Boolean.TRUE.equals(hasCurrentResume)) { %>
                 <div class="current-resume-box">
                     <strong>Current resume:</strong> <%= currentResumeFileName %>
-                    <div class="hint">Uploading a new PDF will replace your current resume for this course.</div>
+                    <div class="hint">This application is currently linked to your profile resume.</div>
                     <div class="resume-actions">
                         <a class="nav-btn" target="_blank" href="<%= response.encodeURL("TAclasscontroller?action=view_resume&courseId=" + course.getId()) %>">View</a>
                         <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_resume&courseId=" + course.getId() + "&download=true") %>">Download</a>
+                    </div>
+                </div>
+            <% } %>
+            <% if (hasMasterResume && !Boolean.TRUE.equals(hasCurrentResume)) { %>
+                <div class="current-resume-box">
+                    <strong>Profile resume:</strong> <%= masterResumeFileName %>
+                    <div class="hint">This resume will be used for this application. Replace it from Personal Centre if needed.</div>
+                    <div class="resume-actions">
+                        <a class="nav-btn" target="_blank" href="<%= response.encodeURL("TAclasscontroller?action=view_master_resume") %>">View</a>
+                        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=view_master_resume&download=true") %>">Download</a>
                     </div>
                 </div>
             <% } %>
@@ -167,23 +178,32 @@
                 <div><strong>Course:</strong> <%= course.getCourseName() %></div>
                 <div><strong>Job Title:</strong> <%= course.getJobTitle() %></div>
             </div>
-            <form action="<%= response.encodeURL("TAclasscontroller") %>" method="post" enctype="multipart/form-data">
-                <input type="hidden" name="action" value="upload_resume">
-                <input type="hidden" name="courseIndex" value="<%= courseIndex %>">
-
-                <div class="detail-box">
-                    <div class="sub-title"><%= uploadTitle %></div>
-                    <label class="label" for="resumeFile">Resume File</label>
-                    <input class="text-input" type="file" id="resumeFile" name="resumeFile" accept=".pdf,application/pdf" required>
-                    <div class="hint">Only PDF resumes are accepted.</div>
-                </div>
-
+            <% if (hasMasterResume) { %>
                 <div class="button-row">
                     <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + courseIndex) %>">Back to Details</a>
                     <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Back to Personal Centre</a>
-                    <button class="nav-btn" type="submit"><%= submitButtonText %></button>
+                    <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=generate_application_form&courseIndex=" + courseIndex) %>">Generate Standard Form</a>
                 </div>
-            </form>
+            <% } else { %>
+                <form action="<%= response.encodeURL("TAclasscontroller") %>" method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="action" value="upload_resume">
+                    <input type="hidden" name="courseIndex" value="<%= courseIndex %>">
+                    <div class="detail-box">
+                        <div class="sub-title">Upload your resume</div>
+                        <label class="label" for="resumeFile">Resume File</label>
+                        <input class="text-input" type="file" id="resumeFile" name="resumeFile" accept=".pdf,application/pdf" required>
+                        <div class="hint">
+                            Only PDF resumes are accepted. This file will also become your profile resume.
+                        </div>
+                    </div>
+
+                    <div class="button-row">
+                        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + courseIndex) %>">Back to Details</a>
+                        <a class="nav-btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Back to Personal Centre</a>
+                        <button class="nav-btn" type="submit">Generate Standard Form</button>
+                    </div>
+                </form>
+            <% } %>
         <% } else { %>
             <div class="detail-box">Current course or TA information is unavailable.</div>
             <div class="button-row">

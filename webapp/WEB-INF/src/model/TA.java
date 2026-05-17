@@ -9,6 +9,7 @@ public class TA extends User {
     private String role = "TA";
     private String college;
     private String skill;
+    private String masterResumeDirectory;
     private List<Course> appliedClasses = new ArrayList<>();
     private List<ResumeSubmission> resumeSubmissions = new ArrayList<>();
 
@@ -35,6 +36,14 @@ public class TA extends User {
 
     public void setSkill(String skill) {
         this.skill = skill;
+    }
+
+    public String getMasterResumeDirectory() {
+        return masterResumeDirectory;
+    }
+
+    public void setMasterResumeDirectory(String masterResumeDirectory) {
+        this.masterResumeDirectory = masterResumeDirectory;
     }
 
     public List<Course> getAppliedClasses() {
