@@ -8,7 +8,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Locale;
 
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
@@ -20,18 +19,41 @@ import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.Part;
 import model.ApplicationForm;
 import model.Course;
-import model.ResumeSubmission;
 import model.TA;
 import model.User;
 import service.ApplicationFormService;
+import service.CourseService;
+import service.DeadlineService;
+import service.TAApplicationService;
 import service.impl.ApplicationFormServiceImpl;
-import store.CourseStore;
-import store.DeadlineStore;
-import store.UserStore;
+import service.impl.CourseServiceImpl;
+import service.impl.DeadlineServiceImpl;
+import service.impl.ResumeStorageServiceImpl;
+import service.impl.TAApplicationServiceImpl;
+import service.impl.UserProfileServiceImpl;
 
 @MultipartConfig
 public class TAClassController extends HttpServlet {
-    private final ApplicationFormService applicationFormService = new ApplicationFormServiceImpl();
+    private final ApplicationFormService applicationFormService;
+    private final TAApplicationService taApplicationService;
+    private final CourseService courseService;
+    private final DeadlineService deadlineService;
+
+    public TAClassController() {
+        this(
+                new ApplicationFormServiceImpl(),
+                new TAApplicationServiceImpl(new UserProfileServiceImpl(), new ResumeStorageServiceImpl()),
+                new CourseServiceImpl(),
+                new DeadlineServiceImpl());
+    }
+
+    TAClassController(ApplicationFormService applicationFormService, TAApplicationService taApplicationService,
+            CourseService courseService, DeadlineService deadlineService) {
+        this.applicationFormService = applicationFormService;
+        this.taApplicationService = taApplicationService;
+        this.courseService = courseService;
+        this.deadlineService = deadlineService;
+    }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
@@ -40,7 +62,7 @@ public class TAClassController extends HttpServlet {
             return;
         }
 
-        if (!ensureTaSession(request, response)) {
+        if (!ensureTaSession(request, response, true)) {
             return;
         }
 
@@ -74,7 +96,7 @@ public class TAClassController extends HttpServlet {
             return;
         }
 
-        if (!ensureTaSession(request, response)) {
+        if (!ensureTaSession(request, response, false)) {
             return;
         }
 
@@ -93,7 +115,7 @@ public class TAClassController extends HttpServlet {
         }
     }
 
-    private boolean ensureTaSession(HttpServletRequest request, HttpServletResponse response)
+    private boolean ensureTaSession(HttpServletRequest request, HttpServletResponse response, boolean redirectToLogin)
             throws IOException {
         HttpSession session = request.getSession(false);
         if (session == null) {
@@ -105,7 +127,7 @@ public class TAClassController extends HttpServlet {
             return true;
         }
 
-        if (currentUser == null) {
+        if (currentUser == null || redirectToLogin) {
             response.sendRedirect(request.getContextPath() + "/ta?action=auth");
             return false;
         }
@@ -220,6 +242,14 @@ public class TAClassController extends HttpServlet {
             return;
         }
 
+        TAApplicationService.SubmitApplicationResult applicationLimitResult =
+                taApplicationService.validateApplicationLimit(ta, course);
+        if (!applicationLimitResult.isSuccess()) {
+            forwardCourseDetails(request, response, course, request.getParameter("courseIndex"), true,
+                    applicationLimitResult.getErrorMessage());
+            return;
+        }
+
         if (!hasMasterResume(ta)) {
             populateCurrentResumeAttributes(request, course);
             request.setAttribute("selectedCourse", course);
@@ -268,7 +298,7 @@ public class TAClassController extends HttpServlet {
             return;
         }
 
-        File resumeFile = new File(resumeDirectory, buildStoredResumeFileName(ta));
+        File resumeFile = taApplicationService.getMasterResumeFile(ta);
         if (!resumeFile.exists() || !resumeFile.isFile()) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Resume file not found");
             return;
@@ -278,7 +308,8 @@ public class TAClassController extends HttpServlet {
         response.setContentType("application/pdf");
         response.setHeader(
                 "Content-Disposition",
-                (download ? "attachment" : "inline") + "; filename=\"" + buildStoredResumeFileName(ta) + "\"");
+                (download ? "attachment" : "inline") + "; filename=\""
+                        + taApplicationService.getStoredResumeFileName(ta) + "\"");
 
         try (InputStream inputStream = new FileInputStream(resumeFile);
                 OutputStream outputStream = response.getOutputStream()) {
@@ -319,6 +350,16 @@ public class TAClassController extends HttpServlet {
             return;
         }
 
+        TAApplicationService.SubmitApplicationResult applicationLimitResult =
+                taApplicationService.validateApplicationLimit(ta, course);
+        if (!applicationLimitResult.isSuccess()) {
+            request.setAttribute("selectedCourse", course);
+            request.setAttribute("courseIndex", request.getParameter("courseIndex"));
+            request.setAttribute("error", applicationLimitResult.getErrorMessage());
+            request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp").forward(request, response);
+            return;
+        }
+
         Part resumePart = request.getPart("resumeFile");
         boolean hasMasterResume = ta.getMasterResumeDirectory() != null && !ta.getMasterResumeDirectory().isBlank();
         if (hasMasterResume && (resumePart == null || resumePart.getSize() <= 0)) {
@@ -331,7 +372,7 @@ public class TAClassController extends HttpServlet {
             request.setAttribute("selectedCourse", course);
             request.setAttribute("courseIndex", request.getParameter("courseIndex"));
             request.setAttribute("hasMasterResume", hasMasterResume(ta));
-            request.setAttribute("masterResumeFileName", buildStoredResumeFileName(ta));
+            request.setAttribute("masterResumeFileName", taApplicationService.getStoredResumeFileName(ta));
             request.setAttribute("error", "Please replace your resume from Personal Centre.");
             request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp").forward(request, response);
             return;
@@ -348,36 +389,16 @@ public class TAClassController extends HttpServlet {
 
         String resumeName = "profile resume";
         if (resumePart != null && resumePart.getSize() > 0) {
-            String submittedFileName = resumePart.getSubmittedFileName();
-            submittedFileName = submittedFileName == null ? "" : new File(submittedFileName).getName();
-
-            if (!submittedFileName.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+            TAApplicationService.SubmitResumeResult uploadResult =
+                    taApplicationService.uploadMasterResume(ta, resumePart);
+            if (!uploadResult.isSuccess()) {
                 request.setAttribute("selectedCourse", course);
                 request.setAttribute("courseIndex", request.getParameter("courseIndex"));
-                request.setAttribute("error", "Only PDF resumes are accepted.");
+                request.setAttribute("error", uploadResult.getErrorMessage());
                 request.getRequestDispatcher("/WEB-INF/views/ta/application.jsp").forward(request, response);
                 return;
             }
-
-            String normalizedEmail = (ta.getEmail() == null || ta.getEmail().trim().isEmpty())
-                    ? "unknown"
-                    : ta.getEmail().replaceAll("[^a-zA-Z0-9._-]", "_");
-
-            String safeFileName = normalizedEmail + ".pdf";
-            String uploadDirectoryPath = resolveResumeUploadDirectory() + File.separator + "master";
-            File uploadDirectory = new File(uploadDirectoryPath);
-            if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
-                throw new IOException("Failed to create upload directory.");
-            }
-
-            File targetFile = new File(uploadDirectory, safeFileName);
-            if (targetFile.exists() && !targetFile.delete()) {
-                throw new IOException("Failed to replace existing resume file.");
-            }
-            resumePart.write(targetFile.getAbsolutePath());
-            ta.setMasterResumeDirectory(uploadDirectory.getAbsolutePath());
-            UserStore.updateTaProfile(ta);
-            resumeName = submittedFileName;
+            resumeName = uploadResult.getSubmittedFileName();
         }
 
         session.setAttribute("user", ta);
@@ -428,10 +449,13 @@ public class TAClassController extends HttpServlet {
         applicationFormService.saveForm(form);
 
         if (submitted) {
-            String applicationFormId = course.getId();
-            ta.addOrUpdateApplication(course, applicationFormId, ResumeSubmission.STATUS_PENDING);
-            course.addApplication(ta, applicationFormId);
-            UserStore.updateAppliedCourseIds(ta);
+            TAApplicationService.SubmitApplicationResult submitResult =
+                    taApplicationService.submitApplicationForm(ta, course, form);
+            if (!submitResult.isSuccess()) {
+                forwardApplicationForm(request, response, course, String.valueOf(courseIndex), form,
+                        null, submitResult.getErrorMessage());
+                return;
+            }
             session.setAttribute("user", ta);
             request.setAttribute("success", "Application form submitted successfully.");
             request.setAttribute("selectedCourse", course);
@@ -454,36 +478,15 @@ public class TAClassController extends HttpServlet {
         }
 
         Part resumePart = request.getPart("resumeFile");
-        if (resumePart == null || resumePart.getSize() <= 0) {
-            forwardPersonalCentre(request, response, ta, null, "Please upload your resume before submitting.", request.getParameter("courseId"));
+        TAApplicationService.SubmitResumeResult uploadResult = taApplicationService.uploadMasterResume(ta, resumePart);
+        if (!uploadResult.isSuccess()) {
+            forwardPersonalCentre(request, response, ta, null, uploadResult.getErrorMessage(), request.getParameter("courseId"));
             return;
         }
 
-        String submittedFileName = resumePart.getSubmittedFileName();
-        submittedFileName = submittedFileName == null ? "" : new File(submittedFileName).getName();
-        if (!submittedFileName.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
-            forwardPersonalCentre(request, response, ta, null, "Only PDF resumes are accepted.", request.getParameter("courseId"));
-            return;
-        }
-
-        String normalizedEmail = (ta.getEmail() == null || ta.getEmail().trim().isEmpty())
-                ? "unknown"
-                : ta.getEmail().replaceAll("[^a-zA-Z0-9._-]", "_");
-        File uploadDirectory = new File(resolveResumeUploadDirectory(), "master");
-        if (!uploadDirectory.exists() && !uploadDirectory.mkdirs()) {
-            throw new IOException("Failed to create upload directory.");
-        }
-
-        File targetFile = new File(uploadDirectory, normalizedEmail + ".pdf");
-        if (targetFile.exists() && !targetFile.delete()) {
-            throw new IOException("Failed to replace existing resume file.");
-        }
-        resumePart.write(targetFile.getAbsolutePath());
-
-        ta.setMasterResumeDirectory(uploadDirectory.getAbsolutePath());
-        UserStore.updateTaProfile(ta);
         session.setAttribute("user", ta);
-        forwardPersonalCentre(request, response, ta, "Resume uploaded successfully: " + submittedFileName, null, request.getParameter("courseId"));
+        forwardPersonalCentre(request, response, ta,
+                "Resume uploaded successfully: " + uploadResult.getSubmittedFileName(), null, request.getParameter("courseId"));
     }
 
     private void withdraw_application(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -512,52 +515,26 @@ public class TAClassController extends HttpServlet {
             return;
         }
 
-        ta.withdrawApplication(courseId);
-
         Course course = getCourseById(request, courseId);
-        if (course != null) {
-            course.removeApplicationByTaEmail(ta.getEmail());
-        }
-
-        UserStore.updateAppliedCourseIds(ta);
+        taApplicationService.withdrawApplication(ta, course);
         session.setAttribute("user", ta);
+
+        if ("course_detail".equals(request.getParameter("returnTo")) && course != null) {
+            Integer courseIndex = findCourseIndexById(getCourseListFromSession(request), courseId);
+            request.setAttribute("success", "Application withdrawn successfully.");
+            request.setAttribute("selectedCourse", course);
+            request.setAttribute("courseIndex", courseIndex == null ? null : String.valueOf(courseIndex));
+            request.setAttribute("applicationOpen", isApplicationOpen(request));
+            request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp").forward(request, response);
+            return;
+        }
 
         forwardPersonalCentre(request, response, ta, "Application withdrawn successfully.", null, null);
     }
-    @SuppressWarnings("unchecked")
     private Course getCourseFromSession(HttpServletRequest request) {
-        HttpSession session = request.getSession();
-        List<Course> courseList = (List<Course>) session.getAttribute("courseList");
-        if (courseList == null) {
-            courseList = CourseStore.getCourseList();
-            session.setAttribute("courseList", courseList);
-        }
-
-        String courseIndexParam = request.getParameter("courseIndex");
-        if (courseIndexParam == null) {
-            return null;
-        }
-
-        try {
-            int courseIndex = Integer.parseInt(courseIndexParam);
-            if (courseIndex < 0 || courseIndex >= courseList.size()) {
-                return null;
-            }
-            return courseList.get(courseIndex);
-        } catch (NumberFormatException e) {
-            return null;
-        }
-    }
-
-    private String resolveResumeUploadDirectory() {
-        String catalinaBase = System.getProperty("catalina.base");
-        if (catalinaBase != null && !catalinaBase.isBlank()) {
-            return catalinaBase + File.separator + "webapps" + File.separator + "SE"
-                    + File.separator + "WEB-INF" + File.separator + "file" + File.separator + "resume";
-        }
-
-        return System.getProperty("user.dir") + File.separator + "webapp"
-                + File.separator + "WEB-INF" + File.separator + "file" + File.separator + "resume";
+        return taApplicationService.getCourseByIndex(
+                getCourseListFromSession(request),
+                request.getParameter("courseIndex"));
     }
 
     @SuppressWarnings("unchecked")
@@ -565,37 +542,18 @@ public class TAClassController extends HttpServlet {
         HttpSession session = request.getSession();
         List<Course> courseList = (List<Course>) session.getAttribute("courseList");
         if (courseList == null) {
-            courseList = CourseStore.getCourseList();
+            courseList = courseService.getCourseList();
             session.setAttribute("courseList", courseList);
         }
         return courseList;
     }
 
     private Course getCourseById(HttpServletRequest request, String courseId) {
-        if (courseId == null || courseId.isBlank()) {
-            return null;
-        }
-
-        for (Course course : getCourseListFromSession(request)) {
-            if (courseId.equals(course.getId())) {
-                return course;
-            }
-        }
-        return null;
+        return taApplicationService.getCourseById(getCourseListFromSession(request), courseId);
     }
 
     private Integer findCourseIndexById(List<Course> courseList, String courseId) {
-        if (courseList == null || courseId == null || courseId.isBlank()) {
-            return null;
-        }
-
-        for (int i = 0; i < courseList.size(); i++) {
-            Course course = courseList.get(i);
-            if (course != null && courseId.equals(course.getId())) {
-                return i;
-            }
-        }
-        return null;
+        return taApplicationService.findCourseIndexById(courseList, courseId);
     }
 
     private void populateCurrentResumeAttributes(HttpServletRequest request, Course course) {
@@ -608,63 +566,34 @@ public class TAClassController extends HttpServlet {
             return;
         }
 
-        request.setAttribute("hasMasterResume", hasMasterResume(ta));
-        request.setAttribute("masterResumeFileName", buildStoredResumeFileName(ta));
-
-        String applicationFormId = ta.getApplicationFormIdForCourse(course.getId());
-        if (applicationFormId == null || applicationFormId.isBlank()) {
-            return;
+        TAApplicationService.CurrentApplicationData applicationData =
+                taApplicationService.prepareCurrentApplicationData(ta, course);
+        request.setAttribute("hasMasterResume", applicationData.hasMasterResume());
+        request.setAttribute("masterResumeFileName", applicationData.getMasterResumeFileName());
+        if (applicationData.hasCurrentApplication()) {
+            request.setAttribute("hasCurrentResume", true);
+            request.setAttribute("currentResumeFileName", applicationData.getCurrentApplicationFileName());
         }
-
-        request.setAttribute("hasCurrentResume", true);
-        request.setAttribute("currentResumeFileName", "Submitted application form");
-    }
-
-    private String buildStoredResumeFileName(TA ta) {
-        String normalizedEmail = (ta.getEmail() == null || ta.getEmail().trim().isEmpty())
-                ? "unknown"
-                : ta.getEmail().replaceAll("[^a-zA-Z0-9._-]", "_");
-        return normalizedEmail + ".pdf";
-    }
-
-    private boolean deleteStoredResumeFileIfPresent(TA ta, String resumeDirectory) {
-        if (ta == null || resumeDirectory == null || resumeDirectory.isBlank()) {
-            return true;
-        }
-
-        File resumeFile = new File(resumeDirectory, buildStoredResumeFileName(ta));
-        if (resumeFile.exists() && !resumeFile.delete()) {
-            return false;
-        }
-
-        File directory = new File(resumeDirectory);
-        String[] files = directory.list();
-        if (directory.exists() && directory.isDirectory() && files != null && files.length == 0) {
-            directory.delete();
-        }
-
-        return true;
     }
 
     private void forwardPersonalCentre(HttpServletRequest request, HttpServletResponse response, TA ta,
             String success, String error, String selectedCourseId) throws ServletException, IOException {
-        if (ta.markAllReviewUpdatesRead()) {
-            UserStore.updateAppliedCourseIds(ta);
-            request.getSession().setAttribute("user", ta);
-        }
+        TAApplicationService.PersonalCentreData personalCentreData =
+                taApplicationService.preparePersonalCentreData(ta, selectedCourseId, isApplicationOpen(request));
+        request.getSession().setAttribute("user", ta);
+        Course selectedCourse = personalCentreData.getSelectedCourse();
 
-        List<Course> appliedCourses = ta.getAppliedClasses();
-        Course selectedCourse = resolveSelectedAppliedCourse(appliedCourses, selectedCourseId);
-
-        request.setAttribute("appliedCourses", appliedCourses);
+        request.setAttribute("appliedCourses", personalCentreData.getAppliedCourses());
+        request.setAttribute("applicationCount", personalCentreData.getApplicationCount());
+        request.setAttribute("applicationLimit", personalCentreData.getApplicationLimit());
         request.setAttribute("selectedCourse", selectedCourse);
         request.setAttribute("selectedCourseId", selectedCourse == null ? null : selectedCourse.getId());
-        request.setAttribute("applicationOpen", isApplicationOpen(request));
+        request.setAttribute("applicationOpen", personalCentreData.isApplicationOpen());
         request.setAttribute("applicationDeadline", resolveApplicationDeadline(request));
-        request.setAttribute("hasMasterResume", hasMasterResume(ta));
-        request.setAttribute("masterResumeFileName", buildStoredResumeFileName(ta));
-        if (selectedCourse != null) {
-            request.setAttribute("selectedStatus", resolveResumeStatus(ta, selectedCourse.getId()));
+        request.setAttribute("hasMasterResume", taApplicationService.hasMasterResume(ta));
+        request.setAttribute("masterResumeFileName", taApplicationService.getStoredResumeFileName(ta));
+        if (personalCentreData.getSelectedStatus() != null) {
+            request.setAttribute("selectedStatus", personalCentreData.getSelectedStatus());
         }
         if (success != null) {
             request.setAttribute("success", success);
@@ -692,44 +621,26 @@ public class TAClassController extends HttpServlet {
 
     private void forwardCourseDetails(HttpServletRequest request, HttpServletResponse response, Course course,
             String courseIndex, boolean applicationOpen) throws ServletException, IOException {
+        forwardCourseDetails(request, response, course, courseIndex, applicationOpen, null);
+    }
+
+    private void forwardCourseDetails(HttpServletRequest request, HttpServletResponse response, Course course,
+            String courseIndex, boolean applicationOpen, String error) throws ServletException, IOException {
         request.setAttribute("selectedCourse", course);
         request.setAttribute("courseIndex", courseIndex);
         request.setAttribute("applicationOpen", applicationOpen);
+        if (error != null) {
+            request.setAttribute("error", error);
+        }
         request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp").forward(request, response);
     }
 
-    private Course resolveSelectedAppliedCourse(List<Course> appliedCourses, String selectedCourseId) {
-        if (appliedCourses == null || appliedCourses.isEmpty()) {
-            return null;
-        }
-
-        if (selectedCourseId != null && !selectedCourseId.isBlank()) {
-            for (Course course : appliedCourses) {
-                if (course != null && selectedCourseId.equals(course.getId())) {
-                    return course;
-                }
-            }
-        }
-
-        return appliedCourses.get(0);
-    }
-
-    private int resolveResumeStatus(TA ta, String courseId) {
-        Integer status = ta.getResumeStatusForCourse(courseId);
-        return status == null ? ResumeSubmission.STATUS_PENDING : status;
-    }
-
     private boolean hasMasterResume(TA ta) {
-        if (ta == null || ta.getMasterResumeDirectory() == null || ta.getMasterResumeDirectory().isBlank()) {
-            return false;
-        }
-        File resumeFile = new File(ta.getMasterResumeDirectory(), buildStoredResumeFileName(ta));
-        return resumeFile.exists() && resumeFile.isFile();
+        return taApplicationService.hasMasterResume(ta);
     }
 
     private boolean isApplicationOpen(HttpServletRequest request) {
-        LocalDateTime deadline = resolveApplicationDeadline(request);
-        return deadline == null || !LocalDateTime.now().isAfter(deadline);
+        return deadlineService.isApplicationOpen(resolveApplicationDeadline(request));
     }
 
     private LocalDateTime resolveApplicationDeadline(HttpServletRequest request) {
@@ -740,7 +651,7 @@ public class TAClassController extends HttpServlet {
                 return localDateTime;
             }
         }
-        return DeadlineStore.getDeadline();
+        return deadlineService.getApplicationDeadline();
     }
 
 }

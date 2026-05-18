@@ -9,9 +9,11 @@ import model.Course;
 import model.Mo;
 import model.TA;
 import model.User;
+import repository.CourseRepository;
+import repository.UserRepository;
+import repository.impl.TxtCourseRepositoryImpl;
+import repository.impl.TxtUserRepositoryImpl;
 import service.AccountService;
-import store.CourseStore;
-import store.UserStore;
 
 public class AccountServiceImpl implements AccountService {
     private static final String BUPT_EMAIL_SUFFIX = "@bupt.edu.cn";
@@ -30,25 +32,36 @@ public class AccountServiceImpl implements AccountService {
             {"Built-in Admin 5", "admin5@bupt.edu.cn", "admin523456"}
     };
     private static final SecureRandom RANDOM = new SecureRandom();
+    private final UserRepository userRepository;
+    private final CourseRepository courseRepository;
+
+    public AccountServiceImpl() {
+        this(new TxtUserRepositoryImpl(), new TxtCourseRepositoryImpl());
+    }
+
+    AccountServiceImpl(UserRepository userRepository, CourseRepository courseRepository) {
+        this.userRepository = userRepository;
+        this.courseRepository = courseRepository;
+    }
 
     @Override
     public boolean isEmailRegistered(String email) {
-        return UserStore.isEmailRegistered(email);
+        return userRepository.isEmailRegistered(email);
     }
 
     @Override
     public void saveUser(User user) {
-        UserStore.saveUser(user);
+        userRepository.saveUser(user);
     }
 
     @Override
     public User validateUser(String password, String email) {
-        return UserStore.validateUser(password, email);
+        return userRepository.validateUser(password, email);
     }
 
     @Override
     public User validateUser(String password, String role, String email) {
-        return UserStore.validateUser(password, role, email);
+        return userRepository.validateUser(password, role, email);
     }
 
     @Override
@@ -99,7 +112,7 @@ public class AccountServiceImpl implements AccountService {
         if (accessKey == null || accessKey.isBlank()) {
             return null;
         }
-        List<TA> taUsers = UserStore.getTAList();
+        List<TA> taUsers = userRepository.getTAList();
         for (TA ta : taUsers) {
             if (accessKey.trim().equals(ta.getPassword())) {
                 return ta;
@@ -122,7 +135,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void ensureBuiltInAccounts() {
-        List<Course> availableCourses = CourseStore.getCourseList();
+        List<Course> availableCourses = courseRepository.getCourseList();
         for (String[] account : BUILT_IN_MO_ACCOUNTS) {
             List<Course> assignedCourses = ensureBuiltInCourses(availableCourses, account);
             if (!isEmailRegistered(account[1])) {
@@ -134,7 +147,7 @@ public class AccountServiceImpl implements AccountService {
                 User existingUser = validateUser(account[2], "Mo", account[1]);
                 if (existingUser instanceof Mo mo && isMissingAssignedCourse(mo, assignedCourses)) {
                     mo.setOwnedCourses(assignedCourses);
-                    UserStore.updateOwnedCourseIds(mo);
+                    userRepository.updateOwnedCourseIds(mo);
                 }
             }
         }
@@ -163,7 +176,7 @@ public class AccountServiceImpl implements AccountService {
 
         Course course = new Course(courseId, courseName, "", "", "TBD", "", "");
         course.setRecruitmentPublished(false);
-        CourseStore.saveCourse(course);
+        courseRepository.saveCourse(course);
         availableCourses.add(course);
         return course;
     }

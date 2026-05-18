@@ -353,6 +353,23 @@ class TAClassControllerTest {
     }
 
     @Test
+    void generateApplicationFormRedirectsNonTaSessionToTaLogin() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        when(request.getParameter("action")).thenReturn("generate_application_form");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(new Mo("secret123", "mo@example.com"));
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doGet(request, response);
+
+        verify(response).sendRedirect("/SE/ta?action=auth");
+    }
+
+    @Test
     void uploadResumeStoresResumeDirectoryAgainstCourseAndPersistsUserData() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
@@ -679,6 +696,38 @@ class TAClassControllerTest {
         assertTrue(Files.exists(resumeFile));
         assertNull(ta.getApplicationFormIdForCourse("course-1"));
         verify(request).setAttribute("success", "Application withdrawn successfully.");
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void withdrawApplicationFromCourseDetailReturnsToCourseDetail() throws Exception {
+        StoreTestSupport.useUserStore(tempDir);
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.addOrUpdateApplication(course, course.getId());
+        course.addApplication(ta, course.getId());
+
+        when(request.getParameter("action")).thenReturn("withdraw_application");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getParameter("returnTo")).thenReturn("course_detail");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(session.getAttribute("courseList")).thenReturn(List.of(course));
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        assertNull(ta.getApplicationFormIdForCourse("course-1"));
+        verify(request).setAttribute("success", "Application withdrawn successfully.");
+        verify(request).setAttribute("selectedCourse", course);
+        verify(request).setAttribute("courseIndex", "0");
         verify(dispatcher).forward(request, response);
     }
 

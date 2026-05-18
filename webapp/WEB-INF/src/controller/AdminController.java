@@ -20,11 +20,21 @@ import model.Course;
 import model.Mo;
 import model.TA;
 import model.User;
+import repository.UserRepository;
+import repository.impl.TxtUserRepositoryImpl;
 import store.CourseStore;
 import store.DeadlineStore;
-import store.UserStore;
 
 public class AdminController extends HttpServlet {
+    private final UserRepository userRepository;
+
+    public AdminController() {
+        this(new TxtUserRepositoryImpl());
+    }
+
+    AdminController(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -103,14 +113,14 @@ public class AdminController extends HttpServlet {
 
     private void manage_candidates(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        List<TA> taList = UserStore.getTAList();
+        List<TA> taList = userRepository.getTAList();
         request.setAttribute("taList", taList);
         request.getRequestDispatcher("/WEB-INF/views/admin/candidate-management.jsp").forward(request, response);
     }
 
     private void manage_mo(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.setAttribute("moList", UserStore.getMOList());
+        request.setAttribute("moList", userRepository.getMOList());
         request.setAttribute("courseList", CourseStore.getCourseList());
         request.getRequestDispatcher("/WEB-INF/views/admin/mo-management.jsp").forward(request, response);
     }
@@ -205,7 +215,7 @@ public class AdminController extends HttpServlet {
             return;
         }
 
-        if (UserStore.isEmailRegistered(account)) {
+        if (userRepository.isEmailRegistered(account)) {
             request.setAttribute("error", "This account already exists.");
             manage_mo(request, response);
             return;
@@ -240,7 +250,7 @@ public class AdminController extends HttpServlet {
         mo.setDegree(degree);
         mo.setCollege(college);
         mo.setOwnedCourses(assignedCourses);
-        UserStore.saveUser(mo);
+        userRepository.saveUser(mo);
 
         request.setAttribute("success", "MO account created successfully.");
         manage_mo(request, response);

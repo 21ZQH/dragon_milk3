@@ -214,7 +214,6 @@
                     <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + courseIndex) %>">Back to Details</a>
                     <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Personal Centre</a>
                     <% if (applicationOpen) { %>
-                        <button class="btn" type="submit" name="action" value="save_application_form">Save Draft</button>
                         <button class="btn btn-primary" type="submit" name="action" value="submit_application_form">Submit Application</button>
                     <% } else { %>
                         <button class="btn btn-disabled" type="button">Application Closed</button>

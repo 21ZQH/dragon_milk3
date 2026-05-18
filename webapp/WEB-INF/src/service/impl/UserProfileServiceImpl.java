@@ -4,32 +4,43 @@ import java.util.List;
 
 import model.Mo;
 import model.TA;
+import repository.UserRepository;
+import repository.impl.TxtUserRepositoryImpl;
 import service.UserProfileService;
-import store.UserStore;
 
 public class UserProfileServiceImpl implements UserProfileService {
+    private final UserRepository userRepository;
+
+    public UserProfileServiceImpl() {
+        this(new TxtUserRepositoryImpl());
+    }
+
+    UserProfileServiceImpl(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
     @Override
     public List<TA> getTAList() {
-        return UserStore.getTAList();
+        return userRepository.getTAList();
     }
 
     @Override
     public void updateAppliedCourseIds(TA ta) {
-        UserStore.updateAppliedCourseIds(ta);
+        userRepository.updateAppliedCourseIds(ta);
     }
 
     @Override
     public void updateTaProfile(TA ta) {
-        UserStore.updateTaProfile(ta);
+        userRepository.updateTaProfile(ta);
     }
 
     @Override
     public void updateMoProfile(Mo mo) {
-        UserStore.updateMoProfile(mo);
+        userRepository.updateMoProfile(mo);
     }
 
     @Override
     public void updateOwnedCourseIds(Mo mo) {
-        UserStore.updateOwnedCourseIds(mo);
+        userRepository.updateOwnedCourseIds(mo);
     }
 }

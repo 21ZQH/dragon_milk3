@@ -13,14 +13,25 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Course;
 import model.Mo;
+import repository.UserRepository;
+import repository.impl.TxtUserRepositoryImpl;
 import service.ApplicationReviewService;
 import service.impl.ApplicationReviewServiceImpl;
 import store.CourseStore;
 import store.DeadlineStore;
-import store.UserStore;
 
 public class MOClassController extends HttpServlet {
-    private final ApplicationReviewService applicationReviewService = new ApplicationReviewServiceImpl();
+    private final ApplicationReviewService applicationReviewService;
+    private final UserRepository userRepository;
+
+    public MOClassController() {
+        this(new ApplicationReviewServiceImpl(), new TxtUserRepositoryImpl());
+    }
+
+    MOClassController(ApplicationReviewService applicationReviewService, UserRepository userRepository) {
+        this.applicationReviewService = applicationReviewService;
+        this.userRepository = userRepository;
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
@@ -173,7 +184,7 @@ public class MOClassController extends HttpServlet {
         mo.setName(trimValue(request.getParameter("name")));
         mo.setDegree(trimValue(request.getParameter("degree")));
         mo.setCollege(trimValue(request.getParameter("college")));
-        UserStore.updateMoProfile(mo);
+        userRepository.updateMoProfile(mo);
 
         request.getSession().setAttribute("user", mo);
         request.setAttribute("success", "Personal information saved successfully.");

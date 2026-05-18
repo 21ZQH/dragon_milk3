@@ -9,12 +9,31 @@ import model.ApplicationForm;
 import model.Course;
 import model.ResumeSubmission;
 import model.TA;
+import repository.ApplicationFormRepository;
+import repository.CourseRepository;
+import repository.UserRepository;
+import repository.impl.TxtApplicationFormRepositoryImpl;
+import repository.impl.TxtCourseRepositoryImpl;
+import repository.impl.TxtUserRepositoryImpl;
 import service.ApplicationReviewService;
-import store.ApplicationFormStore;
-import store.CourseStore;
-import store.UserStore;
 
 public class ApplicationReviewServiceImpl implements ApplicationReviewService {
+    private final UserRepository userRepository;
+    private final ApplicationFormRepository applicationFormRepository;
+    private final CourseRepository courseRepository;
+
+    public ApplicationReviewServiceImpl() {
+        this(new TxtUserRepositoryImpl(), new TxtApplicationFormRepositoryImpl(), new TxtCourseRepositoryImpl());
+    }
+
+    ApplicationReviewServiceImpl(UserRepository userRepository,
+            ApplicationFormRepository applicationFormRepository,
+            CourseRepository courseRepository) {
+        this.userRepository = userRepository;
+        this.applicationFormRepository = applicationFormRepository;
+        this.courseRepository = courseRepository;
+    }
+
     @Override
     public Map<String, ApplicationForm> getSubmittedFormsByApplicantEmail(Course course) {
         Map<String, ApplicationForm> formsByEmail = new LinkedHashMap<>();
@@ -27,7 +46,7 @@ public class ApplicationReviewServiceImpl implements ApplicationReviewService {
                 continue;
             }
 
-            ApplicationForm form = ApplicationFormStore.findForm(applicant.getEmail(), course.getId());
+            ApplicationForm form = applicationFormRepository.findForm(applicant.getEmail(), course.getId());
             if (form != null && form.isSubmitted()) {
                 formsByEmail.put(applicant.getEmail(), form);
             }
@@ -41,7 +60,7 @@ public class ApplicationReviewServiceImpl implements ApplicationReviewService {
             return;
         }
         course.setPickedApplicantEmails(resolvePickedApplicantEmails(course, pickedEmails));
-        CourseStore.updateCourse(course);
+        courseRepository.updateCourse(course);
     }
 
     @Override
@@ -52,7 +71,7 @@ public class ApplicationReviewServiceImpl implements ApplicationReviewService {
         course.setPickedApplicantEmails(resolvePickedApplicantEmails(course, pickedEmails));
         applyPublishedStatuses(course);
         course.setReviewPublished(true);
-        CourseStore.updateCourse(course);
+        courseRepository.updateCourse(course);
     }
 
     private Set<String> resolvePickedApplicantEmails(Course course, String[] pickedEmails) {
@@ -92,7 +111,7 @@ public class ApplicationReviewServiceImpl implements ApplicationReviewService {
                     : ResumeSubmission.STATUS_REJECTED;
             applicant.addOrUpdateApplication(course, applicationFormId, status, true);
             course.addApplication(applicant, applicationFormId);
-            UserStore.updateAppliedCourseIds(applicant);
+            userRepository.updateAppliedCourseIds(applicant);
         }
     }
 }

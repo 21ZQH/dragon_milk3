@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 
 import jakarta.servlet.http.Part;
+import model.ApplicationForm;
 import model.Course;
 import model.ResumeSubmission;
 import model.TA;
@@ -15,6 +16,7 @@ import service.TAApplicationService;
 import service.UserProfileService;
 
 public class TAApplicationServiceImpl implements TAApplicationService {
+    private static final int MAX_DISTINCT_APPLICATIONS = 3;
     private final UserProfileService userProfileService;
     private final ResumeStorageService resumeStorageService;
 
@@ -76,7 +78,63 @@ public class TAApplicationServiceImpl implements TAApplicationService {
     }
 
     @Override
+    public boolean hasMasterResume(TA ta) {
+        File resumeFile = resumeStorageService.getMasterResumeFile(ta);
+        return resumeFile != null && resumeFile.exists() && resumeFile.isFile();
+    }
+
+    @Override
+    public File getMasterResumeFile(TA ta) {
+        return resumeStorageService.getMasterResumeFile(ta);
+    }
+
+    @Override
+    public String getStoredResumeFileName(TA ta) {
+        return resumeStorageService.buildStoredResumeFileName(ta);
+    }
+
+    @Override
+    public CurrentApplicationData prepareCurrentApplicationData(TA ta, Course course) {
+        boolean hasCurrentApplication = false;
+        if (ta != null && course != null) {
+            String applicationFormId = ta.getApplicationFormIdForCourse(course.getId());
+            hasCurrentApplication = applicationFormId != null && !applicationFormId.isBlank();
+        }
+        return new CurrentApplicationData(
+                hasMasterResume(ta),
+                getStoredResumeFileName(ta),
+                hasCurrentApplication,
+                hasCurrentApplication ? "Submitted application form" : null);
+    }
+
+    @Override
+    public int getApplicationLimit() {
+        return MAX_DISTINCT_APPLICATIONS;
+    }
+
+    @Override
+    public int getApplicationCount(TA ta) {
+        return ta == null || ta.getAppliedClasses() == null ? 0 : ta.getAppliedClasses().size();
+    }
+
+    @Override
+    public SubmitApplicationResult validateApplicationLimit(TA ta, Course course) {
+        if (ta == null || course == null) {
+            return SubmitApplicationResult.error("Unable to start this application.");
+        }
+        if (isNewCourseApplication(ta, course) && getApplicationCount(ta) >= MAX_DISTINCT_APPLICATIONS) {
+            return SubmitApplicationResult.error("You can apply for up to 3 different TA positions.");
+        }
+        return SubmitApplicationResult.success();
+    }
+
+    @Override
     public SubmitResumeResult submitResume(TA ta, Course course, Part resumePart) throws IOException {
+        SubmitApplicationResult applicationLimitResult = validateApplicationLimit(ta, course);
+        if (!applicationLimitResult.isSuccess()) {
+            return SubmitResumeResult.error(applicationLimitResult.getErrorMessage());
+        }
+
         String resumeDirectory = ta == null ? null : ta.getMasterResumeDirectory();
         String submittedFileName = "profile resume";
 
@@ -98,6 +156,24 @@ public class TAApplicationServiceImpl implements TAApplicationService {
         course.addApplication(ta, applicationFormId);
         userProfileService.updateAppliedCourseIds(ta);
         return SubmitResumeResult.success(submittedFileName);
+    }
+
+    @Override
+    public SubmitApplicationResult submitApplicationForm(TA ta, Course course, ApplicationForm form) {
+        if (ta == null || course == null) {
+            return SubmitApplicationResult.error("Unable to submit this application.");
+        }
+        SubmitApplicationResult applicationLimitResult = validateApplicationLimit(ta, course);
+        if (!applicationLimitResult.isSuccess()) {
+            return applicationLimitResult;
+        }
+        String applicationFormId = form == null || form.getCourseId() == null || form.getCourseId().isBlank()
+                ? course.getId()
+                : form.getCourseId();
+        ta.addOrUpdateApplication(course, applicationFormId, ResumeSubmission.STATUS_PENDING);
+        course.addApplication(ta, applicationFormId);
+        userProfileService.updateAppliedCourseIds(ta);
+        return SubmitApplicationResult.success();
     }
 
     @Override
@@ -156,7 +232,13 @@ public class TAApplicationServiceImpl implements TAApplicationService {
         List<Course> appliedCourses = ta.getAppliedClasses();
         Course selectedCourse = resolveSelectedAppliedCourse(appliedCourses, selectedCourseId);
         Integer selectedStatus = selectedCourse == null ? null : resolveResumeStatus(ta, selectedCourse.getId());
-        return new PersonalCentreData(appliedCourses, selectedCourse, selectedStatus, applicationOpen);
+        return new PersonalCentreData(
+                appliedCourses,
+                selectedCourse,
+                selectedStatus,
+                applicationOpen,
+                getApplicationCount(ta),
+                MAX_DISTINCT_APPLICATIONS);
     }
 
     private Course resolveSelectedAppliedCourse(List<Course> appliedCourses, String selectedCourseId) {
@@ -171,6 +253,10 @@ public class TAApplicationServiceImpl implements TAApplicationService {
             }
         }
         return appliedCourses.get(0);
+    }
+
+    private boolean isNewCourseApplication(TA ta, Course course) {
+        return ta.getApplicationFormIdForCourse(course.getId()) == null;
     }
 
     private int resolveResumeStatus(TA ta, String courseId) {

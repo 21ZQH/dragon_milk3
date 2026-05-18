@@ -38,6 +38,12 @@
 
     String success = (String) request.getAttribute("success");
     String error = (String) request.getAttribute("error");
+    Integer applicationCountAttr = (Integer) request.getAttribute("applicationCount");
+    Integer applicationLimitAttr = (Integer) request.getAttribute("applicationLimit");
+    int applicationCount = applicationCountAttr == null
+            ? (appliedCourses == null ? 0 : appliedCourses.size())
+            : applicationCountAttr.intValue();
+    int applicationLimit = applicationLimitAttr == null ? 3 : applicationLimitAttr.intValue();
     Boolean hasMasterResumeAttr = (Boolean) request.getAttribute("hasMasterResume");
     boolean hasMasterResume = hasMasterResumeAttr != null && hasMasterResumeAttr.booleanValue();
     String masterResumeFileName = (String) request.getAttribute("masterResumeFileName");
@@ -158,6 +164,35 @@
             font-weight: bold;
             color: #1f315d;
             margin-bottom: 22px;
+        }
+        .section-heading-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 22px;
+        }
+        .section-heading-row .section-title {
+            margin-bottom: 0;
+        }
+        .application-count-badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 34px;
+            padding: 7px 13px;
+            border-radius: 999px;
+            border: 1px solid #c6cedc;
+            background: #eef2fb;
+            color: #1f315d;
+            font-weight: bold;
+            font-size: 0.95em;
+            white-space: nowrap;
+        }
+        .application-count-badge.limit-reached {
+            background: #fff7e6;
+            border-color: #f2cc60;
+            color: #9a6700;
         }
         .chooser-box {
             border: 1px solid #cfd6e4;
@@ -494,7 +529,12 @@
         </div>
 
         <div class="section">
-            <div class="section-title">My Applications</div>
+            <div class="section-heading-row">
+                <div class="section-title">My Applications</div>
+                <div class="application-count-badge <%= applicationCount >= applicationLimit ? "limit-reached" : "" %>">
+                    <%= applicationCount %>/<%= applicationLimit %> positions
+                </div>
+            </div>
 
             <% if (currentTA == null) { %>
                 <div class="empty-state">Please log in as TA first.</div>

@@ -6,49 +6,52 @@ import java.io.IOException;
 import model.ApplicationForm;
 import model.Course;
 import model.TA;
+import repository.ApplicationFormRepository;
+import repository.impl.TxtApplicationFormRepositoryImpl;
 import service.ApplicationFormService;
 import service.ai.ApplicationFormAiClient;
 import service.ai.ApplicationFormAiClientFactory;
 import service.ai.ResumeTextExtractor;
 import service.ai.impl.MockApplicationFormAiClient;
 import service.ai.impl.PdfBoxResumeTextExtractor;
-import store.ApplicationFormStore;
 
 public class ApplicationFormServiceImpl implements ApplicationFormService {
     private final ApplicationFormAiClient aiClient;
     private final ApplicationFormAiClient fallbackAiClient;
     private final ResumeTextExtractor resumeTextExtractor;
+    private final ApplicationFormRepository applicationFormRepository;
 
     public ApplicationFormServiceImpl() {
         this(new ApplicationFormAiClientFactory().create(), new MockApplicationFormAiClient(),
-                new PdfBoxResumeTextExtractor());
+                new PdfBoxResumeTextExtractor(), new TxtApplicationFormRepositoryImpl());
     }
 
     ApplicationFormServiceImpl(ApplicationFormAiClient aiClient, ApplicationFormAiClient fallbackAiClient,
-            ResumeTextExtractor resumeTextExtractor) {
+            ResumeTextExtractor resumeTextExtractor, ApplicationFormRepository applicationFormRepository) {
         this.aiClient = aiClient;
         this.fallbackAiClient = fallbackAiClient;
         this.resumeTextExtractor = resumeTextExtractor;
+        this.applicationFormRepository = applicationFormRepository;
     }
 
     @Override
     public ApplicationForm generateInitialForm(TA ta, Course course) {
         String resumeText = extractResumeText(ta);
         ApplicationForm form = generateWithFallback(ta, course, resumeText);
-        ApplicationFormStore.saveOrUpdate(form);
+        applicationFormRepository.saveOrUpdate(form);
         return form;
     }
 
     @Override
     public ApplicationForm getForm(String taEmail, String courseId) {
-        return ApplicationFormStore.findForm(taEmail, courseId);
+        return applicationFormRepository.findForm(taEmail, courseId);
     }
 
     @Override
     public ApplicationForm buildFormFromRequest(TA ta, Course course,
             String applicantName, String email, String education, String skills,
             String relevantExperience, String projectExperience, String feedback, boolean submitted) {
-        ApplicationForm existingForm = ApplicationFormStore.findForm(ta.getEmail(), course.getId());
+        ApplicationForm existingForm = applicationFormRepository.findForm(ta.getEmail(), course.getId());
         ApplicationForm form = new ApplicationForm(ta.getEmail(), course.getId());
         form.setApplicantName(trimValue(applicantName));
         form.setEmail(trimValue(email));
@@ -64,7 +67,7 @@ public class ApplicationFormServiceImpl implements ApplicationFormService {
 
     @Override
     public void saveForm(ApplicationForm form) {
-        ApplicationFormStore.saveOrUpdate(form);
+        applicationFormRepository.saveOrUpdate(form);
     }
 
     private ApplicationForm generateWithFallback(TA ta, Course course, String resumeText) {
