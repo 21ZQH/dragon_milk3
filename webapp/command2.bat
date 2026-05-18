@@ -31,7 +31,6 @@ if not defined PDFBOX_CP (
     echo Run "mvn -DskipTests compile" from the project root first.
     exit /b 1
 )
-
 if not exist "%CLASSES_DIR%" mkdir "%CLASSES_DIR%"
 if not exist "%LIB_DIR%" mkdir "%LIB_DIR%"
 call :copy_pdfbox_jars

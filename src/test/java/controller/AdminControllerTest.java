@@ -30,8 +30,12 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Admin;
+import model.Course;
+import model.Mo;
 import model.TA;
+import store.CourseStore;
 import store.DeadlineStore;
+import store.UserStore;
 import testsupport.StoreTestSupport;
 
 class AdminControllerTest {
@@ -125,6 +129,45 @@ class AdminControllerTest {
             TA ta = (TA) taList.get(0);
             return "Alice".equals(ta.getName()) && "alice@example.com".equals(ta.getEmail());
         }));
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void createMoCreatesAccountAndAssignedCourses() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+
+        AdminController controller = new AdminController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("create_mo");
+        when(request.getParameter("name")).thenReturn("MO One");
+        when(request.getParameter("account")).thenReturn("mo-one");
+        when(request.getParameter("password")).thenReturn("secret");
+        when(request.getParameter("degree")).thenReturn("PhD");
+        when(request.getParameter("college")).thenReturn("School of Software");
+        when(request.getParameter("courseNames")).thenReturn("Software Engineering\nDatabase Systems");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/mo-management.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        List<Course> courses = CourseStore.getCourseList();
+        assertEquals(2, courses.size());
+        assertTrue(courses.stream().noneMatch(Course::isRecruitmentPublished));
+
+        Mo mo = (Mo) UserStore.validateUser("secret", "Mo", "mo-one");
+        Assertions.assertNotNull(mo);
+        assertEquals("MO One", mo.getName());
+        assertEquals(2, mo.getOwnedCourses().size());
+        assertTrue(Files.readString(usersFile).contains("MO One,secret,Mo,mo-one,PhD,School of Software,"));
+        assertTrue(Files.exists(courseFile));
+        verify(request).setAttribute("success", "MO account created successfully.");
         verify(dispatcher).forward(request, response);
     }
 

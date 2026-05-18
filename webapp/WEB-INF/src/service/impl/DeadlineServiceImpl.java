@@ -4,28 +4,39 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+import repository.DeadlineRepository;
+import repository.impl.TxtDeadlineRepositoryImpl;
 import service.DeadlineService;
-import store.DeadlineStore;
 
 public class DeadlineServiceImpl implements DeadlineService {
+    private final DeadlineRepository deadlineRepository;
+
+    public DeadlineServiceImpl() {
+        this(new TxtDeadlineRepositoryImpl());
+    }
+
+    DeadlineServiceImpl(DeadlineRepository deadlineRepository) {
+        this.deadlineRepository = deadlineRepository;
+    }
+
     @Override
     public LocalDateTime getApplicationDeadline() {
-        return DeadlineStore.getDeadline();
+        return deadlineRepository.getApplicationDeadline();
     }
 
     @Override
     public void saveApplicationDeadline(LocalDateTime deadline) {
-        DeadlineStore.saveDeadline(deadline);
+        deadlineRepository.saveApplicationDeadline(deadline);
     }
 
     @Override
     public LocalDateTime getMoModifyDeadline() {
-        return DeadlineStore.getMoModifyDeadline();
+        return deadlineRepository.getMoModifyDeadline();
     }
 
     @Override
     public void saveMoModifyDeadline(LocalDateTime deadline) {
-        DeadlineStore.saveMoModifyDeadline(deadline);
+        deadlineRepository.saveMoModifyDeadline(deadline);
     }
 
     @Override

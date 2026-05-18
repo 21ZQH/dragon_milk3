@@ -2,7 +2,6 @@ package controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,7 +36,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import store.UserStore;
 import store.ApplicationFormStore;
-import org.mockito.ArgumentCaptor;
 import testsupport.StoreTestSupport;
 
 class TAClassControllerTest {
@@ -74,7 +72,7 @@ class TAClassControllerTest {
     }
 
     @Test
-    void viewInformationLoadsCourseListIntoSessionAndForwards() throws Exception {
+    void viewInformationRedirectsToUnifiedTaHome() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         StoreTestSupport.writeLines(
                 courseFile,
@@ -85,27 +83,16 @@ class TAClassControllerTest {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
-        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
         TA ta = new TA("secret123", "ta@example.com");
 
         when(request.getParameter("action")).thenReturn("view_information");
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("user")).thenReturn(ta);
-        when(request.getRequestDispatcher("/WEB-INF/views/ta/job-list.jsp")).thenReturn(dispatcher);
+        when(request.getContextPath()).thenReturn("/SE");
 
         controller.doGet(request, response);
 
-        ArgumentCaptor<Object> courseListCaptor = ArgumentCaptor.forClass(Object.class);
-        verify(session).setAttribute(eq("courseList"), courseListCaptor.capture());
-        Object capturedValue = courseListCaptor.getValue();
-        assertInstanceOf(List.class, capturedValue);
-
-        @SuppressWarnings("unchecked")
-        List<Course> courses = (List<Course>) capturedValue;
-
-        assertEquals(2, courses.size());
-        assertEquals("Software Engineering", courses.get(0).getCourseName());
-        verify(dispatcher).forward(request, response);
+        verify(response).sendRedirect("/SE/ta");
     }
 
     @Test
@@ -159,22 +146,21 @@ class TAClassControllerTest {
     }
 
     @Test
-    void homeActionForwardsToTaHomePage() throws Exception {
+    void homeActionRedirectsToUnifiedTaHome() throws Exception {
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         HttpSession session = mock(HttpSession.class);
-        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
         TA ta = new TA("secret123", "ta@example.com");
 
         when(request.getParameter("action")).thenReturn("home");
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("user")).thenReturn(ta);
-        when(request.getRequestDispatcher("/WEB-INF/views/ta/home.jsp")).thenReturn(dispatcher);
+        when(request.getContextPath()).thenReturn("/SE");
 
         controller.doGet(request, response);
 
-        verify(dispatcher).forward(request, response);
+        verify(response).sendRedirect("/SE/ta");
     }
 
     @Test
@@ -221,7 +207,7 @@ class TAClassControllerTest {
     }
 
     @Test
-    void goApplyWithExistingResumeSetsCurrentResumeAttributes() throws Exception {
+    void goApplyWithSubmittedFormSetsCurrentApplicationAttributes() throws Exception {
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -232,10 +218,11 @@ class TAClassControllerTest {
         List<Course> courses = List.of(course);
         TA ta = new TA("secret123", "ta@example.com");
 
-        Path resumeDirectory = tempDir.resolve("resume").resolve("course-1");
+        Path resumeDirectory = tempDir.resolve("resume").resolve("master");
         Files.createDirectories(resumeDirectory);
         Files.write(resumeDirectory.resolve("ta_example.com.pdf"), "pdf".getBytes());
-        ta.addOrUpdateResume(course, resumeDirectory.toString());
+        ta.setMasterResumeDirectory(resumeDirectory.toString());
+        ta.addOrUpdateApplication(course, course.getId());
 
         when(request.getParameter("action")).thenReturn("go_apply");
         when(request.getParameter("courseIndex")).thenReturn("0");
@@ -247,7 +234,7 @@ class TAClassControllerTest {
         controller.doGet(request, response);
 
         verify(request).setAttribute("hasCurrentResume", true);
-        verify(request).setAttribute("currentResumeFileName", "ta_example.com.pdf");
+        verify(request).setAttribute("currentResumeFileName", "Submitted application form");
         verify(dispatcher).forward(request, response);
     }
 
@@ -363,6 +350,23 @@ class TAClassControllerTest {
         controller.doPost(request, response);
 
         verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: TA role required");
+    }
+
+    @Test
+    void generateApplicationFormRedirectsNonTaSessionToTaLogin() throws Exception {
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        when(request.getParameter("action")).thenReturn("generate_application_form");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(new Mo("secret123", "mo@example.com"));
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doGet(request, response);
+
+        verify(response).sendRedirect("/SE/ta?action=auth");
     }
 
     @Test
@@ -483,7 +487,7 @@ class TAClassControllerTest {
                 "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
         StoreTestSupport.writeLines(
                 usersFile,
-                "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@1@true");
+                "Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@1@true");
 
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -503,14 +507,14 @@ class TAClassControllerTest {
         controller.doGet(request, response);
 
         assertFalse(ta.hasUnreadReviewUpdates());
-        assertEquals("Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@D:\\resume\\course-1@1@false",
+        assertEquals("Alice,secret123,TA,ta@example.com,School of Software,Java,course-1,course-1@1@false",
                 Files.readAllLines(usersFile).get(0));
         verify(session).setAttribute("user", ta);
         verify(dispatcher).forward(request, response);
     }
 
     @Test
-    void viewResumeStreamsPdfInline() throws Exception {
+    void viewMasterResumeStreamsPdfInline() throws Exception {
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -518,16 +522,15 @@ class TAClassControllerTest {
 
         Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
         TA ta = new TA("secret123", "ta@example.com");
-        Path resumeDirectory = tempDir.resolve("resume").resolve("course-1");
+        Path resumeDirectory = tempDir.resolve("resume").resolve("master");
         Files.createDirectories(resumeDirectory);
         byte[] pdfBytes = "%PDF-test".getBytes();
         Files.write(resumeDirectory.resolve("ta_example.com.pdf"), pdfBytes);
-        ta.addOrUpdateResume(course, resumeDirectory.toString());
+        ta.setMasterResumeDirectory(resumeDirectory.toString());
 
         CapturingServletOutputStream outputStream = new CapturingServletOutputStream();
 
-        when(request.getParameter("action")).thenReturn("view_resume");
-        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getParameter("action")).thenReturn("view_master_resume");
         when(request.getParameter("download")).thenReturn(null);
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("user")).thenReturn(ta);
@@ -541,7 +544,7 @@ class TAClassControllerTest {
     }
 
     @Test
-    void viewResumeStreamsPdfAsAttachmentWhenDownloadTrue() throws Exception {
+    void viewMasterResumeStreamsPdfAsAttachmentWhenDownloadTrue() throws Exception {
         TAClassController controller = new TAClassController();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
@@ -549,15 +552,14 @@ class TAClassControllerTest {
 
         Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
         TA ta = new TA("secret123", "ta@example.com");
-        Path resumeDirectory = tempDir.resolve("resume").resolve("course-1");
+        Path resumeDirectory = tempDir.resolve("resume").resolve("master");
         Files.createDirectories(resumeDirectory);
         Files.write(resumeDirectory.resolve("ta_example.com.pdf"), "pdf".getBytes());
-        ta.addOrUpdateResume(course, resumeDirectory.toString());
+        ta.setMasterResumeDirectory(resumeDirectory.toString());
 
         CapturingServletOutputStream outputStream = new CapturingServletOutputStream();
 
-        when(request.getParameter("action")).thenReturn("view_resume");
-        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getParameter("action")).thenReturn("view_master_resume");
         when(request.getParameter("download")).thenReturn("true");
         when(request.getSession()).thenReturn(session);
         when(session.getAttribute("user")).thenReturn(ta);
@@ -654,15 +656,15 @@ class TAClassControllerTest {
 
         assertEquals(0, ta.getAppliedClasses().size());
         assertEquals(0, ta.getResumeSubmissions().size());
-        assertNull(ta.getResumeDirectoryForCourse("course-1"));
+        assertNull(ta.getApplicationFormIdForCourse("course-1"));
         assertEquals(0, course.getTaApplicants().size());
-        assertEquals(0, course.getApplicantResumes().size());
+        assertEquals(0, course.getApplicantFormIds().size());
         assertEquals("Alice,secret123,TA,ta@example.com,School of Software,Java,,", Files.readAllLines(usersFile).get(0));
         verify(dispatcher).forward(request, response);
     }
 
     @Test
-    void withdrawApplicationDeletesStoredResumeFileFromDisk() throws Exception {
+    void withdrawApplicationKeepsMasterResumeFileOnDisk() throws Exception {
         StoreTestSupport.useUserStore(tempDir);
 
         TAClassController controller = new TAClassController();
@@ -678,8 +680,9 @@ class TAClassControllerTest {
         Path resumeFile = resumeDirectory.resolve("ta_example.com.pdf");
         Files.write(resumeFile, "pdf".getBytes());
 
-        ta.addOrUpdateResume(course, resumeDirectory.toString());
-        course.addApplication(ta, resumeDirectory.toString());
+        ta.setMasterResumeDirectory(resumeDirectory.toString());
+        ta.addOrUpdateApplication(course, course.getId());
+        course.addApplication(ta, course.getId());
 
         when(request.getParameter("action")).thenReturn("withdraw_application");
         when(request.getParameter("courseId")).thenReturn("course-1");
@@ -690,8 +693,41 @@ class TAClassControllerTest {
 
         controller.doPost(request, response);
 
-        assertFalse(Files.exists(resumeFile));
+        assertTrue(Files.exists(resumeFile));
+        assertNull(ta.getApplicationFormIdForCourse("course-1"));
         verify(request).setAttribute("success", "Application withdrawn successfully.");
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void withdrawApplicationFromCourseDetailReturnsToCourseDetail() throws Exception {
+        StoreTestSupport.useUserStore(tempDir);
+
+        TAClassController controller = new TAClassController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("secret123", "ta@example.com");
+        ta.addOrUpdateApplication(course, course.getId());
+        course.addApplication(ta, course.getId());
+
+        when(request.getParameter("action")).thenReturn("withdraw_application");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(request.getParameter("returnTo")).thenReturn("course_detail");
+        when(request.getSession()).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(ta);
+        when(session.getAttribute("courseList")).thenReturn(List.of(course));
+        when(request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        assertNull(ta.getApplicationFormIdForCourse("course-1"));
+        verify(request).setAttribute("success", "Application withdrawn successfully.");
+        verify(request).setAttribute("selectedCourse", course);
+        verify(request).setAttribute("courseIndex", "0");
         verify(dispatcher).forward(request, response);
     }
 
@@ -708,8 +744,8 @@ class TAClassControllerTest {
 
         Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
         TA ta = new TA("secret123", "ta@example.com");
-        ta.addOrUpdateResume(course, "D:\\resume\\course-1");
-        course.addApplication(ta, "D:\\resume\\course-1");
+        ta.addOrUpdateApplication(course, course.getId());
+        course.addApplication(ta, course.getId());
 
         when(request.getParameter("action")).thenReturn("withdraw_application");
         when(request.getParameter("courseId")).thenReturn("course-1");
@@ -722,7 +758,7 @@ class TAClassControllerTest {
         controller.doPost(request, response);
 
         assertEquals(1, ta.getAppliedClasses().size());
-        assertEquals("D:\\resume\\course-1", ta.getResumeDirectoryForCourse("course-1"));
+        assertEquals("course-1", ta.getApplicationFormIdForCourse("course-1"));
         verify(request).setAttribute("error", "The application deadline has passed. You can no longer withdraw or modify applications.");
         verify(dispatcher).forward(request, response);
     }

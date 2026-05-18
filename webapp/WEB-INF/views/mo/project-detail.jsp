@@ -368,21 +368,14 @@
 
         <div class="section">
             <div class="section-header">
-                <h2 class="section-title">Course Name</h2>
-                <button type="button"
-                        class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
-                        data-target="courseName"
-                        data-locked="<%= !canModifyProject %>"
-                        data-lock-reason="<%= !moModifyOpen ? "deadline" : (!moProfileComplete ? "profile" : "") %>">Edit</button>
+                <h2 class="section-title">Assigned Course</h2>
             </div>
             <input
                 id="courseName"
                 class="input-box"
                 type="text"
-                name="courseName"
                 value="<%= course.getCourseName() == null ? "" : course.getCourseName() %>"
-                readonly
-                required>
+                readonly>
         </div>
 
         <div class="section">

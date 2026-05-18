@@ -102,6 +102,16 @@
             background: #fffaf0;
             border-color: #e8ca82;
         }
+        .readonly-text {
+            border: 1px solid #d8deea;
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 78px;
+            line-height: 1.55;
+            color: #334155;
+            background: #f7f8fb;
+            white-space: pre-wrap;
+        }
         .button-row {
             display: flex;
             flex-wrap: wrap;
@@ -189,8 +199,8 @@
                             <textarea id="projectExperience" name="projectExperience"><%= form.getProjectExperience() == null ? "" : form.getProjectExperience() %></textarea>
                         </div>
                         <div class="field full">
-                            <label for="courseFit">Course Fit</label>
-                            <textarea id="courseFit" name="courseFit"><%= form.getCourseFit() == null ? "" : form.getCourseFit() %></textarea>
+                            <label>Course Fit</label>
+                            <div class="readonly-text"><%= form.getCourseFit() == null || form.getCourseFit().isBlank() ? "No course fit summary generated yet." : form.getCourseFit() %></div>
                         </div>
                     </div>
                 </div>
@@ -204,7 +214,6 @@
                     <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=show_all_information&courseIndex=" + courseIndex) %>">Back to Details</a>
                     <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=personal_centre") %>">Personal Centre</a>
                     <% if (applicationOpen) { %>
-                        <button class="btn" type="submit" name="action" value="save_application_form">Save Draft</button>
                         <button class="btn btn-primary" type="submit" name="action" value="submit_application_form">Submit Application</button>
                     <% } else { %>
                         <button class="btn btn-disabled" type="button">Application Closed</button>
@@ -213,7 +222,7 @@
             </form>
         <% } else { %>
             <div class="course-box">Application form is unavailable.</div>
-            <a class="btn" href="<%= response.encodeURL("TAclasscontroller?action=view_information") %>">Back to List</a>
+            <a class="btn" href="<%= request.getContextPath() %>/ta">Back to List</a>
         <% } %>
     </div>
 </body>

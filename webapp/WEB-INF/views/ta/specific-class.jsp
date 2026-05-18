@@ -6,6 +6,7 @@
     Course course = (Course) request.getAttribute("selectedCourse");
     String courseIndex = (String) request.getAttribute("courseIndex");
     String success = (String) request.getAttribute("success");
+    String error = (String) request.getAttribute("error");
     Boolean applicationOpenAttr = (Boolean) request.getAttribute("applicationOpen");
     boolean applicationOpen = applicationOpenAttr == null || applicationOpenAttr;
     User currentUser = (User) session.getAttribute("user");
@@ -15,12 +16,12 @@
     }
     String listUrl = currentTA == null
             ? request.getContextPath() + "/ta"
-            : response.encodeURL("TAclasscontroller?action=view_information");
+            : request.getContextPath() + "/ta";
 
     boolean hasApplied = false;
     if (course != null && currentTA != null && course.getId() != null) {
-        String resumeDirectory = currentTA.getResumeDirectoryForCourse(course.getId());
-        hasApplied = (resumeDirectory != null && !resumeDirectory.isBlank());
+        String applicationFormId = currentTA.getApplicationFormIdForCourse(course.getId());
+        hasApplied = (applicationFormId != null && !applicationFormId.isBlank());
     }
 %>
 <html>
@@ -54,6 +55,16 @@
             background: #edf7ed;
             color: #256029;
             border: 1px solid #b7dfb9;
+            text-align: center;
+            font-weight: bold;
+        }
+        .error-box {
+            margin-bottom: 24px;
+            padding: 14px 18px;
+            border-radius: 8px;
+            background: #fdeeee;
+            color: #a12626;
+            border: 1px solid #efb7b7;
             text-align: center;
             font-weight: bold;
         }
@@ -98,6 +109,18 @@
         .nav-btn:hover {
             background: #d1d5db;
         }
+        .withdraw-form {
+            display: inline;
+            margin: 0;
+        }
+        .nav-btn-danger {
+            background: #fff4f4;
+            border-color: #f1b4b4;
+            color: #a12626;
+        }
+        .nav-btn-danger:hover {
+            background: #fde1e1;
+        }
         .notice-box {
             margin-top: 18px;
             padding: 14px 18px;
@@ -115,6 +138,9 @@
         <div class="title">Course Information</div>
         <% if (success != null) { %>
             <div class="success-box"><%= success %></div>
+        <% } %>
+        <% if (error != null) { %>
+            <div class="error-box"><%= error %></div>
         <% } %>
         <% if (course != null) { %>
             <div class="detail-box">
@@ -139,6 +165,14 @@
                     <a class="nav-btn" href="<%= response.encodeURL((hasApplied ? "TAclasscontroller?action=edit_application_form&courseId=" + course.getId() : "TAclasscontroller?action=generate_application_form&courseIndex=" + courseIndex)) %>">
                         <%= hasApplied ? "Modify Application Form" : "Generate Standard Form" %>
                     </a>
+                    <% if (hasApplied) { %>
+                        <form class="withdraw-form" action="<%= response.encodeURL("TAclasscontroller") %>" method="post">
+                            <input type="hidden" name="action" value="withdraw_application">
+                            <input type="hidden" name="courseId" value="<%= course.getId() %>">
+                            <input type="hidden" name="returnTo" value="course_detail">
+                            <button class="nav-btn nav-btn-danger" type="submit">Withdraw Application</button>
+                        </form>
+                    <% } %>
                 <% } %>
             </div>
             <% if (!applicationOpen) { %>

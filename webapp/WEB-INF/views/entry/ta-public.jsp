@@ -1,8 +1,12 @@
 <%@ page import="java.util.List" %>
 <%@ page import="model.Course" %>
+<%@ page import="model.TA" %>
+<%@ page import="model.User" %>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%
     List<Course> courseList = (List<Course>) request.getAttribute("courseList");
+    User currentUser = (User) session.getAttribute("user");
+    boolean loggedInAsTa = currentUser instanceof TA;
 %>
 <!DOCTYPE html>
 <html>
@@ -26,7 +30,11 @@
     <nav>
         <a href="<%= request.getContextPath() %>/ta">Jobs</a>
         <a href="<%= request.getContextPath() %>/TAclasscontroller?action=personal_centre">Personal Center</a>
-        <a href="<%= request.getContextPath() %>/ta?action=auth">TA Login/Register</a>
+        <% if (loggedInAsTa) { %>
+            <a href="<%= request.getContextPath() %>/TAclasscontroller?action=logout">Logout</a>
+        <% } else { %>
+            <a href="<%= request.getContextPath() %>/ta?action=auth">TA Login/Register</a>
+        <% } %>
     </nav>
 </header>
 <main>

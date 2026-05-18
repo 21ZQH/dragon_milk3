@@ -122,6 +122,10 @@
         <div class="desc-text">Welcome to the Admin management system!</div>
 
         <div class="btn-group">
+            <a href="<%= response.encodeURL("AdminController?action=manage_mo") %>" class="action-btn">
+                MO Account and Course Assignment
+            </a>
+
             <a href="<%= response.encodeURL("AdminController?action=candidate_management") %>" class="action-btn">
                 Candidate Management
             </a>

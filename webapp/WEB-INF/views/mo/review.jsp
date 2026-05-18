@@ -1,13 +1,20 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ page import="model.Course" %>
+<%@ page import="model.ApplicationForm" %>
 <%@ page import="model.ResumeSubmission" %>
 <%@ page import="model.TA" %>
 <%@ page import="java.util.List" %>
-<%@ page import="java.net.URLEncoder" %>
+<%@ page import="java.util.Map" %>
+<%!
+    private String displayValue(String value) {
+        return value == null || value.isBlank() ? "-" : value;
+    }
+%>
 <%
     List<Course> courseList = (List<Course>) request.getAttribute("courseList");
     Course course = (Course) request.getAttribute("selectedCourse");
     String courseIndex = (String) request.getAttribute("courseIndex");
+    Map<String, ApplicationForm> formsByEmail = (Map<String, ApplicationForm>) request.getAttribute("applicationFormsByEmail");
     boolean reviewPublished = course != null && course.isReviewPublished();
     String saved = request.getParameter("saved");
     String published = request.getParameter("published");
@@ -205,14 +212,11 @@
             text-align: center;
         }
 
-        .resume-link {
-            color: #2f5aa8;
-            font-weight: 600;
-            text-decoration: none;
-        }
-
-        .resume-link:hover {
-            text-decoration: underline;
+        .form-cell {
+            min-width: 220px;
+            line-height: 1.5;
+            color: #26364f;
+            white-space: pre-wrap;
         }
 
         .status-badge {
@@ -356,9 +360,10 @@
                             <th class="pick-cell">Pick</th>
                             <th>Name</th>
                             <th>Email</th>
-                            <th>College</th>
-                            <th>Skill</th>
-                            <th>Resume</th>
+                            <th>Education</th>
+                            <th>Skills</th>
+                            <th>Relevant Experience</th>
+                            <th>Project Experience</th>
                             <th>Status</th>
                         </tr>
                     </thead>
@@ -372,6 +377,10 @@
                                 }
                                 boolean picked = course.isApplicantPicked(applicant.getEmail());
                                 if (reviewPublished && !picked) {
+                                    continue;
+                                }
+                                ApplicationForm applicationForm = formsByEmail == null ? null : formsByEmail.get(applicant.getEmail());
+                                if (applicationForm == null) {
                                     continue;
                                 }
                                 hasVisibleApplicant = true;
@@ -398,33 +407,18 @@
                                         <%= picked ? "checked" : "" %> />
                                 <% } %>
                             </td>
-                            <td><%= applicant.getName() == null || applicant.getName().isBlank() ? "Unnamed TA" : applicant.getName() %></td>
-                            <td><%= applicant.getEmail() == null ? "" : applicant.getEmail() %></td>
-                            <td><%= applicant.getCollege() == null || applicant.getCollege().isBlank() ? "-" : applicant.getCollege() %></td>
-                            <td><%= applicant.getSkill() == null || applicant.getSkill().isBlank() ? "-" : applicant.getSkill() %></td>
-                            <td>
-                                <% if (applicant.getResumeDirectoryForCourse(course.getId()) != null
-                                        && !applicant.getResumeDirectoryForCourse(course.getId()).isBlank()
-                                        && applicant.getEmail() != null
-                                        && !applicant.getEmail().isBlank()) { %>
-                                    <a
-                                        class="resume-link"
-                                        href="<%= response.encodeURL("MOclasscontroller?action=view_resume&courseIndex="
-                                                + courseIndex + "&applicantEmail="
-                                                + URLEncoder.encode(applicant.getEmail(), "UTF-8")) %>"
-                                        target="_blank">
-                                        Open Resume
-                                    </a>
-                                <% } else { %>
-                                    -
-                                <% } %>
-                            </td>
+                            <td><%= applicationForm == null || displayValue(applicationForm.getApplicantName()).equals("-") ? "Unnamed TA" : applicationForm.getApplicantName() %></td>
+                            <td><%= applicationForm == null || displayValue(applicationForm.getEmail()).equals("-") ? applicant.getEmail() : applicationForm.getEmail() %></td>
+                            <td class="form-cell"><%= applicationForm == null ? "-" : displayValue(applicationForm.getEducation()) %></td>
+                            <td class="form-cell"><%= applicationForm == null ? "-" : displayValue(applicationForm.getSkills()) %></td>
+                            <td class="form-cell"><%= applicationForm == null ? "-" : displayValue(applicationForm.getRelevantExperience()) %></td>
+                            <td class="form-cell"><%= applicationForm == null ? "-" : displayValue(applicationForm.getProjectExperience()) %></td>
                             <td><span class="status-badge <%= statusClass %>"><%= statusLabel %></span></td>
                         </tr>
                         <% } %>
                         <% if (!hasVisibleApplicant) { %>
                         <tr>
-                            <td colspan="7" class="empty">
+                            <td colspan="8" class="empty">
                                 <%= reviewPublished ? "No picked applicant has been published for this course." : "No applicant data found for this course." %>
                             </td>
                         </tr>

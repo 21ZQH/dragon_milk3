@@ -86,7 +86,8 @@ class AccountControllerTest {
         when(request.getParameter("password")).thenReturn("secret123");
         when(request.getParameter("role")).thenReturn("");
         when(request.getParameter("email")).thenReturn("mo@example.com");
-        when(request.getSession()).thenReturn(session);
+        when(request.getSession(false)).thenReturn(null);
+        when(request.getSession(true)).thenReturn(session);
         when(request.getContextPath()).thenReturn("/SE");
 
         controller.doPost(request, response);
@@ -100,7 +101,7 @@ class AccountControllerTest {
     }
 
     @Test
-    void taLoginRedirectsThroughTaControllerHome() throws Exception {
+    void taLoginRedirectsToUnifiedTaHome() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
         StoreTestSupport.writeLines(usersFile, "Alice Zhang,secret123,TA,alice@example.com");
 
@@ -114,7 +115,8 @@ class AccountControllerTest {
         when(request.getParameter("password")).thenReturn("secret123");
         when(request.getParameter("role")).thenReturn("TA");
         when(request.getParameter("email")).thenReturn("alice@example.com");
-        when(request.getSession()).thenReturn(session);
+        when(request.getSession(false)).thenReturn(null);
+        when(request.getSession(true)).thenReturn(session);
         when(request.getContextPath()).thenReturn("/SE");
 
         controller.doPost(request, response);
@@ -124,7 +126,38 @@ class AccountControllerTest {
                         && "TA".equals(((User) value).getRole())
                         && "Alice Zhang".equals(((User) value).getName())));
         verify(session).setAttribute("username", "Alice Zhang");
-        verify(response).sendRedirect("/SE/TAclasscontroller?action=home");
+        verify(response).sendRedirect("/SE/ta");
+    }
+
+    @Test
+    void successfulLoginInvalidatesPreviousSessionBeforeStoringUser() throws Exception {
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(usersFile, "Alice Zhang,secret123,TA,alice@example.com");
+
+        AccountController controller = new AccountController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession oldSession = mock(HttpSession.class);
+        HttpSession newSession = mock(HttpSession.class);
+
+        when(request.getParameter("action")).thenReturn("Login");
+        when(request.getParameter("name")).thenReturn("");
+        when(request.getParameter("password")).thenReturn("secret123");
+        when(request.getParameter("role")).thenReturn("TA");
+        when(request.getParameter("email")).thenReturn("alice@example.com");
+        when(request.getSession(false)).thenReturn(oldSession);
+        when(request.getSession(true)).thenReturn(newSession);
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doPost(request, response);
+
+        verify(oldSession).invalidate();
+        verify(newSession).setAttribute(eq("user"), argThat(value ->
+                value instanceof User
+                        && "TA".equals(((User) value).getRole())
+                        && "Alice Zhang".equals(((User) value).getName())));
+        verify(newSession).setAttribute("username", "Alice Zhang");
+        verify(response).sendRedirect("/SE/ta");
     }
 
     @Test

@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.file.Path;
 
 import model.Mo;
+import model.Course;
 import model.TA;
 import model.User;
 import org.junit.jupiter.api.AfterEach;
@@ -78,11 +79,16 @@ class AccountServiceImplTest {
 
     @Test
     void builtInMoAndAdminAccountsCanBeSeededAndLoggedIn() {
+        StoreTestSupport.useCourseStore(tempDir);
         StoreTestSupport.useUserStore(tempDir);
 
         service.ensureBuiltInAccounts();
 
-        assertInstanceOf(Mo.class, service.loginBuiltInMo("mo1@bupt.edu.cn", "mo123456"));
+        Mo mo1 = (Mo) service.loginBuiltInMo("mo1@bupt.edu.cn", "mo123456");
+        assertInstanceOf(Mo.class, mo1);
+        assertEquals(2, mo1.getOwnedCourses().size());
+        assertEquals("Software Engineering", mo1.getOwnedCourses().get(0).getCourseName());
+        assertTrue(mo1.getOwnedCourses().stream().noneMatch(Course::isRecruitmentPublished));
         assertInstanceOf(Mo.class, service.loginBuiltInMo("mo2@bupt.edu.cn", "mo223456"));
         assertInstanceOf(Mo.class, service.loginBuiltInMo("mo3@bupt.edu.cn", "mo323456"));
         assertInstanceOf(Mo.class, service.loginBuiltInMo("mo4@bupt.edu.cn", "mo423456"));

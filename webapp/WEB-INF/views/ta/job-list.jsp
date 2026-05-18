@@ -145,7 +145,7 @@
             %>
         </div>
         <div class="pagination">
-            <a class="back-inline" href="<%= response.encodeURL("TAclasscontroller?action=home") %>">Back</a>
+            <a class="back-inline" href="<%= request.getContextPath() %>/ta">Back</a>
             <% if (page_1 > 1) { %>
                 <a href="<%= response.encodeURL("TAclasscontroller?action=view_information&page=" + (page_1 - 1)) %>">&laquo; Prev</a>
             <% } %>

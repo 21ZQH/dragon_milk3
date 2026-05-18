@@ -25,7 +25,7 @@
     <h1><%= title %></h1>
     <form action="<%= request.getContextPath() %>/account" method="post">
         <input type="hidden" name="action" value="<%= action %>">
-        <input type="email" name="email" placeholder="Email" required>
+        <input type="text" name="email" placeholder="Account" required>
         <input type="password" name="password" placeholder="Password" required>
         <button type="submit">Log in</button>
     </form>

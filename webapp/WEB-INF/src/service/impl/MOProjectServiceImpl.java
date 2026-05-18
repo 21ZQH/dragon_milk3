@@ -168,19 +168,18 @@ public class MOProjectServiceImpl implements MOProjectService {
             if (applicant == null || applicant.getEmail() == null || applicant.getEmail().isBlank()) {
                 continue;
             }
-            String resumeDirectory = applicant.getResumeDirectoryForCourse(course.getId());
-            if ((resumeDirectory == null || resumeDirectory.isBlank()) && i < course.getApplicantResumes().size()) {
-                resumeDirectory = course.getApplicantResumes().get(i);
+            String applicationFormId = applicant.getApplicationFormIdForCourse(course.getId());
+            if ((applicationFormId == null || applicationFormId.isBlank()) && i < course.getApplicantFormIds().size()) {
+                applicationFormId = course.getApplicantFormIds().get(i);
             }
-            if (resumeDirectory == null || resumeDirectory.isBlank()) {
+            if (applicationFormId == null || applicationFormId.isBlank()) {
                 continue;
             }
             int status = course.isApplicantPicked(applicant.getEmail())
                     ? ResumeSubmission.STATUS_APPROVED
                     : ResumeSubmission.STATUS_REJECTED;
-            applicant.addClass(course);
-            applicant.addOrUpdateResume(course, resumeDirectory, status, true);
-            course.addApplication(applicant, resumeDirectory);
+            applicant.addOrUpdateApplication(course, applicationFormId, status, true);
+            course.addApplication(applicant, applicationFormId);
             userProfileService.updateAppliedCourseIds(applicant);
         }
     }

@@ -25,6 +25,34 @@ public class UserStore {
         return getTaUsersForCourses(availableCourses);
     }
 
+    public static List<Mo> getMOList() {
+        List<Course> availableCourses = CourseStore.getCourseList();
+        List<Mo> moUsers = new ArrayList<>();
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            return moUsers;
+        }
+
+        try (BufferedReader br = Files.newBufferedReader(filePath)) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                ParsedUserLine parsedLine = parseUserLine(line);
+                if (parsedLine == null || !"Mo".equals(parsedLine.role)) {
+                    continue;
+                }
+
+                User user = buildUser(parsedLine, availableCourses);
+                if (user instanceof Mo mo) {
+                    moUsers.add(mo);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return moUsers;
+    }
+
     public static void saveUser(User user) {
         String line = toLine(user);
         Path filePath = resolveFilePath();
@@ -365,7 +393,6 @@ public class UserStore {
         return ta.getResumeSubmissions().stream()
                 .filter(submission -> submission.getCourse() != null)
                 .map(submission -> submission.getCourse().getId() + "@"
-                        + submission.getResumeDirectory() + "@"
                         + submission.getStatus() + "@"
                         + submission.isReviewUnread())
                 .collect(Collectors.joining("|"));
@@ -394,40 +421,43 @@ public class UserStore {
                 continue;
             }
 
-            String[] parts = mapping.split("@", 4);
-            if (parts.length < 2) {
+            String[] parts = mapping.split("@", 3);
+            if (parts.length < 1) {
                 continue;
             }
 
             String courseId = parts[0];
-            String resumeDirectory = parts[1];
             int status = ResumeSubmission.STATUS_PENDING;
             boolean reviewUnread = false;
 
-            if (courseId == null || courseId.isBlank() || resumeDirectory == null || resumeDirectory.isBlank()) {
+            if (courseId == null || courseId.isBlank()) {
                 continue;
             }
 
-            if (parts.length >= 3) {
+            if (parts.length >= 2) {
                 try {
-                    status = Integer.parseInt(parts[2]);
+                    status = Integer.parseInt(parts[1]);
                 } catch (NumberFormatException ignored) {
                     status = ResumeSubmission.STATUS_PENDING;
                 }
             }
 
-            if (parts.length == 4) {
-                reviewUnread = Boolean.parseBoolean(parts[3]);
+            if (parts.length == 3) {
+                reviewUnread = Boolean.parseBoolean(parts[2]);
             }
 
             for (Course course : availableCourses) {
                 if (courseId.equals(course.getId())) {
-                    submissions.add(new ResumeSubmission(course, resumeDirectory, status, reviewUnread));
+                    submissions.add(new ResumeSubmission(course, buildApplicationFormId(courseId), status, reviewUnread));
                     break;
                 }
             }
         }
         return submissions;
+    }
+
+    private static String buildApplicationFormId(String courseId) {
+        return courseId;
     }
 
     private static String safe(String value) {

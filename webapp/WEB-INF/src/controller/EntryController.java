@@ -1,8 +1,11 @@
 package controller;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,6 +15,7 @@ import service.AccountService;
 import service.CourseService;
 import service.impl.AccountServiceImpl;
 import service.impl.CourseServiceImpl;
+import store.DeadlineStore;
 
 public class EntryController extends HttpServlet {
     private final AccountService accountService;
@@ -49,7 +53,9 @@ public class EntryController extends HttpServlet {
 
     private void showTaEntry(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        List<Course> courses = courseService.getCourseList();
+        List<Course> courses = courseService.getCourseList().stream()
+                .filter(Course::isRecruitmentPublished)
+                .collect(Collectors.toList());
         request.getSession().setAttribute("courseList", courses);
 
         String action = request.getParameter("action");
@@ -62,7 +68,7 @@ public class EntryController extends HttpServlet {
             Course course = getCourseByIndex(courses, request.getParameter("courseIndex"));
             request.setAttribute("selectedCourse", course);
             request.setAttribute("courseIndex", request.getParameter("courseIndex"));
-            request.setAttribute("applicationOpen", true);
+            request.setAttribute("applicationOpen", isApplicationOpen(request));
             request.getRequestDispatcher("/WEB-INF/views/ta/specific-class.jsp").forward(request, response);
             return;
         }
@@ -84,5 +90,21 @@ public class EntryController extends HttpServlet {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private boolean isApplicationOpen(HttpServletRequest request) {
+        LocalDateTime deadline = resolveApplicationDeadline(request);
+        return deadline == null || !LocalDateTime.now().isAfter(deadline);
+    }
+
+    private LocalDateTime resolveApplicationDeadline(HttpServletRequest request) {
+        ServletContext servletContext = request.getServletContext();
+        if (servletContext != null) {
+            Object deadline = servletContext.getAttribute("applicationDeadline");
+            if (deadline instanceof LocalDateTime localDateTime) {
+                return localDateTime;
+            }
+        }
+        return DeadlineStore.getDeadline();
     }
 }

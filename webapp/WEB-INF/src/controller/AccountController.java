@@ -8,6 +8,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import model.User;
 import service.AccountService;
 import service.impl.AccountServiceImpl;
@@ -141,10 +142,16 @@ public class AccountController extends HttpServlet {
     }
 
     private void storeAuthenticatedUser(HttpServletRequest request, User user) {
-        request.getSession().setAttribute("user", user);
+        HttpSession oldSession = request.getSession(false);
+        if (oldSession != null) {
+            oldSession.invalidate();
+        }
+
+        HttpSession session = request.getSession(true);
+        session.setAttribute("user", user);
         String username = user.getName();
         if (username != null && !username.trim().isEmpty()) {
-            request.getSession().setAttribute("username", username.trim());
+            session.setAttribute("username", username.trim());
         }
     }
 
@@ -174,7 +181,7 @@ public class AccountController extends HttpServlet {
         }else if ("Admin".equalsIgnoreCase(role)) {
             response.sendRedirect(request.getContextPath() + "/AdminController?action=dashboard");
         }else {
-            response.sendRedirect(request.getContextPath() + "/TAclasscontroller?action=home");
+            response.sendRedirect(request.getContextPath() + "/ta");
         }
     }
 }
