@@ -16,21 +16,43 @@ import model.Mo;
 import repository.UserRepository;
 import repository.impl.TxtUserRepositoryImpl;
 import service.ApplicationReviewService;
+import service.CourseService;
+import service.DeadlineService;
 import service.impl.ApplicationReviewServiceImpl;
-import store.CourseStore;
-import store.DeadlineStore;
+import service.impl.CourseServiceImpl;
+import service.impl.DeadlineServiceImpl;
 
 public class MOClassController extends HttpServlet {
     private final ApplicationReviewService applicationReviewService;
     private final UserRepository userRepository;
+    private final CourseService courseService;
+    private final DeadlineService deadlineService;
 
     public MOClassController() {
-        this(new ApplicationReviewServiceImpl(), new TxtUserRepositoryImpl());
+        this(
+                new ApplicationReviewServiceImpl(),
+                new TxtUserRepositoryImpl(),
+                new CourseServiceImpl(),
+                new DeadlineServiceImpl());
     }
 
     MOClassController(ApplicationReviewService applicationReviewService, UserRepository userRepository) {
+        this(
+                applicationReviewService,
+                userRepository,
+                new CourseServiceImpl(),
+                new DeadlineServiceImpl());
+    }
+
+    MOClassController(
+            ApplicationReviewService applicationReviewService,
+            UserRepository userRepository,
+            CourseService courseService,
+            DeadlineService deadlineService) {
         this.applicationReviewService = applicationReviewService;
         this.userRepository = userRepository;
+        this.courseService = courseService;
+        this.deadlineService = deadlineService;
     }
 
     @Override
@@ -111,7 +133,7 @@ public class MOClassController extends HttpServlet {
             updatedCourse.setPickedApplicantEmails(assignedCourse.getPickedApplicantEmails());
             updatedCourse.setReviewPublished(assignedCourse.isReviewPublished());
             updatedCourse.setRecruitmentPublished(true);
-            CourseStore.updateCourse(updatedCourse);
+            courseService.updateCourse(updatedCourse);
             Mo mo = getCurrentMo(request);
             if (mo != null) {
                 mo.replaceOwnedCourse(updatedCourse);
@@ -286,7 +308,6 @@ public class MOClassController extends HttpServlet {
         try {
             int courseIndex = Integer.parseInt(courseIndexParam);
 
-            String courseName = request.getParameter("courseName");
             String jobTitle = request.getParameter("jobTitle");
             String workingHours = request.getParameter("workingHours");
             String jobDescription = request.getParameter("jobDescription");
@@ -313,7 +334,7 @@ public class MOClassController extends HttpServlet {
             updatedCourse.setReviewPublished(oldCourse.isReviewPublished());
             updatedCourse.setRecruitmentPublished(true);
 
-            CourseStore.updateCourse(updatedCourse);
+            courseService.updateCourse(updatedCourse);
             Mo mo = getCurrentMo(request);
             if (mo != null) {
                 mo.replaceOwnedCourse(updatedCourse);
@@ -417,7 +438,7 @@ public class MOClassController extends HttpServlet {
     private List<Course> getCurrentMoCourseList(HttpServletRequest request) {
         Mo mo = getCurrentMo(request);
         if (mo != null) {
-            List<Course> allCourses = CourseStore.getCourseList();
+            List<Course> allCourses = courseService.getCourseList();
             List<Course> freshOwnedCourses = new ArrayList<>();
             for (Course ownedCourse : mo.getOwnedCourses()) {
                 if (ownedCourse == null || ownedCourse.getId() == null) {
@@ -506,7 +527,7 @@ public class MOClassController extends HttpServlet {
 
     private boolean isMoModifyOpen(HttpServletRequest request) {
         LocalDateTime deadline = resolveMoModifyDeadline(request);
-        return deadline == null || !LocalDateTime.now().isAfter(deadline);
+        return deadlineService.isMoModifyOpen(deadline);
     }
 
     private LocalDateTime resolveMoModifyDeadline(HttpServletRequest request) {
@@ -517,7 +538,7 @@ public class MOClassController extends HttpServlet {
                 return localDateTime;
             }
         }
-        return DeadlineStore.getMoModifyDeadline();
+        return deadlineService.getMoModifyDeadline();
     }
 
     private void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -534,7 +555,7 @@ public class MOClassController extends HttpServlet {
 
     private boolean isReviewStageOpen(HttpServletRequest request) {
         LocalDateTime deadline = resolveApplicationDeadline(request);
-        return deadline == null || LocalDateTime.now().isAfter(deadline);
+        return deadlineService.isReviewStageOpen(deadline);
     }
 
     private LocalDateTime resolveApplicationDeadline(HttpServletRequest request) {
@@ -545,7 +566,7 @@ public class MOClassController extends HttpServlet {
                 return localDateTime;
             }
         }
-        return DeadlineStore.getDeadline();
+        return deadlineService.getApplicationDeadline();
     }
 
     private void redirectReviewLocked(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -560,5 +581,3 @@ public class MOClassController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=dashboard&profileIncomplete=1");
     }
 }
-
-
