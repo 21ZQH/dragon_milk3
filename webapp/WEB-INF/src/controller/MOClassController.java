@@ -20,27 +20,56 @@ import service.impl.ApplicationReviewServiceImpl;
 import service.impl.CourseServiceImpl;
 import service.impl.MOProjectServiceImpl;
 import service.impl.UserProfileServiceImpl;
-import store.DeadlineStore;
+import service.CourseService;
+import service.DeadlineService;
+import service.impl.DeadlineServiceImpl;
 
 public class MOClassController extends HttpServlet {
     private final ApplicationReviewService applicationReviewService;
     private final UserRepository userRepository;
+    private final CourseService courseService;
+    private final DeadlineService deadlineService;
     private final MOProjectService moProjectService;
 
     public MOClassController() {
-        this(new ApplicationReviewServiceImpl(), new TxtUserRepositoryImpl(),
-                new MOProjectServiceImpl(new CourseServiceImpl(), new UserProfileServiceImpl()));
+        this(
+                new ApplicationReviewServiceImpl(),
+                new TxtUserRepositoryImpl(),
+                new CourseServiceImpl(),
+                new DeadlineServiceImpl());
     }
 
     MOClassController(ApplicationReviewService applicationReviewService, UserRepository userRepository) {
-        this(applicationReviewService, userRepository,
-                new MOProjectServiceImpl(new CourseServiceImpl(), new UserProfileServiceImpl()));
+        this(
+                applicationReviewService,
+                userRepository,
+                new CourseServiceImpl(),
+                new DeadlineServiceImpl());
     }
 
-    MOClassController(ApplicationReviewService applicationReviewService, UserRepository userRepository,
+    MOClassController(
+            ApplicationReviewService applicationReviewService,
+            UserRepository userRepository,
+            CourseService courseService,
+            DeadlineService deadlineService) {
+        this(
+                applicationReviewService,
+                userRepository,
+                courseService,
+                deadlineService,
+                new MOProjectServiceImpl(courseService, new UserProfileServiceImpl()));
+    }
+
+    MOClassController(
+            ApplicationReviewService applicationReviewService,
+            UserRepository userRepository,
+            CourseService courseService,
+            DeadlineService deadlineService,
             MOProjectService moProjectService) {
         this.applicationReviewService = applicationReviewService;
         this.userRepository = userRepository;
+        this.courseService = courseService;
+        this.deadlineService = deadlineService;
         this.moProjectService = moProjectService;
     }
 
@@ -463,7 +492,7 @@ public class MOClassController extends HttpServlet {
 
     private boolean isMoModifyOpen(HttpServletRequest request) {
         LocalDateTime deadline = resolveMoModifyDeadline(request);
-        return deadline == null || !LocalDateTime.now().isAfter(deadline);
+        return deadlineService.isMoModifyOpen(deadline);
     }
 
     private LocalDateTime resolveMoModifyDeadline(HttpServletRequest request) {
@@ -474,7 +503,7 @@ public class MOClassController extends HttpServlet {
                 return localDateTime;
             }
         }
-        return DeadlineStore.getMoModifyDeadline();
+        return deadlineService.getMoModifyDeadline();
     }
 
     private void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -491,7 +520,7 @@ public class MOClassController extends HttpServlet {
 
     private boolean isReviewStageOpen(HttpServletRequest request) {
         LocalDateTime deadline = resolveApplicationDeadline(request);
-        return deadline == null || LocalDateTime.now().isAfter(deadline);
+        return deadlineService.isReviewStageOpen(deadline);
     }
 
     private LocalDateTime resolveApplicationDeadline(HttpServletRequest request) {
@@ -502,7 +531,7 @@ public class MOClassController extends HttpServlet {
                 return localDateTime;
             }
         }
-        return DeadlineStore.getDeadline();
+        return deadlineService.getApplicationDeadline();
     }
 
     private void redirectReviewLocked(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -517,5 +546,3 @@ public class MOClassController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=dashboard&profileIncomplete=1");
     }
 }
-
-
