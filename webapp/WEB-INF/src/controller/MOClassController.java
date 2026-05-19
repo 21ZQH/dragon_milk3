@@ -2,7 +2,6 @@ package controller;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 
 import jakarta.servlet.ServletContext;
@@ -16,10 +15,13 @@ import model.Mo;
 import repository.UserRepository;
 import repository.impl.TxtUserRepositoryImpl;
 import service.ApplicationReviewService;
-import service.CourseService;
-import service.DeadlineService;
+import service.MOProjectService;
 import service.impl.ApplicationReviewServiceImpl;
 import service.impl.CourseServiceImpl;
+import service.impl.MOProjectServiceImpl;
+import service.impl.UserProfileServiceImpl;
+import service.CourseService;
+import service.DeadlineService;
 import service.impl.DeadlineServiceImpl;
 
 public class MOClassController extends HttpServlet {
@@ -27,6 +29,7 @@ public class MOClassController extends HttpServlet {
     private final UserRepository userRepository;
     private final CourseService courseService;
     private final DeadlineService deadlineService;
+    private final MOProjectService moProjectService;
 
     public MOClassController() {
         this(
@@ -49,10 +52,25 @@ public class MOClassController extends HttpServlet {
             UserRepository userRepository,
             CourseService courseService,
             DeadlineService deadlineService) {
+        this(
+                applicationReviewService,
+                userRepository,
+                courseService,
+                deadlineService,
+                new MOProjectServiceImpl(courseService, new UserProfileServiceImpl()));
+    }
+
+    MOClassController(
+            ApplicationReviewService applicationReviewService,
+            UserRepository userRepository,
+            CourseService courseService,
+            DeadlineService deadlineService,
+            MOProjectService moProjectService) {
         this.applicationReviewService = applicationReviewService;
         this.userRepository = userRepository;
         this.courseService = courseService;
         this.deadlineService = deadlineService;
+        this.moProjectService = moProjectService;
     }
 
     @Override
@@ -102,45 +120,7 @@ public class MOClassController extends HttpServlet {
         }
 
         if ("publish_course".equals(action)) {
-            if (!isMoModifyOpen(request)) {
-                redirectMoModifyLocked(request, response);
-                return;
-            }
-            if (!isMoProfileComplete(request)) {
-                redirectProfileIncomplete(request, response);
-                return;
-            }
-            List<Course> courseList = getCurrentMoCourseList(request);
-            Course assignedCourse = getCourseByIndex(courseList, request.getParameter("courseIndex"));
-            if (assignedCourse == null) {
-                response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");
-                return;
-            }
-
-            String jobTitle = request.getParameter("jobTitle");
-            String workingHours = request.getParameter("workingHours");
-            String jobDescription = request.getParameter("jobDescription");
-            String jobRequirement = request.getParameter("jobRequirement");
-
-            Course updatedCourse = new Course(
-                    assignedCourse.getId(),
-                    assignedCourse.getCourseName(),
-                    jobTitle,
-                    workingHours,
-                    assignedCourse.getSalary() == null ? "TBD" : assignedCourse.getSalary(),
-                    jobDescription,
-                    jobRequirement);
-            updatedCourse.setPickedApplicantEmails(assignedCourse.getPickedApplicantEmails());
-            updatedCourse.setReviewPublished(assignedCourse.isReviewPublished());
-            updatedCourse.setRecruitmentPublished(true);
-            courseService.updateCourse(updatedCourse);
-            Mo mo = getCurrentMo(request);
-            if (mo != null) {
-                mo.replaceOwnedCourse(updatedCourse);
-                request.getSession().setAttribute("user", mo);
-            }
-            response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex="
-                    + request.getParameter("courseIndex") + "&success=1");
+            publish_course(request, response);
 
         } else if ("save_review_picks".equals(action)) {
             save_review_picks(request, response);
@@ -260,6 +240,39 @@ public class MOClassController extends HttpServlet {
         }
     }
 
+    private void publish_course(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (!isMoModifyOpen(request)) {
+            redirectMoModifyLocked(request, response);
+            return;
+        }
+        if (!isMoProfileComplete(request)) {
+            redirectProfileIncomplete(request, response);
+            return;
+        }
+
+        String courseIndexParam = request.getParameter("courseIndex");
+        List<Course> courseList = getCurrentMoCourseList(request);
+        Course assignedCourse = moProjectService.getCourseByIndex(courseList, courseIndexParam);
+        if (assignedCourse == null) {
+            response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");
+            return;
+        }
+
+        Mo mo = getCurrentMo(request);
+        moProjectService.updateCourse(
+                mo,
+                assignedCourse,
+                assignedCourse.getCourseName(),
+                request.getParameter("jobTitle"),
+                request.getParameter("workingHours"),
+                request.getParameter("jobDescription"),
+                request.getParameter("jobRequirement"));
+        refreshCurrentMoSession(request, mo);
+
+        response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex="
+                + courseIndexParam + "&success=1");
+    }
+
     private void save_course_changes(HttpServletRequest request, HttpServletResponse response)throws IOException, ServletException {
         if (!isMoModifyOpen(request)) {
             List<Course> courseList = getCurrentMoCourseList(request);
@@ -308,6 +321,7 @@ public class MOClassController extends HttpServlet {
         try {
             int courseIndex = Integer.parseInt(courseIndexParam);
 
+            String courseName = request.getParameter("courseName");
             String jobTitle = request.getParameter("jobTitle");
             String workingHours = request.getParameter("workingHours");
             String jobDescription = request.getParameter("jobDescription");
@@ -319,27 +333,16 @@ public class MOClassController extends HttpServlet {
                 return;
             }
 
-            Course oldCourse = courseList.get(courseIndex);
-            String salary = oldCourse.getSalary() == null ? "TBD" : oldCourse.getSalary();
-
-            Course updatedCourse = new Course(
-                oldCourse.getId(),
-                oldCourse.getCourseName(),
-                jobTitle,
-                workingHours,
-                salary,
-                jobDescription,
-                jobRequirement);
-            updatedCourse.setPickedApplicantEmails(oldCourse.getPickedApplicantEmails());
-            updatedCourse.setReviewPublished(oldCourse.isReviewPublished());
-            updatedCourse.setRecruitmentPublished(true);
-
-            courseService.updateCourse(updatedCourse);
             Mo mo = getCurrentMo(request);
-            if (mo != null) {
-                mo.replaceOwnedCourse(updatedCourse);
-                request.getSession().setAttribute("user", mo);
-            }       
+            moProjectService.updateCourse(
+                    mo,
+                    courseList.get(courseIndex),
+                    courseName,
+                    jobTitle,
+                    workingHours,
+                    jobDescription,
+                    jobRequirement);
+            refreshCurrentMoSession(request, mo);
 
             response.sendRedirect(
                 request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex=" + courseIndex + "&success=1");
@@ -438,27 +441,11 @@ public class MOClassController extends HttpServlet {
     private List<Course> getCurrentMoCourseList(HttpServletRequest request) {
         Mo mo = getCurrentMo(request);
         if (mo != null) {
-            List<Course> allCourses = courseService.getCourseList();
-            List<Course> freshOwnedCourses = new ArrayList<>();
-            for (Course ownedCourse : mo.getOwnedCourses()) {
-                if (ownedCourse == null || ownedCourse.getId() == null) {
-                    continue;
-                }
-                for (Course course : allCourses) {
-                    if (ownedCourse.getId().equals(course.getId())) {
-                        freshOwnedCourses.add(course);
-                        break;
-                    }
-                }
-            }
-            mo.setOwnedCourses(freshOwnedCourses);
-            HttpSession session = request.getSession(false);
-            if (session != null) {
-                session.setAttribute("user", mo);
-            }
+            List<Course> freshOwnedCourses = moProjectService.refreshOwnedCourses(mo);
+            refreshCurrentMoSession(request, mo);
             return freshOwnedCourses;
         }
-        return new ArrayList<>();
+        return List.of();
     }
 
     private Course getCourseForReview(HttpServletRequest request) {
@@ -471,45 +458,23 @@ public class MOClassController extends HttpServlet {
     }
 
     private int resolveCourseIndexForReview(HttpServletRequest request, List<Course> courseList) {
-        String courseIndexParam = request.getParameter("courseIndex");
-        if (courseIndexParam == null) {
-            return 0;
-        }
-
-        try {
-            int courseIndex = Integer.parseInt(courseIndexParam);
-            if (courseIndex < 0 || courseIndex >= courseList.size()) {
-                return 0;
-            }
-            return courseIndex;
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-    private Course getCourseByIndex(List<Course> courseList, String courseIndexParam) {
-        if (courseList == null || courseIndexParam == null) {
-            return null;
-        }
-        try {
-            int courseIndex = Integer.parseInt(courseIndexParam);
-            if (courseIndex < 0 || courseIndex >= courseList.size()) {
-                return null;
-            }
-            return courseList.get(courseIndex);
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        return moProjectService.resolveCourseIndexForReview(request.getParameter("courseIndex"), courseList);
     }
 
     private void syncCurrentMoCourse(HttpServletRequest request, Course course) {
         Mo mo = getCurrentMo(request);
-        if (mo == null || course == null) {
+        moProjectService.syncOwnedCourse(mo, course);
+        refreshCurrentMoSession(request, mo);
+    }
+
+    private void refreshCurrentMoSession(HttpServletRequest request, Mo mo) {
+        if (mo == null) {
             return;
         }
-
-        mo.replaceOwnedCourse(course);
-        request.getSession().setAttribute("user", mo);
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.setAttribute("user", mo);
+        }
     }
 
     private void prepareProjectDetailAttributes(HttpServletRequest request, Course selectedCourse, String courseIndex) {

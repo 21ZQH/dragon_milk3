@@ -40,10 +40,18 @@ public class MOProjectServiceImpl implements MOProjectService {
     public Course updateCourse(Mo mo, Course oldCourse, String courseName, String jobTitle, String workingHours,
             String jobDescription, String jobRequirement) {
         String salary = oldCourse.getSalary() == null ? "TBD" : oldCourse.getSalary();
-        Course updatedCourse = new Course(oldCourse.getId(), courseName, jobTitle, workingHours,
+        String resolvedCourseName = courseName == null || courseName.isBlank() ? oldCourse.getCourseName() : courseName;
+        Course updatedCourse = new Course(oldCourse.getId(), resolvedCourseName, jobTitle, workingHours,
                 salary, jobDescription, jobRequirement);
         updatedCourse.setPickedApplicantEmails(oldCourse.getPickedApplicantEmails());
         updatedCourse.setReviewPublished(oldCourse.isReviewPublished());
+        updatedCourse.setRecruitmentPublished(true);
+        for (int i = 0; i < oldCourse.getTaApplicants().size(); i++) {
+            String applicationFormId = i < oldCourse.getApplicantFormIds().size()
+                    ? oldCourse.getApplicantFormIds().get(i)
+                    : null;
+            updatedCourse.addApplication(oldCourse.getTaApplicants().get(i), applicationFormId);
+        }
         courseService.updateCourse(updatedCourse);
         if (mo != null) {
             mo.replaceOwnedCourse(updatedCourse);
