@@ -22,18 +22,28 @@ import model.TA;
 import model.User;
 import repository.UserRepository;
 import repository.impl.TxtUserRepositoryImpl;
-import store.CourseStore;
-import store.DeadlineStore;
+import service.CourseService;
+import service.DeadlineService;
+import service.impl.CourseServiceImpl;
+import service.impl.DeadlineServiceImpl;
 
 public class AdminController extends HttpServlet {
     private final UserRepository userRepository;
+    private final CourseService courseService;
+    private final DeadlineService deadlineService;
 
     public AdminController() {
-        this(new TxtUserRepositoryImpl());
+        this(new TxtUserRepositoryImpl(), new CourseServiceImpl(), new DeadlineServiceImpl());
     }
 
     AdminController(UserRepository userRepository) {
+        this(userRepository, new CourseServiceImpl(), new DeadlineServiceImpl());
+    }
+
+    AdminController(UserRepository userRepository, CourseService courseService, DeadlineService deadlineService) {
         this.userRepository = userRepository;
+        this.courseService = courseService;
+        this.deadlineService = deadlineService;
     }
 
     @Override
@@ -121,7 +131,7 @@ public class AdminController extends HttpServlet {
     private void manage_mo(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setAttribute("moList", userRepository.getMOList());
-        request.setAttribute("courseList", CourseStore.getCourseList());
+        request.setAttribute("courseList", courseService.getCourseList());
         request.getRequestDispatcher("/WEB-INF/views/admin/mo-management.jsp").forward(request, response);
     }
 
@@ -155,7 +165,7 @@ public class AdminController extends HttpServlet {
             LocalTime time = LocalTime.parse(deadlineTime);
             LocalDateTime deadline = LocalDateTime.of(date, time);
 
-            DeadlineStore.saveDeadline(deadline);
+            deadlineService.saveApplicationDeadline(deadline);
             getServletContext().setAttribute("applicationDeadline", deadline);
 
             request.setAttribute("success", "TA resume submission deadline has been saved successfully.");
@@ -185,7 +195,7 @@ public class AdminController extends HttpServlet {
             LocalTime time = LocalTime.parse(deadlineTime);
             LocalDateTime deadline = LocalDateTime.of(date, time);
 
-            DeadlineStore.saveMoModifyDeadline(deadline);
+            deadlineService.saveMoModifyDeadline(deadline);
             getServletContext().setAttribute("moCourseModifyDeadline", deadline);
 
             request.setAttribute("success", "MO course modification deadline has been saved successfully.");
@@ -221,7 +231,7 @@ public class AdminController extends HttpServlet {
             return;
         }
 
-        List<Course> allCourses = CourseStore.getCourseList();
+    List<Course> allCourses = courseService.getCourseList();
         List<Course> assignedCourses = new ArrayList<>();
         for (String courseNameLine : courseNamesText.split("\\R")) {
             String courseName = trimValue(courseNameLine);
@@ -233,7 +243,7 @@ public class AdminController extends HttpServlet {
             if (course == null) {
                 course = new Course("admin-" + UUID.randomUUID(), courseName, "", "", "TBD", "", "");
                 course.setRecruitmentPublished(false);
-                CourseStore.saveCourse(course);
+                courseService.saveCourse(course);
                 allCourses.add(course);
             }
             assignedCourses.add(course);

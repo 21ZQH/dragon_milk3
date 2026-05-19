@@ -1,10 +1,10 @@
-seed-course-se,Software Engineering,,,TBD,,,false,false
-seed-course-db,Database Systems,,,TBD,,,false,false
-seed-course-cn,Communication Networks,,,TBD,,,false,false
-seed-course-sp,Signal Processing,,,TBD,,,false,false
-seed-course-ai,Artificial Intelligence,,,TBD,,,false,false
-seed-course-ml,Machine Learning,,,TBD,,,false,false
-seed-course-ca,Computer Architecture,,,TBD,,,false,false
-seed-course-embedded,Embedded Systems,,,TBD,,,false,false
-seed-course-de,Data Engineering,,,TBD,,,false,false
-seed-course-iot,Internet of Things,,,TBD,,,false,false
+seed-course-se,Software Engineering,,,TBD,,,,false,true
+seed-course-db,Database Systems,,,TBD,,,,false,true
+seed-course-cn,Communication Networks,,,TBD,,,,false,true
+seed-course-sp,Signal Processing,,,TBD,,,,false,true
+seed-course-ai,Artificial Intelligence,,,TBD,,,,false,true
+seed-course-ml,Machine Learning,,,TBD,,,,false,true
+seed-course-ca,Computer Architecture,,,TBD,,,,false,true
+seed-course-embedded,Embedded Systems,,,TBD,,,,false,false
+seed-course-de,Data Engineering,,,TBD,,,,false,false
+seed-course-iot,Internet of Things,,,TBD,,,,false,false
