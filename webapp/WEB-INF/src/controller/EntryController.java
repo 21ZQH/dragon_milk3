@@ -13,21 +13,24 @@ import jakarta.servlet.http.HttpServletResponse;
 import model.Course;
 import service.AccountService;
 import service.CourseService;
+import service.DeadlineService;
 import service.impl.AccountServiceImpl;
 import service.impl.CourseServiceImpl;
-import store.DeadlineStore;
+import service.impl.DeadlineServiceImpl;
 
 public class EntryController extends HttpServlet {
     private final AccountService accountService;
     private final CourseService courseService;
+    private final DeadlineService deadlineService;
 
     public EntryController() {
-        this(new AccountServiceImpl(), new CourseServiceImpl());
+        this(new AccountServiceImpl(), new CourseServiceImpl(), new DeadlineServiceImpl());
     }
 
-    EntryController(AccountService accountService, CourseService courseService) {
+    EntryController(AccountService accountService, CourseService courseService, DeadlineService deadlineService) {
         this.accountService = accountService;
         this.courseService = courseService;
+        this.deadlineService = deadlineService; 
     }
 
     @Override
@@ -105,6 +108,6 @@ public class EntryController extends HttpServlet {
                 return localDateTime;
             }
         }
-        return DeadlineStore.getDeadline();
+        return deadlineService.getApplicationDeadline();
     }
 }
