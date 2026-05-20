@@ -170,6 +170,7 @@
             font-size: 0.98em;
         }
     </style>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/role-style.css">
 </head>
 <body>
 
@@ -267,3 +268,4 @@
 
 </body>
 </html>
+

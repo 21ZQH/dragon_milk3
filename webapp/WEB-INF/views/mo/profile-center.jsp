@@ -100,6 +100,7 @@
             window.location.href = '<%= response.encodeURL("MOclasscontroller?action=personal_center") %>';
         }
     </script>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/role-style.css">
 </head>
 <body>
     <div class="main-box">
@@ -141,3 +142,4 @@
     </div>
 </body>
 </html>
+

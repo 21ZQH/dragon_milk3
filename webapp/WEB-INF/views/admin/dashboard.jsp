@@ -11,139 +11,185 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Admin Management System</title>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/role-style.css">
     <style>
         body {
-            background: #f7f7f9;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            margin: 0;
-            padding: 40px 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
+            margin: 0 !important;
+            background: #f4f6f8 !important;
+            color: #1f2a44 !important;
+            font-family: Arial, sans-serif !important;
         }
 
-        .container {
+        .dashboard-header {
             background: #fff;
-            width: 100%;
-            max-width: 800px;
-            border-radius: 20px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-            border: 2px solid #22223b;
-            padding: 40px 50px;
-            box-sizing: border-box;
+            border-bottom: 1px solid #d7dee8;
+            padding: 18px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
         }
 
-        .page-title {
-            font-size: 2.2em;
+        .dashboard-brand {
+            color: #1f2a44;
+            font-size: 18px;
             font-weight: 700;
-            color: #22223b;
-            margin-bottom: 5px;
-            border-bottom: 2px solid #22223b;
-            padding-bottom: 15px;
+            text-decoration: none;
         }
 
-        .page-subtitle {
-            color: #3b5998;
-            font-size: 1.1em;
-            font-style: italic;
-            margin-bottom: 40px;
-            margin-top: 10px;
+        .dashboard-nav {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 18px;
+            flex-wrap: wrap;
         }
 
-        .welcome-text {
-            font-size: 3em;
-            font-weight: 700;
-            color: #22223b;
-            text-align: center;
-            margin-bottom: 15px;
+        .dashboard-nav a {
+            color: #23395d !important;
+            font-size: 17px !important;
+            font-weight: 700 !important;
+            text-decoration: none !important;
         }
 
-        .desc-text {
-            text-align: center;
-            color: #444;
-            font-size: 1.2em;
-            margin-bottom: 50px;
+        .dashboard-main {
+            max-width: 860px;
+            margin: 32px auto 56px;
+            padding: 0 20px;
         }
 
-        .btn-group {
+        .dashboard-title {
+            color: #1f2a44 !important;
+            font-size: 34px !important;
+            font-weight: 700 !important;
+            line-height: 1.2 !important;
+            text-align: left !important;
+            margin: 0 0 8px !important;
+        }
+
+        .dashboard-welcome {
+            color: #5f6f85;
+            font-size: 16px;
+            margin: 0 0 26px;
+        }
+
+        .dashboard-list {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 25px;
+            gap: 14px;
         }
 
-        .action-btn {
-            display: block;
-            width: 80%;
-            padding: 20px 0;
-            font-size: 1.35em;
+        .dashboard-card {
+            display: block !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            background: #fff !important;
+            border: 1px solid #d7dee8 !important;
+            border-radius: 8px !important;
+            padding: 20px 24px !important;
+            color: inherit !important;
+            text-align: left !important;
+            text-decoration: none !important;
+            box-shadow: none !important;
+        }
+
+        .dashboard-card:hover {
+            border-color: #23395d !important;
+            background: #fff !important;
+        }
+
+        .dashboard-card-title {
+            color: #1f2a44;
+            font-size: 20px;
             font-weight: 700;
-            color: #22223b;
-            background: #fff;
-            border: 3px solid #22223b;
-            border-radius: 12px;
-            text-align: center;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(34,34,59,0.05);
+            margin-bottom: 8px;
         }
 
-        .action-btn:hover {
-            background: #22223b;
-            color: #fff;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(34,34,59,0.2);
+        .dashboard-card-meta {
+            color: #5f6f85;
+            font-size: 16px;
+            line-height: 1.5;
         }
 
         .notice-box {
-            color: #a12626;
-            background: #fdeeee;
-            border: 1px solid #efb7b7;
-            padding: 10px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 18px !important;
+            padding: 12px 16px !important;
+            border-radius: 8px !important;
+            background: #fdeeee !important;
+            color: #a12626 !important;
+            border: 1px solid #efb7b7 !important;
+            text-align: center !important;
+            font-weight: 700 !important;
+        }
+
+        @media (max-width: 720px) {
+            .dashboard-header {
+                align-items: flex-start;
+                flex-direction: column;
+                padding: 16px 20px;
+            }
+
+            .dashboard-nav {
+                justify-content: flex-start;
+                gap: 12px;
+            }
+
+            .dashboard-main {
+                margin-top: 26px;
+            }
+
+            .dashboard-title {
+                font-size: 28px !important;
+            }
         }
     </style>
 </head>
 <body>
+<header class="dashboard-header">
+    <a class="dashboard-brand" href="<%= response.encodeURL("AdminController?action=dashboard") %>">Admin Management</a>
+    <nav class="dashboard-nav">
+        <a href="<%= response.encodeURL("AdminController?action=manage_mo") %>">MO Accounts</a>
+        <a href="<%= response.encodeURL("AdminController?action=candidate_management") %>">Candidates</a>
+        <a href="<%= response.encodeURL("AdminController?action=logout") %>">Log out</a>
+    </nav>
+</header>
 
-    <div class="container">
-        <div class="page-title">Admin management system</div>
+<main class="dashboard-main">
+    <h1 class="dashboard-title">Admin Dashboard</h1>
+    <p class="dashboard-welcome">Hi, <%= username %></p>
 
-        <% if (notice != null) { %>
-            <div class="notice-box"><%= notice %></div>
-        <% } %>
+    <% if (notice != null) { %>
+        <div class="notice-box"><%= notice %></div>
+    <% } %>
 
-        <div class="welcome-text">Hi, <%= username %></div>
-        <div class="desc-text">Welcome to the Admin management system!</div>
+    <div class="dashboard-list">
+        <a href="<%= response.encodeURL("AdminController?action=manage_mo") %>" class="dashboard-card">
+            <div class="dashboard-card-title">MO Account and Course Assignment</div>
+            <div class="dashboard-card-meta">Create MO accounts and assign course ownership.</div>
+        </a>
 
-        <div class="btn-group">
-            <a href="<%= response.encodeURL("AdminController?action=manage_mo") %>" class="action-btn">
-                MO Account and Course Assignment
-            </a>
+        <a href="<%= response.encodeURL("AdminController?action=candidate_management") %>" class="dashboard-card">
+            <div class="dashboard-card-title">Candidate Management</div>
+            <div class="dashboard-card-meta">View registered TA candidates, their profiles, applications, and resumes.</div>
+        </a>
 
-            <a href="<%= response.encodeURL("AdminController?action=candidate_management") %>" class="action-btn">
-                Candidate Management
-            </a>
+        <a href="<%= response.encodeURL("AdminController?action=set_deadline") %>" class="dashboard-card">
+            <div class="dashboard-card-title">TA Application Deadline</div>
+            <div class="dashboard-card-meta">Set when TAs can no longer submit or modify applications.</div>
+        </a>
 
-            <a href="<%= response.encodeURL("AdminController?action=set_deadline") %>" class="action-btn">
-                Set the deadline for TA to upload their resume
-            </a>
+        <a href="<%= response.encodeURL("AdminController?action=set_mo_deadline") %>" class="dashboard-card">
+            <div class="dashboard-card-title">MO Course Modification Deadline</div>
+            <div class="dashboard-card-meta">Set when MOs can no longer publish or edit course recruitment information.</div>
+        </a>
 
-            <a href="<%= response.encodeURL("AdminController?action=set_mo_deadline") %>" class="action-btn">
-                Set the deadline for MO to modify the course information
-            </a>
-
-            <a href="<%= response.encodeURL("AdminController?action=logout") %>" class="action-btn">
-                Log out
-            </a>
-        </div>
-
+        <a href="<%= response.encodeURL("AdminController?action=logout") %>" class="dashboard-card">
+            <div class="dashboard-card-title">Log out</div>
+            <div class="dashboard-card-meta">Leave the Admin workspace and return to the Admin login page.</div>
+        </a>
     </div>
-
+</main>
 </body>
 </html>

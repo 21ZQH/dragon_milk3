@@ -1,4 +1,4 @@
-﻿<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%
     model.User currentUser = (model.User) session.getAttribute("user");
     String username = "Guest";
@@ -13,228 +13,273 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <title>Personal Centre</title>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/role-style.css">
     <style>
         body {
-            background: #f7f7f9;
-            font-family: 'Segoe UI', Arial, sans-serif;
-            margin: 0;
-            padding: 40px 0;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: 100vh;
+            margin: 0 !important;
+            background: #f4f6f8 !important;
+            color: #1f2a44 !important;
+            font-family: Arial, sans-serif !important;
         }
 
-        .container {
+        .dashboard-header {
             background: #fff;
-            width: 100%;
-            max-width: 800px;
-            border-radius: 20px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
-            border: 2px solid #22223b;
-            padding: 40px 50px;
-            box-sizing: border-box;
-        }
-
-        .top-line {
+            border-bottom: 1px solid #d7dee8;
+            padding: 18px 32px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-            margin-bottom: 10px;
+            gap: 18px;
         }
 
-        .page-title {
-            font-size: 2.2em;
+        .dashboard-brand {
+            color: #1f2a44;
+            font-size: 18px;
             font-weight: 700;
-            color: #22223b;
-            margin: 0;
-            border-bottom: 2px solid #22223b;
-            padding-bottom: 15px;
-            flex: 1 1 auto;
-        }
-
-        .back-link {
-            display: inline-block;
             text-decoration: none;
-            color: #22223b;
-            font-weight: 600;
-            border: 2px solid #22223b;
-            padding: 10px 16px;
-            border-radius: 12px;
-            background: #fff;
-            transition: all 0.2s ease;
         }
 
-        .back-link:hover {
-            background: #22223b;
-            color: #fff;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 10px rgba(34,34,59,0.12);
+        .dashboard-nav {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 18px;
+            flex-wrap: wrap;
         }
 
-        .welcome-text {
-            font-size: 3em;
-            font-weight: 700;
-            color: #22223b;
-            text-align: center;
-            margin: 40px 0 50px;
+        .dashboard-nav a,
+        .dashboard-nav button {
+            min-width: 0 !important;
+            min-height: 0 !important;
+            width: auto !important;
+            padding: 0 !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            color: #23395d !important;
+            font-size: 17px !important;
+            font-weight: 700 !important;
+            text-decoration: none !important;
+            box-shadow: none !important;
         }
 
-        .btn-group {
+        .dashboard-nav a:hover,
+        .dashboard-nav button:hover {
+            color: #1f2a44 !important;
+            background: transparent !important;
+        }
+
+        .dashboard-nav .is-disabled {
+            color: #9ea3b0 !important;
+            cursor: pointer !important;
+        }
+
+        .dashboard-main {
+            max-width: 860px;
+            margin: 32px auto 56px;
+            padding: 0 20px;
+        }
+
+        .dashboard-title {
+            color: #1f2a44 !important;
+            font-size: 34px !important;
+            font-weight: 700 !important;
+            line-height: 1.2 !important;
+            text-align: left !important;
+            margin: 0 0 8px !important;
+        }
+
+        .dashboard-welcome {
+            color: #5f6f85;
+            font-size: 16px;
+            margin: 0 0 26px;
+        }
+
+        .dashboard-list {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            gap: 25px;
+            gap: 14px;
         }
 
-        .action-btn {
-            display: block;
-            width: 80%;
-            padding: 20px 0;
-            font-size: 1.5em;
+        .dashboard-card {
+            display: block !important;
+            width: 100% !important;
+            min-height: 0 !important;
+            box-sizing: border-box !important;
+            background: #fff !important;
+            border: 1px solid #d7dee8 !important;
+            border-radius: 8px !important;
+            padding: 20px 24px !important;
+            color: inherit !important;
+            text-align: left !important;
+            text-decoration: none !important;
+            box-shadow: none !important;
+            cursor: pointer !important;
+        }
+
+        .dashboard-card:hover {
+            border-color: #23395d !important;
+            background: #fff !important;
+        }
+
+        .dashboard-card-title {
+            color: #1f2a44;
+            font-size: 20px;
             font-weight: 700;
-            color: #22223b;
-            background: #fff;
-            border: 3px solid #22223b;
-            border-radius: 12px;
-            text-align: center;
-            text-decoration: none;
-            transition: all 0.2s ease;
-            box-shadow: 0 2px 8px rgba(34,34,59,0.05);
-            cursor: pointer;
-            font-family: inherit;
+            margin-bottom: 8px;
         }
 
-        .action-btn:hover {
-            background: #22223b;
-            color: #fff;
-            transform: translateY(-3px);
-            box-shadow: 0 6px 16px rgba(34,34,59,0.2);
+        .dashboard-card-meta {
+            color: #5f6f85;
+            font-size: 16px;
+            line-height: 1.5;
         }
 
-        .action-btn.locked {
-            color: #aeb4c3;
-            border-color: #aeb4c3;
-            background: #fff;
-            box-shadow: none;
+        .dashboard-card-disabled,
+        .dashboard-card-disabled:hover {
+            border-color: #d7dee8 !important;
+            background: #fff !important;
         }
 
-        .action-btn.locked:hover {
-            background: #fff;
-            color: #aeb4c3;
-            transform: none;
-            box-shadow: none;
+        .dashboard-card-disabled .dashboard-card-title {
+            color: #9ea3b0;
         }
 
         .modal-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.35);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 999;
+            position: fixed !important;
+            inset: 0 !important;
+            background: rgba(0, 0, 0, 0.35) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 999 !important;
         }
 
         .hidden {
-            display: none;
+            display: none !important;
         }
 
         .modal-box {
-            width: 520px;
-            max-width: calc(100vw - 40px);
-            background: #fff;
-            border: 2px solid #22223b;
-            border-radius: 16px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-            padding: 28px 26px;
+            width: 460px !important;
+            max-width: calc(100vw - 40px) !important;
+            background: #fff !important;
+            border: 2px solid #222 !important;
+            border-radius: 12px !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2) !important;
+            padding: 20px !important;
         }
 
         .modal-title {
-            font-size: 1.8em;
-            font-weight: 700;
-            color: #22223b;
-            margin-bottom: 18px;
+            color: #2d3651 !important;
+            font-size: 1.25em !important;
+            font-weight: 700 !important;
+            margin-bottom: 10px !important;
         }
 
         .modal-text {
-            color: #444;
-            font-size: 1.1em;
-            line-height: 1.7;
-            margin-bottom: 26px;
+            color: #444 !important;
+            line-height: 1.6 !important;
+            margin-bottom: 16px !important;
         }
 
         .modal-actions {
-            display: flex;
-            justify-content: center;
+            display: flex !important;
+            justify-content: center !important;
+            gap: 10px !important;
+            flex-wrap: wrap !important;
         }
 
-        .modal-btn {
-            min-width: 160px;
-            padding: 14px 26px;
-            border-radius: 12px;
-            border: 3px solid #22223b;
-            background: #fff;
-            color: #22223b;
-            font-size: 1.2em;
-            font-weight: 700;
-            cursor: pointer;
-        }
+        @media (max-width: 720px) {
+            .dashboard-header {
+                align-items: flex-start;
+                flex-direction: column;
+                padding: 16px 20px;
+            }
 
-        .modal-btn:hover {
-            background: #22223b;
-            color: #fff;
+            .dashboard-nav {
+                justify-content: flex-start;
+                gap: 12px;
+            }
+
+            .dashboard-main {
+                margin-top: 26px;
+            }
+
+            .dashboard-title {
+                font-size: 28px !important;
+            }
         }
     </style>
 </head>
 <body>
-
-    <div class="container">
-        <div class="top-line">
-            <div class="page-title">Personal Centre</div>
-            <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=dashboard") %>">Back</a>
-        </div>
-
-        <div class="welcome-text">Hi, <%= username %></div>
-
-        <div class="btn-group">
-            <a href="<%= response.encodeURL("MOclasscontroller?action=profile_center") %>" class="action-btn">Edit personal information</a>
-            <a href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>" class="action-btn">My project</a>
-
-            <% if (reviewStageOpen) { %>
-                <a href="<%= response.encodeURL("MOclasscontroller?action=review_candidates") %>" class="action-btn">Review</a>
-            <% } else { %>
-                <button type="button" class="action-btn locked" onclick="openReviewLockedModal()">Review</button>
-            <% } %>
-        </div>
-    </div>
-
-    <div id="reviewLockedModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reviewLockedTitle">
-        <div class="modal-box">
-            <div class="modal-title" id="reviewLockedTitle">Review Not Available</div>
-            <div class="modal-text">The application deadline has not passed yet.</div>
-            <div class="modal-actions">
-                <button type="button" class="modal-btn" onclick="closeReviewLockedModal()">OK</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function openReviewLockedModal() {
-            document.getElementById("reviewLockedModal").classList.remove("hidden");
-        }
-
-        function closeReviewLockedModal() {
-            document.getElementById("reviewLockedModal").classList.add("hidden");
-        }
-
-        <% if (autoOpenReviewLocked) { %>
-        openReviewLockedModal();
+<header class="dashboard-header">
+    <a class="dashboard-brand" href="<%= response.encodeURL("MOclasscontroller?action=dashboard") %>">MO Management</a>
+    <nav class="dashboard-nav">
+        <a href="<%= response.encodeURL("MOclasscontroller?action=dashboard") %>">Dashboard</a>
+        <a href="<%= response.encodeURL("MOclasscontroller?action=profile_center") %>">Profile</a>
+        <a href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>">My Project</a>
+        <% if (reviewStageOpen) { %>
+            <a href="<%= response.encodeURL("MOclasscontroller?action=review_candidates") %>">Review</a>
+        <% } else { %>
+            <button class="is-disabled" type="button" onclick="openReviewLockedModal()">Review</button>
         <% } %>
-    </script>
+        <a href="<%= response.encodeURL("MOclasscontroller?action=logout") %>">Log out</a>
+    </nav>
+</header>
 
+<main class="dashboard-main">
+    <h1 class="dashboard-title">Personal Centre</h1>
+    <p class="dashboard-welcome">Hi, <%= username %></p>
+
+    <div class="dashboard-list">
+        <a href="<%= response.encodeURL("MOclasscontroller?action=profile_center") %>" class="dashboard-card">
+            <div class="dashboard-card-title">Edit personal information</div>
+            <div class="dashboard-card-meta">Update your name, educational background, and department profile.</div>
+        </a>
+
+        <a href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>" class="dashboard-card">
+            <div class="dashboard-card-title">My project</div>
+            <div class="dashboard-card-meta">Open your assigned courses, inspect recruitment details, and edit published information before the MO deadline.</div>
+        </a>
+
+        <% if (reviewStageOpen) { %>
+            <a href="<%= response.encodeURL("MOclasscontroller?action=review_candidates") %>" class="dashboard-card">
+                <div class="dashboard-card-title">Review applications</div>
+                <div class="dashboard-card-meta">Review submitted TA application forms, save picks, and publish final results.</div>
+            </a>
+        <% } else { %>
+            <button type="button" class="dashboard-card dashboard-card-disabled" onclick="openReviewLockedModal()">
+                <div class="dashboard-card-title">Review applications</div>
+                <div class="dashboard-card-meta">Review opens after the TA application deadline has passed.</div>
+            </button>
+        <% } %>
+    </div>
+</main>
+
+<div id="reviewLockedModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="reviewLockedTitle">
+    <div class="modal-box">
+        <div class="modal-title" id="reviewLockedTitle">Review Not Available</div>
+        <div class="modal-text">The application deadline has not passed yet.</div>
+        <div class="modal-actions">
+            <button type="button" class="modal-btn" onclick="closeReviewLockedModal()">OK</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function openReviewLockedModal() {
+        document.getElementById("reviewLockedModal").classList.remove("hidden");
+    }
+
+    function closeReviewLockedModal() {
+        document.getElementById("reviewLockedModal").classList.add("hidden");
+    }
+
+    <% if (autoOpenReviewLocked) { %>
+    openReviewLockedModal();
+    <% } %>
+</script>
 </body>
 </html>

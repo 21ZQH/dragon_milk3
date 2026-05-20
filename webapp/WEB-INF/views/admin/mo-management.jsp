@@ -34,6 +34,7 @@
         .course-list { margin: 8px 0 0 18px; padding: 0; color: #26364f; }
         @media (max-width: 850px) { .grid { grid-template-columns: 1fr; } }
     </style>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/role-style.css">
 </head>
 <body>
     <div class="container">
@@ -111,3 +112,4 @@
     </div>
 </body>
 </html>
+

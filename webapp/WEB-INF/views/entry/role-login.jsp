@@ -19,6 +19,7 @@
         a { color: #23395d; background: #e8edf5; }
         .hint { color: #5f6f85; font-size: 14px; text-align: center; margin-top: 16px; }
     </style>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/role-style.css">
 </head>
 <body>
 <div class="box">
@@ -37,3 +38,4 @@
 </script>
 </body>
 </html>
+
