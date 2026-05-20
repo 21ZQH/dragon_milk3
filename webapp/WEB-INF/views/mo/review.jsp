@@ -296,6 +296,7 @@
             line-height: 1.6;
         }
     </style>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/role-style.css">
 </head>
 <body>
     <div class="container">
@@ -498,3 +499,4 @@
     </script>
 </body>
 </html>
+

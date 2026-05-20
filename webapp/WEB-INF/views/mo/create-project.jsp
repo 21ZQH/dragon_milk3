@@ -23,6 +23,7 @@
         .empty-box { border: 2px dashed #c7ccd8; border-radius: 12px; padding: 28px; color: #4b5565; background: #fafafa; line-height: 1.6; }
         .hint { color: #5b667a; line-height: 1.6; margin: -10px 0 24px; }
     </style>
+    <link rel="stylesheet" href="<%= request.getContextPath() %>/css/role-style.css">
 </head>
 <body>
     <div class="container">
@@ -81,3 +82,4 @@
     </div>
 </body>
 </html>
+
