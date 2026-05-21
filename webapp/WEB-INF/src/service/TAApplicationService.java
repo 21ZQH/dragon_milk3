@@ -3,6 +3,7 @@ package service;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import jakarta.servlet.http.Part;
 import model.ApplicationForm;
@@ -25,6 +26,8 @@ public interface TAApplicationService {
     String getStoredResumeFileName(TA ta);
 
     CurrentApplicationData prepareCurrentApplicationData(TA ta, Course course);
+
+    TA refreshTa(TA ta);
 
     int getApplicationLimit();
 
@@ -149,15 +152,18 @@ public interface TAApplicationService {
         private final List<Course> appliedCourses;
         private final Course selectedCourse;
         private final Integer selectedStatus;
+        private final Set<String> unreadReviewCourseIds;
         private final boolean applicationOpen;
         private final int applicationCount;
         private final int applicationLimit;
 
         public PersonalCentreData(List<Course> appliedCourses, Course selectedCourse,
-                Integer selectedStatus, boolean applicationOpen, int applicationCount, int applicationLimit) {
+                Integer selectedStatus, Set<String> unreadReviewCourseIds, boolean applicationOpen,
+                int applicationCount, int applicationLimit) {
             this.appliedCourses = appliedCourses;
             this.selectedCourse = selectedCourse;
             this.selectedStatus = selectedStatus;
+            this.unreadReviewCourseIds = unreadReviewCourseIds;
             this.applicationOpen = applicationOpen;
             this.applicationCount = applicationCount;
             this.applicationLimit = applicationLimit;
@@ -173,6 +179,10 @@ public interface TAApplicationService {
 
         public Integer getSelectedStatus() {
             return selectedStatus;
+        }
+
+        public Set<String> getUnreadReviewCourseIds() {
+            return unreadReviewCourseIds;
         }
 
         public boolean isApplicationOpen() {

@@ -260,7 +260,7 @@ public class UserStore {
             return null;
         }
 
-        String[] parts = line.split(",", -1);
+        String[] parts = CsvRecord.parse(line);
         if (parts.length < 4) {
             return null;
         }
@@ -331,11 +331,13 @@ public class UserStore {
     }
 
     private static String toTaLine(TA ta) {
-        String line = baseLine(ta) + "," + safe(ta.getCollege()) + "," + safe(ta.getSkill()) + ","
-                + serializeAppliedCourseIds(ta) + "," + serializeResumeSubmissions(ta);
+        String line = baseLine(ta) + "," + CsvRecord.field(safe(ta.getCollege())) + ","
+                + CsvRecord.field(safe(ta.getSkill())) + ","
+                + CsvRecord.field(serializeAppliedCourseIds(ta)) + ","
+                + CsvRecord.field(serializeResumeSubmissions(ta));
         String masterResumeDirectory = safe(ta.getMasterResumeDirectory());
         if (!masterResumeDirectory.isBlank()) {
-            line += "," + masterResumeDirectory;
+            line += "," + CsvRecord.field(masterResumeDirectory);
         }
         return line;
     }
@@ -345,13 +347,18 @@ public class UserStore {
         String college = safe(mo.getCollege());
         String ownedCourseIds = serializeOwnedCourseIds(mo);
         if (degree.isBlank() && college.isBlank()) {
-            return baseLine(mo) + "," + ownedCourseIds;
+            return baseLine(mo) + "," + CsvRecord.field(ownedCourseIds);
         }
-        return baseLine(mo) + "," + degree + "," + college + "," + ownedCourseIds;
+        return baseLine(mo) + "," + CsvRecord.field(degree) + "," + CsvRecord.field(college)
+                + "," + CsvRecord.field(ownedCourseIds);
     }
 
     private static String baseLine(User user) {
-        return safe(user.getName()) + "," + safe(user.getPassword()) + "," + safe(user.getRole()) + "," + safe(user.getEmail());
+        return CsvRecord.toLine(
+                safe(user.getName()),
+                safe(user.getPassword()),
+                safe(user.getRole()),
+                safe(user.getEmail()));
     }
 
     private static Path resolveFilePath() {
@@ -461,10 +468,7 @@ public class UserStore {
     }
 
     private static String safe(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace(",", " ");
+        return value == null ? "" : value;
     }
 
     private static final class ParsedUserLine {

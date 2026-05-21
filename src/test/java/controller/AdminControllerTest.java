@@ -46,6 +46,7 @@ class AdminControllerTest {
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
+        System.clearProperty("MO_COURSE_DRAFT_AI_PROVIDER");
     }
 
     @Test
@@ -134,6 +135,7 @@ class AdminControllerTest {
 
     @Test
     void createMoCreatesAccountAndAssignedCourses() throws Exception {
+        System.setProperty("MO_COURSE_DRAFT_AI_PROVIDER", "mock");
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
 
@@ -147,11 +149,8 @@ class AdminControllerTest {
         when(request.getSession(false)).thenReturn(session);
         when(session.getAttribute("user")).thenReturn(adminUser);
         when(request.getParameter("action")).thenReturn("create_mo");
-        when(request.getParameter("name")).thenReturn("MO One");
         when(request.getParameter("account")).thenReturn("mo-one");
         when(request.getParameter("password")).thenReturn("secret");
-        when(request.getParameter("degree")).thenReturn("PhD");
-        when(request.getParameter("college")).thenReturn("School of Software");
         when(request.getParameter("courseNames")).thenReturn("Software Engineering\nDatabase Systems");
         when(request.getRequestDispatcher("/WEB-INF/views/admin/mo-management.jsp")).thenReturn(dispatcher);
 
@@ -160,14 +159,17 @@ class AdminControllerTest {
         List<Course> courses = CourseStore.getCourseList();
         assertEquals(2, courses.size());
         assertTrue(courses.stream().noneMatch(Course::isRecruitmentPublished));
+        assertTrue(courses.stream().allMatch(course -> course.getJobDescription().contains(course.getCourseName())));
 
         Mo mo = (Mo) UserStore.validateUser("secret", "Mo", "mo-one");
         Assertions.assertNotNull(mo);
-        assertEquals("MO One", mo.getName());
+        assertEquals("mo-one", mo.getName());
         assertEquals(2, mo.getOwnedCourses().size());
-        assertTrue(Files.readString(usersFile).contains("MO One,secret,Mo,mo-one,PhD,School of Software,"));
+        assertTrue(Files.readString(usersFile).contains("mo-one,secret,Mo,mo-one,"));
         assertTrue(Files.exists(courseFile));
         verify(request).setAttribute("success", "MO account created successfully.");
+        verify(request).setAttribute(eq("generatedCourseDrafts"), argThat(value ->
+                value instanceof List<?> drafts && drafts.size() == 2));
         verify(dispatcher).forward(request, response);
     }
 

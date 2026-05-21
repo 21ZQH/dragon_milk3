@@ -9,6 +9,9 @@ public interface MOProjectService {
     Course publishCourse(Mo mo, String courseName, String jobTitle, String workingHours,
             String jobDescription, String jobRequirement);
 
+    Course saveCourseDraft(Mo mo, Course oldCourse, String courseName, String jobTitle,
+            String jobDescription, String jobRequirement);
+
     Course updateCourse(Mo mo, Course oldCourse, String courseName, String jobTitle, String workingHours,
             String jobDescription, String jobRequirement);
 

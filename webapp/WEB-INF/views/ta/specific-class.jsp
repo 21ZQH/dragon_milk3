@@ -152,10 +152,6 @@
                 <div class="value"><%= course.getJobTitle() %></div>
             </div>
             <div class="detail-box">
-                <div class="label">Working Hours</div>
-                <div class="value"><%= course.getWorkingHours() %></div>
-            </div>
-            <div class="detail-box">
                 <div class="label">Job Requirement</div>
                 <div class="value"><%= course.getJobRequirement() %></div>
             </div>

@@ -4,15 +4,12 @@
     Course course = (Course) request.getAttribute("selectedCourse");
     String courseIndex = (String) request.getAttribute("courseIndex");
     String success = request.getParameter("success");
+    String draftSaved = request.getParameter("draftSaved");
     String error = (String) request.getAttribute("error");
     Object moModifyDeadline = request.getAttribute("moModifyDeadline");
     Boolean moModifyOpenAttr = (Boolean) request.getAttribute("moModifyOpen");
     boolean moModifyOpen = moModifyOpenAttr == null ? true : moModifyOpenAttr.booleanValue();
-    Boolean moProfileCompleteAttr = (Boolean) request.getAttribute("moProfileComplete");
-    boolean moProfileComplete = moProfileCompleteAttr == null ? true : moProfileCompleteAttr.booleanValue();
-    Boolean showProfileIncompleteModalAttr = (Boolean) request.getAttribute("showProfileIncompleteModal");
-    boolean showProfileIncompleteModal = showProfileIncompleteModalAttr != null && showProfileIncompleteModalAttr.booleanValue();
-    boolean canModifyProject = moModifyOpen && moProfileComplete;
+    boolean canModifyProject = moModifyOpen;
 %>
 <!DOCTYPE html>
 <html>
@@ -59,6 +56,35 @@
             color: #22223b;
             margin: 0;
             word-break: break-word;
+        }
+
+        .title-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        .status-pill {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.9em;
+            font-weight: 800;
+            white-space: nowrap;
+            border: 1px solid #d1d5db;
+        }
+
+        .status-published {
+            background: #edf7ed;
+            color: #256029;
+            border-color: #b7dfb9;
+        }
+
+        .status-draft {
+            background: #fff7e6;
+            color: #9a6400;
+            border-color: #f2cf7a;
         }
 
         .back-link {
@@ -241,6 +267,18 @@
             transform: translateY(-1px);
         }
 
+        .save-btn.secondary {
+            background: #fff;
+            color: #22223b;
+            border: 2px solid #22223b;
+            margin-right: 12px;
+        }
+
+        .save-btn.secondary:hover {
+            background: #f5f6fa;
+            color: #22223b;
+        }
+
         .save-btn.disabled,
         .save-btn.disabled:hover {
             background: #f3f4f6;
@@ -332,19 +370,26 @@
 
 <div class="container">
     <div class="top-line">
-        <h1 class="page-title">
-            <%= course != null && course.getCourseName() != null && !course.getCourseName().trim().isEmpty()
-                    ? course.getCourseName()
-                    : "Project Detail" %>
-        </h1>
+        <div class="title-group">
+            <h1 class="page-title">
+                <%= course != null && course.getCourseName() != null && !course.getCourseName().trim().isEmpty()
+                        ? course.getCourseName()
+                        : "Project Detail" %>
+            </h1>
+            <% if (course != null) { %>
+                <span class="status-pill <%= course.isRecruitmentPublished() ? "status-published" : "status-draft" %>">
+                    <%= course.isRecruitmentPublished() ? "Published" : "Draft" %>
+                </span>
+            <% } %>
+        </div>
         <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=my_project") %>">Back</a>
     </div>
 
     <!-- <div class="notice">// check course detail information</div> -->
 
-    <% if ("1".equals(success)) { %>
+    <% if ("1".equals(success) || "1".equals(draftSaved)) { %>
         <div class="success-toast" id="successToast">
-            Course information saved successfully.
+            <%= "1".equals(draftSaved) ? "Draft saved successfully." : "Course information saved successfully." %>
         </div>
     <% } %>
 
@@ -364,7 +409,6 @@
         if (course != null) {
     %>
     <form action="<%= response.encodeURL("MOclasscontroller") %>" method="post">
-        <input type="hidden" name="action" value="save_course_changes">
         <input type="hidden" name="courseIndex" value="<%= courseIndex %>">
 
         <div class="section">
@@ -386,7 +430,7 @@
                         class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
                         data-target="jobTitle"
                         data-locked="<%= !canModifyProject %>"
-                        data-lock-reason="<%= !moModifyOpen ? "deadline" : (!moProfileComplete ? "profile" : "") %>">Edit</button>
+                        data-lock-reason="<%= !moModifyOpen ? "deadline" : "" %>">Edit</button>
             </div>
             <input
                 id="jobTitle"
@@ -400,31 +444,12 @@
 
         <div class="section">
             <div class="section-header">
-                <h2 class="section-title">Working Hours</h2>
-                <button type="button"
-                        class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
-                        data-target="workingHours"
-                        data-locked="<%= !canModifyProject %>"
-                        data-lock-reason="<%= !moModifyOpen ? "deadline" : (!moProfileComplete ? "profile" : "") %>">Edit</button>
-            </div>
-            <input
-                id="workingHours"
-                class="input-box"
-                type="text"
-                name="workingHours"
-                value="<%= course.getWorkingHours() == null ? "" : course.getWorkingHours() %>"
-                readonly
-                required>
-        </div>
-
-        <div class="section">
-            <div class="section-header">
                 <h2 class="section-title">Job Description</h2>
                 <button type="button"
                         class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
                         data-target="jobDescription"
                         data-locked="<%= !canModifyProject %>"
-                        data-lock-reason="<%= !moModifyOpen ? "deadline" : (!moProfileComplete ? "profile" : "") %>">Edit</button>
+                        data-lock-reason="<%= !moModifyOpen ? "deadline" : "" %>">Edit</button>
             </div>
             <textarea
                 id="jobDescription"
@@ -440,7 +465,7 @@
                         class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
                         data-target="jobRequirement"
                         data-locked="<%= !canModifyProject %>"
-                        data-lock-reason="<%= !moModifyOpen ? "deadline" : (!moProfileComplete ? "profile" : "") %>">Edit</button>
+                        data-lock-reason="<%= !moModifyOpen ? "deadline" : "" %>">Edit</button>
             </div>
             <textarea
                 id="jobRequirement"
@@ -451,11 +476,11 @@
 
         <div class="save-section">
             <% if (canModifyProject) { %>
-                <button type="submit" class="save-btn">Save changes</button>
+                <button type="submit" name="action" value="save_course_draft" class="save-btn secondary">Save draft</button>
+                <button type="submit" name="action" value="save_course_changes" class="save-btn">Publish recruitment</button>
             <% } else if (!moModifyOpen) { %>
-                <button type="button" class="save-btn disabled" onclick="openMoModifyLockedModal()">Save changes</button>
-            <% } else { %>
-                <button type="button" class="save-btn disabled" onclick="openProfileIncompleteModal()">Save changes</button>
+                <button type="button" class="save-btn disabled" onclick="openMoModifyLockedModal()">Save draft</button>
+                <button type="button" class="save-btn disabled" onclick="openMoModifyLockedModal()">Publish recruitment</button>
             <% } %>
         </div>
     </form>
@@ -478,28 +503,13 @@
     </div>
 </div>
 
-<div id="profileIncompleteModal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profileIncompleteTitle">
-    <div class="modal-box">
-        <div class="modal-title" id="profileIncompleteTitle">Complete Your Profile</div>
-        <div class="modal-text">Please complete your personal information before creating or modifying course projects.</div>
-        <div class="modal-actions">
-            <button type="button" class="modal-btn" onclick="closeProfileIncompleteModal()">OK</button>
-            <a class="modal-btn" href="<%= response.encodeURL("MOclasscontroller?action=profile_center") %>">Go to Profile</a>
-        </div>
-    </div>
-</div>
-
 <script>
     const editButtons = document.querySelectorAll(".edit-btn");
 
     editButtons.forEach(button => {
         button.addEventListener("click", function () {
             if (this.dataset.locked === "true") {
-                if (this.dataset.lockReason === "profile") {
-                    openProfileIncompleteModal();
-                } else {
-                    openMoModifyLockedModal();
-                }
+                openMoModifyLockedModal();
                 return;
             }
 
@@ -529,14 +539,6 @@
         document.getElementById("moModifyLockedModal").classList.add("hidden");
     }
 
-    function openProfileIncompleteModal() {
-        document.getElementById("profileIncompleteModal").classList.remove("hidden");
-    }
-
-    function closeProfileIncompleteModal() {
-        document.getElementById("profileIncompleteModal").classList.add("hidden");
-    }
-
     const successToast = document.getElementById("successToast");
     if (successToast) {
         setTimeout(() => {
@@ -551,9 +553,6 @@
         }, 2500);
     }
 
-    <% if (showProfileIncompleteModal) { %>
-    openProfileIncompleteModal();
-    <% } %>
 </script>
 
 </body>

@@ -1,5 +1,12 @@
 package model;
 
+/**
+ * Per-course application status owned by a TA.
+ *
+ * <p>The status tracks whether the application is pending, approved, or
+ * rejected. The unread flag supports notification dots after an MO publishes a
+ * final review result.</p>
+ */
 public class ResumeSubmission {
     public static final int STATUS_PENDING = 0;
     public static final int STATUS_APPROVED = 1;

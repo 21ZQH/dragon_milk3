@@ -88,7 +88,7 @@ public class ApplicationFormStore {
         }
 
         String[] parts = line.split("\\t", -1);
-        if (parts.length < 12) {
+        if (parts.length < 11) {
             return null;
         }
 
@@ -99,11 +99,13 @@ public class ApplicationFormStore {
         form.setSkills(decode(parts[5]));
         form.setRelevantExperience(decode(parts[6]));
         form.setProjectExperience(decode(parts[7]));
-        form.setCourseFit(decode(parts[8]));
-        form.setFeedback(decode(parts[9]));
-        form.setSubmitted(Boolean.parseBoolean(parts[10]));
+        int feedbackIndex = parts.length >= 12 ? 9 : 8;
+        int submittedIndex = parts.length >= 12 ? 10 : 9;
+        int updatedAtIndex = parts.length >= 12 ? 11 : 10;
+        form.setFeedback(decode(parts[feedbackIndex]));
+        form.setSubmitted(Boolean.parseBoolean(parts[submittedIndex]));
         try {
-            form.setUpdatedAt(LocalDateTime.parse(parts[11]));
+            form.setUpdatedAt(LocalDateTime.parse(parts[updatedAtIndex]));
         } catch (Exception ignored) {
             form.setUpdatedAt(LocalDateTime.now());
         }
@@ -121,7 +123,6 @@ public class ApplicationFormStore {
                 encode(form.getSkills()),
                 encode(form.getRelevantExperience()),
                 encode(form.getProjectExperience()),
-                encode(form.getCourseFit()),
                 encode(form.getFeedback()),
                 String.valueOf(form.isSubmitted()),
                 form.getUpdatedAt().toString());

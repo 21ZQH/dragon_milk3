@@ -5,6 +5,18 @@
 <%
     // 从 Controller 获取传递过来的 TA 列表
     List<TA> taList = (List<TA>) request.getAttribute("taList");
+    int taPageSize = 5;
+    int taPage = 1;
+    try {
+        taPage = Integer.parseInt(request.getParameter("taPage"));
+    } catch (Exception ignored) {
+        taPage = 1;
+    }
+    int taTotal = taList == null ? 0 : taList.size();
+    int taTotalPages = Math.max(1, (int) Math.ceil(taTotal / (double) taPageSize));
+    taPage = Math.max(1, Math.min(taPage, taTotalPages));
+    int taStart = (taPage - 1) * taPageSize;
+    int taEnd = Math.min(taStart + taPageSize, taTotal);
 %>
 <!DOCTYPE html>
 <html>
@@ -90,13 +102,14 @@
             padding-bottom: 10px;
         }
 
-        .candidate-name {
+        .candidate-email-main {
             font-size: 1.6em;
             font-weight: 700;
             color: #22223b;
+            word-break: break-word;
         }
 
-        .candidate-email {
+        .candidate-key {
             color: #666;
             font-size: 0.9em;
             margin-left: 10px;
@@ -117,18 +130,6 @@
             background: #fdeeee;
             color: #a12626;
             border-color: #efb7b7;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .info-item {
-            font-size: 1.05em;
-            color: #444;
         }
 
         .info-label {
@@ -171,6 +172,41 @@
             background: #fafafa;
             font-size: 1.1em;
         }
+
+        .pager {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 8px;
+            margin-top: 22px;
+        }
+
+        .pager a, .pager span {
+            border: 1px solid #cfd6e4;
+            border-radius: 8px;
+            padding: 7px 11px;
+            text-decoration: none;
+            color: #22223b;
+            font-weight: 700;
+            background: #fff;
+        }
+
+        .pager .current {
+            background: #22223b;
+            color: #fff;
+            border-color: #22223b;
+        }
+
+        .pager .disabled {
+            color: #9aa3b2;
+            background: #f3f5fa;
+        }
+
+        .pager-info {
+            color: #596579;
+            font-size: 0.94em;
+            margin-top: 16px;
+        }
     </style>
     <link rel="stylesheet" href="<%= request.getContextPath() %>/css/role-style.css">
 </head>
@@ -185,7 +221,8 @@
     <div class="candidate-list">
         <%
             if (taList != null && !taList.isEmpty()) {
-                for (TA ta : taList) {
+                for (int i = taStart; i < taEnd; i++) {
+                    TA ta = taList.get(i);
                     // 获取已申请的课程数量
                     List<Course> appliedCourses = ta.getAppliedClasses();
                     int appliedCount = (appliedCourses != null) ? appliedCourses.size() : 0;
@@ -193,27 +230,16 @@
         %>
             <div class="candidate-card">
                 <div class="card-header">
-                    <div class="candidate-name">
-                        <%= ta.getName() != null && !ta.getName().isEmpty() ? ta.getName() : "Unknown Name" %>
-                        <span class="candidate-email">(<%= ta.getEmail() %>)</span>
+                    <div class="candidate-email-main">
+                        <%= ta.getEmail() %>
+                        <span class="candidate-key">Key: <%= ta.getPassword() == null || ta.getPassword().isBlank() ? "N/A" : ta.getPassword() %></span>
                     </div>
                     <div class="quota-badge">
                         Applied Courses: <%= appliedCount %>
                     </div>
                 </div>
 
-                <div class="info-grid">
-                    <div class="info-item">
-                        <span class="info-label">College:</span> 
-                        <%= ta.getCollege() != null && !ta.getCollege().isEmpty() ? ta.getCollege() : "N/A" %>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">Skill:</span> 
-                        <%= ta.getSkill() != null && !ta.getSkill().isEmpty() ? ta.getSkill() : "N/A" %>
-                    </div>
-                </div>
-
-                <div class="course-section-title">Current Applications:</div>
+                <div class="course-section-title">Applied Courses:</div>
                 <% if (appliedCount > 0) { %>
                     <ul class="applied-course-list">
                         <% for (Course course : appliedCourses) { %>
@@ -222,11 +248,6 @@
                                     <strong><%= course.getCourseName() %></strong> 
                                     <span>(<%= course.getJobTitle() %>)</span>
                                 </div>
-                                <a href="<%= response.encodeURL("AdminController?action=view_resume&applicantEmail=" + ta.getEmail() + "&courseId=" + course.getId()) %>" 
-                                   target="_blank" 
-                                   style="color: #3b5998; text-decoration: underline; font-size: 0.9em;">
-                                   View PDF Resume
-                                </a>
                             </li>
                         <% } %>
                     </ul>
@@ -243,6 +264,28 @@
             }
         %>
     </div>
+    <% if (taList != null && !taList.isEmpty()) { %>
+        <div class="pager-info">Showing <%= taStart + 1 %>-<%= taEnd %> of <%= taTotal %> candidate(s).</div>
+        <div class="pager">
+            <% if (taPage > 1) { %>
+                <a href="<%= response.encodeURL("AdminController?action=candidate_management&taPage=" + (taPage - 1)) %>">Previous</a>
+            <% } else { %>
+                <span class="disabled">Previous</span>
+            <% } %>
+            <% for (int pageNumber = 1; pageNumber <= taTotalPages; pageNumber++) { %>
+                <% if (pageNumber == taPage) { %>
+                    <span class="current"><%= pageNumber %></span>
+                <% } else { %>
+                    <a href="<%= response.encodeURL("AdminController?action=candidate_management&taPage=" + pageNumber) %>"><%= pageNumber %></a>
+                <% } %>
+            <% } %>
+            <% if (taPage < taTotalPages) { %>
+                <a href="<%= response.encodeURL("AdminController?action=candidate_management&taPage=" + (taPage + 1)) %>">Next</a>
+            <% } else { %>
+                <span class="disabled">Next</span>
+            <% } %>
+        </div>
+    <% } %>
 </div>
 
 </body>

@@ -3,6 +3,13 @@ package model;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Module organizer account.
+ *
+ * <p>An MO owns a set of course projects, can edit recruitment information
+ * before the MO deadline, and can review submitted TA applications after the TA
+ * application deadline.</p>
+ */
 public class Mo extends User {
     private String role="Mo";
     private String degree;

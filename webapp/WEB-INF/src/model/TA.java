@@ -5,6 +5,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * Teaching assistant account and application state.
+ *
+ * <p>A TA owns profile details, a master resume path, applied courses, and a
+ * list of {@link ResumeSubmission} records. The submission records track the
+ * per-course application form id, review result, and unread review notification
+ * flag shown as red dots in the TA interface.</p>
+ */
 public class TA extends User {
     private String role = "TA";
     private String college;
@@ -190,6 +198,15 @@ public class TA extends User {
         if (submission != null) {
             submission.setReviewUnread(true);
         }
+    }
+
+    public boolean markReviewUpdateRead(String courseId) {
+        ResumeSubmission submission = findSubmissionByCourseId(courseId);
+        if (submission != null && submission.isReviewUnread()) {
+            submission.setReviewUnread(false);
+            return true;
+        }
+        return false;
     }
 
     public boolean markAllReviewUpdatesRead() {

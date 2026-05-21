@@ -28,6 +28,7 @@ public class MOProjectServiceImpl implements MOProjectService {
             String jobDescription, String jobRequirement) {
         Course newCourse = new Course(UUID.randomUUID().toString(), courseName, jobTitle, workingHours,
                 "TBD", jobDescription, jobRequirement);
+        newCourse.setRecruitmentPublished(true);
         courseService.saveCourse(newCourse);
         if (mo != null) {
             mo.addOwnedCourse(newCourse);
@@ -37,15 +38,26 @@ public class MOProjectServiceImpl implements MOProjectService {
     }
 
     @Override
+    public Course saveCourseDraft(Mo mo, Course oldCourse, String courseName, String jobTitle,
+            String jobDescription, String jobRequirement) {
+        return applyCourseUpdate(mo, oldCourse, courseName, jobTitle, "", jobDescription, jobRequirement, false);
+    }
+
+    @Override
     public Course updateCourse(Mo mo, Course oldCourse, String courseName, String jobTitle, String workingHours,
             String jobDescription, String jobRequirement) {
+        return applyCourseUpdate(mo, oldCourse, courseName, jobTitle, workingHours, jobDescription, jobRequirement, true);
+    }
+
+    private Course applyCourseUpdate(Mo mo, Course oldCourse, String courseName, String jobTitle, String workingHours,
+            String jobDescription, String jobRequirement, boolean recruitmentPublished) {
         String salary = oldCourse.getSalary() == null ? "TBD" : oldCourse.getSalary();
         String resolvedCourseName = courseName == null || courseName.isBlank() ? oldCourse.getCourseName() : courseName;
         Course updatedCourse = new Course(oldCourse.getId(), resolvedCourseName, jobTitle, workingHours,
                 salary, jobDescription, jobRequirement);
         updatedCourse.setPickedApplicantEmails(oldCourse.getPickedApplicantEmails());
         updatedCourse.setReviewPublished(oldCourse.isReviewPublished());
-        updatedCourse.setRecruitmentPublished(true);
+        updatedCourse.setRecruitmentPublished(recruitmentPublished);
         for (int i = 0; i < oldCourse.getTaApplicants().size(); i++) {
             String applicationFormId = i < oldCourse.getApplicantFormIds().size()
                     ? oldCourse.getApplicantFormIds().get(i)

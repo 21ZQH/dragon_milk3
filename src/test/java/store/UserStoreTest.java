@@ -199,7 +199,38 @@ class UserStoreTest {
         UserStore.updateTaProfile(ta);
 
         List<String> lines = Files.readAllLines(usersFile);
-        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,Java  Python  SQL,course-1,course-1@0@false", lines.get(0));
+        assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,\"Java, Python, SQL\",course-1,course-1@0@false", lines.get(0));
+    }
+
+    @Test
+    void updateTaProfilePreservesCommasAndQuotesInCsvFields() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@0@false");
+
+        Course course = new Course("course-1", "Software Engineering", "TA", "10 hours/week", "TBD", "Support labs", "Communication skills");
+        TA ta = new TA("pass123", "alice@example.com");
+        ta.setName("Alice, Zhang");
+        ta.setCollege("School of \"Software\", BUPT");
+        ta.setSkill("Java, Python, SQL");
+        ta.addClass(course);
+        ta.addOrUpdateApplication(course, course.getId());
+
+        UserStore.updateTaProfile(ta);
+
+        String line = Files.readAllLines(usersFile).get(0);
+        assertEquals("\"Alice, Zhang\",pass123,TA,alice@example.com,\"School of \"\"Software\"\", BUPT\",\"Java, Python, SQL\",course-1,course-1@0@false", line);
+
+        TA savedTa = (TA) UserStore.validateUser("pass123", "alice@example.com");
+        assertEquals("Alice, Zhang", savedTa.getName());
+        assertEquals("School of \"Software\", BUPT", savedTa.getCollege());
+        assertEquals("Java, Python, SQL", savedTa.getSkill());
+        assertEquals("course-1", savedTa.getApplicationFormIdForCourse("course-1"));
     }
 
     @Test
