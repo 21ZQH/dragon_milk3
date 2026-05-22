@@ -37,4 +37,6 @@ public interface DeadlineRepository {
      * @param deadline deadline to persist
      */
     void saveMoModifyDeadline(LocalDateTime deadline);
+
+    void clearDeadlines();
 }

@@ -27,4 +27,6 @@ public interface ApplicationFormRepository {
      *             the underlying store
      */
     void saveOrUpdate(ApplicationForm form);
+
+    void clearAll();
 }

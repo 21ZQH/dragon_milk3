@@ -77,6 +77,20 @@ public class DeadlineStore {
         }
     }
 
+    public static void clearDeadlines() {
+        clearFile(resolveApplicationDeadlineFilePath());
+        clearFile(resolveMoDeadlineFilePath());
+    }
+
+    private static void clearFile(Path filePath) {
+        try {
+            ensureParentDirectoryExists(filePath);
+            Files.writeString(filePath, "");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static Path resolveApplicationDeadlineFilePath() {
         String overridePath = System.getProperty(FILE_PATH_PROPERTY);
         if (overridePath != null && !overridePath.isBlank()) {

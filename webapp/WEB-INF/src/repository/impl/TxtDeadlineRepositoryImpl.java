@@ -52,4 +52,9 @@ public class TxtDeadlineRepositoryImpl implements DeadlineRepository {
     public void saveMoModifyDeadline(LocalDateTime deadline) {
         DeadlineStore.saveMoModifyDeadline(deadline);
     }
+
+    @Override
+    public void clearDeadlines() {
+        DeadlineStore.clearDeadlines();
+    }
 }

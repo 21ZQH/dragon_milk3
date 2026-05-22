@@ -25,7 +25,7 @@ mvn -q -DskipTests javadoc:javadoc
 Latest verified unit-test result:
 
 ```text
-Tests run: 132, Failures: 0, Errors: 0
+Tests run: 134, Failures: 0, Errors: 0
 ```
 
 Generated JavaDoc entry page:

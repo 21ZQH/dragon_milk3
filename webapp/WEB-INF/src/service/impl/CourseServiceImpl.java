@@ -32,4 +32,9 @@ public class CourseServiceImpl implements CourseService {
     public void updateCourse(Course course) {
         courseRepository.updateCourse(course);
     }
+
+    @Override
+    public void resetRecruitmentCycle() {
+        courseRepository.resetRecruitmentCycle();
+    }
 }

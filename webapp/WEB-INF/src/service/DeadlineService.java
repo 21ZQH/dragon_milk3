@@ -19,6 +19,8 @@ public interface DeadlineService {
 
     boolean isMoModifyOpen(LocalDateTime deadline);
 
+    void clearDeadlines();
+
     final class SaveDeadlineResult {
         private final boolean success;
         private final LocalDateTime deadline;

@@ -68,4 +68,9 @@ public class DeadlineServiceImpl implements DeadlineService {
     public boolean isMoModifyOpen(LocalDateTime deadline) {
         return deadline == null || !LocalDateTime.now().isAfter(deadline);
     }
+
+    @Override
+    public void clearDeadlines() {
+        deadlineRepository.clearDeadlines();
+    }
 }
