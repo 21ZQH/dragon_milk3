@@ -13,6 +13,35 @@ public interface AdminManagementService {
 
     CreateMoResult createMoAccount(String account, String password, String courseNamesText);
 
+    ResetRecruitmentCycleResult resetRecruitmentCycle();
+
+    final class ResetRecruitmentCycleResult {
+        private final boolean success;
+        private final String message;
+
+        private ResetRecruitmentCycleResult(boolean success, String message) {
+            this.success = success;
+            this.message = message;
+        }
+
+        public static ResetRecruitmentCycleResult success() {
+            return new ResetRecruitmentCycleResult(true,
+                    "Recruitment cycle has been reset. Courses are now drafts, applications and review results are cleared.");
+        }
+
+        public static ResetRecruitmentCycleResult failure(String message) {
+            return new ResetRecruitmentCycleResult(false, message);
+        }
+
+        public boolean isSuccess() {
+            return success;
+        }
+
+        public String getMessage() {
+            return message;
+        }
+    }
+
     final class CreateMoResult {
         private final boolean success;
         private final String message;

@@ -185,6 +185,11 @@
             <div class="dashboard-card-meta">Set when MOs can no longer publish or edit course recruitment information.</div>
         </a>
 
+        <a href="<%= response.encodeURL("AdminController?action=reset_cycle") %>" class="dashboard-card">
+            <div class="dashboard-card-title">Reset Recruitment Cycle</div>
+            <div class="dashboard-card-meta">Start a new yearly cycle by clearing TA applications and review results while keeping MO course drafts.</div>
+        </a>
+
         <a href="<%= response.encodeURL("AdminController?action=logout") %>" class="dashboard-card">
             <div class="dashboard-card-title">Log out</div>
             <div class="dashboard-card-meta">Leave the Admin workspace and return to the Admin login page.</div>

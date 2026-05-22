@@ -91,4 +91,6 @@ public interface UserRepository {
      * @param mo MO whose owned course ids should be stored
      */
     void updateOwnedCourseIds(Mo mo);
+
+    void resetTaApplicationState();
 }

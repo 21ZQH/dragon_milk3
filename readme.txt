@@ -11,6 +11,7 @@ The system supports three roles:
 - TA: view jobs, register with a BUPT email, upload a profile resume, generate and submit an application form, manage applications, withdraw applications, and view review results.
 - MO: manage assigned course projects, edit and publish recruitment information before the MO deadline, review applications after the TA application deadline, save picked applicants, and publish final results.
 - Admin: manage MO accounts, assign courses, view candidates, set TA application deadlines, and set MO course modification deadlines.
+- Admin can also reset the yearly recruitment cycle while keeping accounts, MO-course ownership, and course draft text.
 
 The project intentionally uses text files instead of a database so that it is easy to deploy and demonstrate for coursework.
 
@@ -89,6 +90,13 @@ Review notification state:
 - Opening Personal Centre clears all unread review update flags for that TA.
 - Guests and logged-out users do not see notification dots.
 
+Annual reset state:
+
+- Admin can run Reset Recruitment Cycle from the Admin Dashboard.
+- The reset clears TA applications, generated application forms, review picks, review results, unread review dots, and both deadline files.
+- The reset keeps Admin/MO/TA accounts, MO-owned courses, course names, and the previous recruitment text.
+- All courses become Draft, so MOs can edit the preserved text and publish again for the new year.
+
 
 5. Data Storage
 
@@ -128,6 +136,8 @@ Optional files that can also be cleared:
 - groq-transport.log
 
 After clearing deadline.txt or mo-deadline.txt, restart Tomcat or redeploy so ServletContext is rebuilt from the cleared files.
+
+For normal yearly reuse, prefer the Admin Dashboard's Reset Recruitment Cycle action instead of manually editing files. It clears application-cycle data while preserving accounts, course ownership, and MO draft text.
 
 Recent persistence fix:
 
@@ -188,7 +198,7 @@ mvn clean test
 
 Current verified result after the latest persistence fix:
 
-- Tests run: 132
+- Tests run: 134
 - Failures: 0
 - Errors: 0
 
@@ -289,6 +299,7 @@ Admin workflow:
 4. Open Candidates to inspect registered TA users and applications.
 5. Open TA Application Deadline to set when TA applications close.
 6. Open MO Course Modification Deadline to set when MO editing and publishing close.
+7. Open Reset Recruitment Cycle to start a new yearly recruitment cycle while preserving accounts and course draft text.
 
 
 11. Testing Workflow Used During Recent Project Work
@@ -315,8 +326,9 @@ The recent validation workflow was:
 18. Simplify Review Applications navigation to keep only Back to Personal Centre.
 19. Remove the Course Fit field from generated TA application forms and AI prompts.
 20. Restore TA review-result notification dots on the logged-in TA public page and Personal Centre.
-21. Run mvn test again and confirm 132 tests pass.
-22. Run webapp\command2.bat again and confirm deployment compilation still passes.
+21. Add Admin Reset Recruitment Cycle for yearly reuse.
+22. Run mvn test again and confirm 134 tests pass.
+23. Run webapp\command2.bat again and confirm deployment compilation still passes.
 
 
 12. Known Limitations and Suggested Future Work
@@ -345,3 +357,4 @@ Before a demo:
 10. Confirm the TA public page timeline appears.
 11. Submit or inspect a test application.
 12. Publish a review result as MO and confirm the logged-in TA sees a red notification dot before opening Personal Centre.
+13. Optionally run Admin Reset Recruitment Cycle and confirm courses return to Draft while course text remains.

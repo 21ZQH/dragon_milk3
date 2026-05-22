@@ -1,6 +1,7 @@
 package controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
@@ -310,6 +311,90 @@ class AdminControllerTest {
         verify(dispatcher).forward(request, response);
         assertEquals(expectedDeadline, DeadlineStore.getMoModifyDeadline());
         assertTrue(Files.exists(deadlineFile));
+    }
+
+    @Test
+    void resetRecruitmentCycleClearsApplicationsAndReturnsCoursesToDraft() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        Path formsFile = StoreTestSupport.useApplicationFormStore(tempDir);
+        Path applicationDeadlineFile = StoreTestSupport.useApplicationDeadlineStore(tempDir);
+        Path moDeadlineFile = StoreTestSupport.useMoDeadlineStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills,alice@example.com,true,true");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@1@true",
+                "Molly,secret123,Mo,mo@example.com,course-1");
+        StoreTestSupport.writeLines(formsFile, "form-data");
+        Files.writeString(applicationDeadlineFile, "2026-04-18 23:45");
+        Files.writeString(moDeadlineFile, "2026-05-01 09:15");
+
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("reset_cycle_confirm");
+        when(request.getParameter("confirmation")).thenReturn("RESET");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        List<Course> courses = CourseStore.getCourseList();
+        assertEquals(1, courses.size());
+        Course course = courses.get(0);
+        assertEquals("Support labs", course.getJobDescription());
+        assertFalse(course.isRecruitmentPublished());
+        assertFalse(course.isReviewPublished());
+        assertTrue(course.getPickedApplicantEmails().isEmpty());
+        assertTrue(course.getTaApplicants().isEmpty());
+
+        TA ta = (TA) UserStore.validateUser("pass123", "TA", "alice@example.com");
+        assertTrue(ta.getAppliedClasses().isEmpty());
+        assertTrue(ta.getResumeSubmissions().isEmpty());
+        Mo mo = (Mo) UserStore.validateUser("secret123", "Mo", "mo@example.com");
+        assertEquals(1, mo.getOwnedCourses().size());
+        assertEquals("course-1", mo.getOwnedCourses().get(0).getId());
+        assertTrue(Files.readAllLines(formsFile).isEmpty());
+        assertEquals("", Files.readString(applicationDeadlineFile));
+        assertEquals("", Files.readString(moDeadlineFile));
+
+        verify(servletContext).removeAttribute("applicationDeadline");
+        verify(servletContext).removeAttribute("moCourseModifyDeadline");
+        verify(request).setAttribute(eq("notice"), argThat(value ->
+                value instanceof String message && message.contains("Recruitment cycle has been reset")));
+        verify(dispatcher).forward(request, response);
+    }
+
+    @Test
+    void resetRecruitmentCycleRequiresConfirmationText() throws Exception {
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("reset_cycle_confirm");
+        when(request.getParameter("confirmation")).thenReturn("reset");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/reset-cycle.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(request).setAttribute("error", "Please type RESET to confirm the recruitment cycle reset.");
+        verify(dispatcher).forward(request, response);
     }
 
     @Test

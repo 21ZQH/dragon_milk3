@@ -77,6 +77,8 @@ public class AdminController extends HttpServlet {
             show_set_deadline(request, response);
         } else if ("set_mo_deadline".equals(action)) {
             show_set_mo_deadline(request, response);
+        } else if ("reset_cycle".equals(action)) {
+            show_reset_cycle(request, response);
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
         }
@@ -109,6 +111,8 @@ public class AdminController extends HttpServlet {
             save_mo_deadline(request, response);
         } else if ("create_mo".equals(action)) {
             create_mo(request, response);
+        } else if ("reset_cycle_confirm".equals(action)) {
+            reset_cycle(request, response);
         } else {
             doGet(request, response);
         }
@@ -145,6 +149,11 @@ public class AdminController extends HttpServlet {
         Object savedMoDeadline = getServletContext().getAttribute("moCourseModifyDeadline");
         request.setAttribute("savedMoDeadline", savedMoDeadline);
         request.getRequestDispatcher("/WEB-INF/views/admin/set-mo-deadline.jsp").forward(request, response);
+    }
+
+    private void show_reset_cycle(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        request.getRequestDispatcher("/WEB-INF/views/admin/reset-cycle.jsp").forward(request, response);
     }
 
     private void save_deadline(HttpServletRequest request, HttpServletResponse response)
@@ -219,6 +228,29 @@ public class AdminController extends HttpServlet {
             request.setAttribute("generatedCourseDrafts", result.getAssignedCourses());
         }
         manage_mo(request, response);
+    }
+
+    private void reset_cycle(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        String confirmation = request.getParameter("confirmation");
+        if (!"RESET".equals(confirmation)) {
+            request.setAttribute("error", "Please type RESET to confirm the recruitment cycle reset.");
+            show_reset_cycle(request, response);
+            return;
+        }
+
+        AdminManagementService.ResetRecruitmentCycleResult result =
+                adminManagementService.resetRecruitmentCycle();
+        if (result.isSuccess()) {
+            getServletContext().removeAttribute("applicationDeadline");
+            getServletContext().removeAttribute("moCourseModifyDeadline");
+            request.setAttribute("notice", result.getMessage());
+            show_dashboard(request, response);
+            return;
+        }
+
+        request.setAttribute("error", result.getMessage());
+        show_reset_cycle(request, response);
     }
 
     private String resolveResumeUploadDirectory() {

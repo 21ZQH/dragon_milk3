@@ -154,6 +154,25 @@ public class CourseStore {
         }
     }
 
+    public static void resetRecruitmentCycle() {
+        List<Course> courseList = getCourseList();
+        List<String> linesToWrite = new ArrayList<>();
+        for (Course course : courseList) {
+            course.setPickedApplicantEmails(List.of());
+            course.setReviewPublished(false);
+            course.setRecruitmentPublished(false);
+            linesToWrite.add(buildCourseLine(course));
+        }
+
+        Path filePath = resolveFilePath();
+        try {
+            ensureParentDirectoryExists(filePath);
+            Files.write(filePath, linesToWrite);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static String buildCourseLine(Course course) {
         return CsvRecord.toLine(
                 safe(course.getId()),

@@ -115,6 +115,36 @@ public class UserStore {
         updateUserLine("Mo", mo.getEmail(), toMoLine(mo));
     }
 
+    public static void resetTaApplicationState() {
+        Path filePath = resolveFilePath();
+        if (!Files.exists(filePath)) {
+            return;
+        }
+
+        List<String> resetLines = new ArrayList<>();
+        try {
+            for (String line : Files.readAllLines(filePath)) {
+                ParsedUserLine parsedLine = parseUserLine(line);
+                if (parsedLine == null) {
+                    resetLines.add(line);
+                    continue;
+                }
+
+                if ("TA".equals(parsedLine.role)) {
+                    parsedLine.appliedCourseIds = "";
+                    parsedLine.resumeMappings = "";
+                    resetLines.add(toLine(buildUser(parsedLine, List.of())));
+                } else {
+                    resetLines.add(line);
+                }
+            }
+            ensureParentDirectoryExists(filePath);
+            Files.write(filePath, resetLines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     static List<TA> getTaUsersForCourses(List<Course> availableCourses) {
         List<TA> taUsers = new ArrayList<>();
         Path filePath = resolveFilePath();

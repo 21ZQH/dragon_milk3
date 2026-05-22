@@ -8,7 +8,11 @@ import java.util.UUID;
 import model.Course;
 import model.Mo;
 import model.TA;
+import repository.ApplicationFormRepository;
+import repository.DeadlineRepository;
 import repository.UserRepository;
+import repository.impl.TxtApplicationFormRepositoryImpl;
+import repository.impl.TxtDeadlineRepositoryImpl;
 import repository.impl.TxtUserRepositoryImpl;
 import service.AdminManagementService;
 import service.CourseService;
@@ -19,18 +23,24 @@ import service.ai.impl.MockMOCourseDraftAiClient;
 public class AdminManagementServiceImpl implements AdminManagementService {
     private final UserRepository userRepository;
     private final CourseService courseService;
+    private final ApplicationFormRepository applicationFormRepository;
+    private final DeadlineRepository deadlineRepository;
     private final MOCourseDraftAiClient draftAiClient;
     private final MOCourseDraftAiClient fallbackDraftAiClient;
 
     public AdminManagementServiceImpl() {
         this(new TxtUserRepositoryImpl(), new CourseServiceImpl(),
+                new TxtApplicationFormRepositoryImpl(), new TxtDeadlineRepositoryImpl(),
                 new MOCourseDraftAiClientFactory().create(), new MockMOCourseDraftAiClient());
     }
 
     AdminManagementServiceImpl(UserRepository userRepository, CourseService courseService,
+            ApplicationFormRepository applicationFormRepository, DeadlineRepository deadlineRepository,
             MOCourseDraftAiClient draftAiClient, MOCourseDraftAiClient fallbackDraftAiClient) {
         this.userRepository = userRepository;
         this.courseService = courseService;
+        this.applicationFormRepository = applicationFormRepository;
+        this.deadlineRepository = deadlineRepository;
         this.draftAiClient = draftAiClient;
         this.fallbackDraftAiClient = fallbackDraftAiClient;
     }
@@ -103,6 +113,19 @@ public class AdminManagementServiceImpl implements AdminManagementService {
         userRepository.saveUser(mo);
 
         return CreateMoResult.success(mo, assignedCourses);
+    }
+
+    @Override
+    public ResetRecruitmentCycleResult resetRecruitmentCycle() {
+        try {
+            userRepository.resetTaApplicationState();
+            applicationFormRepository.clearAll();
+            courseService.resetRecruitmentCycle();
+            deadlineRepository.clearDeadlines();
+            return ResetRecruitmentCycleResult.success();
+        } catch (RuntimeException e) {
+            return ResetRecruitmentCycleResult.failure("Reset failed: " + e.getMessage());
+        }
     }
 
     private Course findCourseByName(List<Course> courses, String courseName) {

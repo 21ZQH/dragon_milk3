@@ -33,4 +33,6 @@ public interface CourseRepository {
      * @param course updated course state
      */
     void updateCourse(Course course);
+
+    void resetRecruitmentCycle();
 }

@@ -62,6 +62,16 @@ public class ApplicationFormStore {
         }
     }
 
+    public static void clearAll() {
+        Path filePath = resolveFilePath();
+        try {
+            ensureParentDirectoryExists(filePath);
+            Files.write(filePath, List.of(), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     private static List<ApplicationForm> getAllForms() {
         List<ApplicationForm> forms = new ArrayList<>();
         Path filePath = resolveFilePath();

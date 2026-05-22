@@ -35,4 +35,9 @@ public class TxtApplicationFormRepositoryImpl implements ApplicationFormReposito
     public void saveOrUpdate(ApplicationForm form) {
         ApplicationFormStore.saveOrUpdate(form);
     }
+
+    @Override
+    public void clearAll() {
+        ApplicationFormStore.clearAll();
+    }
 }

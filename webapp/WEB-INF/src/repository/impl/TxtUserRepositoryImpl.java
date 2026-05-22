@@ -121,4 +121,9 @@ public class TxtUserRepositoryImpl implements UserRepository {
     public void updateOwnedCourseIds(Mo mo) {
         UserStore.updateOwnedCourseIds(mo);
     }
+
+    @Override
+    public void resetTaApplicationState() {
+        UserStore.resetTaApplicationState();
+    }
 }

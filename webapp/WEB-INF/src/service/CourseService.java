@@ -10,4 +10,6 @@ public interface CourseService {
     void saveCourse(Course course);
 
     void updateCourse(Course course);
+
+    void resetRecruitmentCycle();
 }
