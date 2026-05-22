@@ -28,5 +28,9 @@ public interface ApplicationFormRepository {
      */
     void saveOrUpdate(ApplicationForm form);
 
+    /**
+     * Removes every persisted application form, typically invoked when
+     * resetting the system for a new recruitment cycle.
+     */
     void clearAll();
 }

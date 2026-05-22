@@ -14,15 +14,33 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import testsupport.StoreTestSupport;
 
+/**
+ * Unit tests for the {@link CourseStore} class in the TA Recruitment system.
+ * Verifies that course persistence operations, including saving, loading, CSV
+ * serialization, metadata restoration, and error handling, function correctly.
+ *
+ * @author TA Recruitment System
+ */
 class CourseStoreTest {
+    /**
+     * Temporary directory for isolated test file storage.
+     */
     @TempDir
     Path tempDir;
 
+    /**
+     * Cleans up store system property overrides after each test.
+     */
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
     }
 
+    /**
+     * Verifies that a saved course can be retrieved from the course list with all
+     * its fields correctly populated, including course name, job title, and job
+     * description.
+     */
     @Test
     void saveCourseAndLoadCourseList() {
         StoreTestSupport.useCourseStore(tempDir);
@@ -44,6 +62,11 @@ class CourseStoreTest {
         assertEquals("Support labs", courses.get(0).getJobDescription());
     }
 
+    /**
+     * Verifies that course fields containing commas and double quotes are properly
+     * escaped in CSV output and correctly deserialized upon loading, preserving
+     * the original field values.
+     */
     @Test
     void saveCoursePreservesCommasAndQuotesInCsvFields() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -69,6 +92,11 @@ class CourseStoreTest {
         assertEquals("Know Python, SQL, and \"data ethics\"", courses.get(0).getJobRequirement());
     }
 
+    /**
+     * Verifies that malformed CSV rows with an incorrect number of fields are
+     * silently ignored when loading courses, and only valid rows are included
+     * in the returned course list.
+     */
     @Test
     void malformedRowsAreIgnoredWhenLoadingCourses() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -84,6 +112,10 @@ class CourseStoreTest {
         assertEquals("Java", courses.get(0).getCourseName());
     }
 
+    /**
+     * Verifies that an empty course list is returned when no course file exists
+     * in the configured store path.
+     */
     @Test
     void missingCourseFileReturnsEmptyList() {
         StoreTestSupport.useCourseStore(tempDir);
@@ -91,6 +123,10 @@ class CourseStoreTest {
         assertTrue(CourseStore.getCourseList().isEmpty());
     }
 
+    /**
+     * Verifies that loading the course list correctly populates TA applicants and
+     * their associated application form IDs by reading from the linked user store.
+     */
     @Test
     void loadCourseListPopulatesApplicantsFromUserStore() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -121,6 +157,10 @@ class CourseStoreTest {
         assertEquals("course-1", applicant.getApplicationFormIdForCourse("course-1"));
     }
 
+    /**
+     * Verifies that loading the course list correctly restores review publication
+     * status and picked applicant email metadata from extended CSV fields.
+     */
     @Test
     void loadCourseListRestoresReviewSelectionMetadata() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);

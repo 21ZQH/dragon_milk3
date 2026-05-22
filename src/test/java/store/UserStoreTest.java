@@ -20,15 +20,35 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import testsupport.StoreTestSupport;
 
+/**
+ * Unit tests for the {@link UserStore} class in the TA Recruitment system.
+ * Verifies that user persistence operations, including saving, validation,
+ * profile updates, and restoration of associated data (owned courses, applied
+ * courses, resume submissions, review flags), function correctly across
+ * different user roles and file formats.
+ *
+ * @author TA Recruitment System
+ */
 class UserStoreTest {
+    /**
+     * Temporary directory for isolated test file storage.
+     */
     @TempDir
     Path tempDir;
 
+    /**
+     * Cleans up store system property overrides after each test.
+     */
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
     }
 
+    /**
+     * Verifies that saving a user and validating by role uses the isolated test file,
+     * and that the persisted user data is written to the file system and can be
+     * retrieved with all fields correctly populated.
+     */
     @Test
     void saveUserAndValidateByRoleUsesIsolatedTestFile() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
@@ -51,6 +71,10 @@ class UserStoreTest {
         assertEquals(0, ((Mo) savedUser).getOwnedCourses().size());
     }
 
+    /**
+     * Verifies that validating an MO user restores their owned courses by resolving
+     * course identifiers from the associated course store.
+     */
     @Test
     void validateUserRestoresOwnedCoursesForMo() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -71,6 +95,10 @@ class UserStoreTest {
         assertEquals("course-2", mo.getOwnedCourses().get(1).getId());
     }
 
+    /**
+     * Verifies that validating an MO user restores profile fields such as degree
+     * and college from the new user file format, along with owned course references.
+     */
     @Test
     void validateUserRestoresMoProfileFieldsFromNewFormat() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -92,6 +120,11 @@ class UserStoreTest {
         assertEquals("course-1", mo.getOwnedCourses().get(0).getId());
     }
 
+    /**
+     * Verifies that validating a user without specifying a role correctly matches
+     * by email and password, and that applied course references are restored for
+     * the TA user.
+     */
     @Test
     void validateUserWithoutRoleMatchesEmailAndPassword() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -114,6 +147,10 @@ class UserStoreTest {
         assertEquals(0, ta.getResumeSubmissions().size());
     }
 
+    /**
+     * Verifies that updating applied course IDs correctly rewrites the TA user line
+     * with the course identifiers appended to the CSV record.
+     */
     @Test
     void updateAppliedCourseIdsRewritesTaLineWithCourseIds() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -135,6 +172,10 @@ class UserStoreTest {
         assertEquals("Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,", lines.get(0));
     }
 
+    /**
+     * Verifies that validating a TA user restores application form submissions
+     * with their correct status and review-read flag for matching courses.
+     */
     @Test
     void validateUserRestoresApplicationFormSubmissionForMatchingCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -154,6 +195,10 @@ class UserStoreTest {
         assertFalse(submission.isReviewUnread());
     }
 
+    /**
+     * Verifies that validating a TA user restores profile fields (college, skill)
+     * and application form metadata from the new user file format.
+     */
     @Test
     void validateUserRestoresTaProfileFieldsFromNewFormat() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -177,6 +222,11 @@ class UserStoreTest {
         assertFalse(ta.hasUnreadReviewUpdates());
     }
 
+    /**
+     * Verifies that updating a TA profile rewrites the profile fields (name, college,
+     * skill) while preserving existing course and application form mappings in the
+     * CSV record.
+     */
     @Test
     void updateTaProfileRewritesOnlyTaProfileFieldsAndPreservesMappings() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -202,6 +252,11 @@ class UserStoreTest {
         assertEquals("Alice Zhang,pass123,TA,alice@example.com,New College,\"Java, Python, SQL\",course-1,course-1@0@false", lines.get(0));
     }
 
+    /**
+     * Verifies that updating a TA profile correctly handles fields containing commas
+     * and double quotes in CSV serialization and deserialization, preserving the
+     * original special characters in the round-trip.
+     */
     @Test
     void updateTaProfilePreservesCommasAndQuotesInCsvFields() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -233,6 +288,11 @@ class UserStoreTest {
         assertEquals("course-1", savedTa.getApplicationFormIdForCourse("course-1"));
     }
 
+    /**
+     * Verifies that validating a TA user restores the unread review flag and review
+     * status from the new user file format, correctly identifying approved submissions
+     * with unread updates.
+     */
     @Test
     void validateUserRestoresUnreadReviewFlagFromNewFormat() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -251,6 +311,11 @@ class UserStoreTest {
         assertEquals(ResumeSubmission.STATUS_APPROVED, ta.getResumeStatusForCourse("course-1"));
     }
 
+    /**
+     * Verifies that when no user file exists, the store behaves as if no users are
+     * registered, returning false for email existence checks and null for all user
+     * validation methods.
+     */
     @Test
     void missingUserFileBehavesLikeNoRegisteredUsers() {
         StoreTestSupport.useUserStore(tempDir);

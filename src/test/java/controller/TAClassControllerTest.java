@@ -38,10 +38,20 @@ import store.UserStore;
 import store.ApplicationFormStore;
 import testsupport.StoreTestSupport;
 
+/**
+ * Unit tests for {@link TAClassController} in the TA Recruitment system.
+ * Tests cover course information viewing, resume upload, application form generation,
+ * personal centre management, withdrawal of applications, and various error/edge cases.
+ *
+ * @author BUPT-TA-Recruitment-Group33
+ */
 class TAClassControllerTest {
     @TempDir
     Path tempDir;
 
+    /**
+     * A helper servlet output stream that captures written bytes into a byte array for verification.
+     */
     private static class CapturingServletOutputStream extends ServletOutputStream {
         private final ByteArrayOutputStream delegate = new ByteArrayOutputStream();
 
@@ -65,12 +75,18 @@ class TAClassControllerTest {
         }
     }
 
+    /**
+     * Clears store overrides and system properties after each test to ensure test isolation.
+     */
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
         System.clearProperty(ApplicationFormStore.FILE_PATH_PROPERTY);
     }
 
+    /**
+     * Tests that the "view_information" action redirects the TA to the unified TA home page.
+     */
     @Test
     void viewInformationRedirectsToUnifiedTaHome() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -95,6 +111,10 @@ class TAClassControllerTest {
         verify(response).sendRedirect("/SE/ta");
     }
 
+    /**
+     * Tests that the "show_all_information" action sets the selected course from the session
+     * course list based on the provided index and forwards to the specific-class JSP page.
+     */
     @Test
     void showAllInformationSetsSelectedCourseAndForwards() throws Exception {
         TAClassController controller = new TAClassController();
@@ -122,6 +142,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "show_all_information" action redirects back to view_information
+     * when no course index parameter is provided.
+     */
     @Test
     void showAllInformationRedirectsWhenCourseIndexMissing() throws Exception {
         TAClassController controller = new TAClassController();
@@ -145,6 +169,9 @@ class TAClassControllerTest {
         verify(response).sendRedirect("/SE/TAclasscontroller?action=view_information");
     }
 
+    /**
+     * Tests that the "home" action redirects the TA to the unified TA home page.
+     */
     @Test
     void homeActionRedirectsToUnifiedTaHome() throws Exception {
         TAClassController controller = new TAClassController();
@@ -163,6 +190,10 @@ class TAClassControllerTest {
         verify(response).sendRedirect("/SE/ta");
     }
 
+    /**
+     * Tests that the "logout" action invalidates the current session
+     * and redirects the TA to the TA entry page.
+     */
     @Test
     void logoutActionInvalidatesSessionAndRedirectsToTaEntry() throws Exception {
         TAClassController controller = new TAClassController();
@@ -180,6 +211,10 @@ class TAClassControllerTest {
         verify(response).sendRedirect("/SE/ta");
     }
 
+    /**
+     * Tests that the "go_apply" action sets the selected course from the session
+     * course list based on the provided index and forwards to the application JSP page.
+     */
     @Test
     void goApplySetsSelectedCourseAndForwards() throws Exception {
         TAClassController controller = new TAClassController();
@@ -206,6 +241,11 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "go_apply" action sets the current resume attributes when the TA
+     * already has a submitted application form for the selected course, including
+     * the resume availability flag and file name.
+     */
     @Test
     void goApplyWithSubmittedFormSetsCurrentApplicationAttributes() throws Exception {
         TAClassController controller = new TAClassController();
@@ -238,6 +278,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that uploading a resume without selecting a file shows an error
+     * on the application page and does not proceed with the upload.
+     */
     @Test
     void uploadResumeWithoutFileShowsErrorOnApplicationPage() throws Exception {
         TAClassController controller = new TAClassController();
@@ -266,6 +310,9 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that uploading a non-PDF file is rejected with an appropriate error message.
+     */
     @Test
     void uploadResumeRejectsNonPdfFile() throws Exception {
         TAClassController controller = new TAClassController();
@@ -297,6 +344,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that uploading a resume is rejected when the TA already has a master resume
+     * directory set, requiring the TA to replace their resume from the Personal Centre instead.
+     */
     @Test
     void uploadResumeRejectsReplacementWhenMasterResumeAlreadyExists() throws Exception {
         TAClassController controller = new TAClassController();
@@ -330,6 +381,9 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that a non-TA user attempting to upload a resume receives an HTTP 403 Forbidden error.
+     */
     @Test
     void uploadResumeRedirectsWhenCurrentUserIsNotTa() throws Exception {
         TAClassController controller = new TAClassController();
@@ -352,6 +406,10 @@ class TAClassControllerTest {
         verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: TA role required");
     }
 
+    /**
+     * Tests that a non-TA session accessing the "generate_application_form" action
+     * is redirected to the TA authentication page.
+     */
     @Test
     void generateApplicationFormRedirectsNonTaSessionToTaLogin() throws Exception {
         TAClassController controller = new TAClassController();
@@ -369,6 +427,11 @@ class TAClassControllerTest {
         verify(response).sendRedirect("/SE/ta?action=auth");
     }
 
+    /**
+     * Tests that uploading a resume successfully stores the resume directory path against
+     * the course, persists the TA user data, creates an application form, and forwards
+     * to the application form page.
+     */
     @Test
     void uploadResumeStoresResumeDirectoryAgainstCourseAndPersistsUserData() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -425,6 +488,11 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "personal_centre" action forwards to the personal centre page
+     * with the TA's applied courses, selected course details, application status,
+     * and the application open flag set to true.
+     */
     @Test
     void personalCentreForwardsWithAppliedCourses() throws Exception {
         TAClassController controller = new TAClassController();
@@ -452,6 +520,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the personal centre page marks applications as closed when the
+     * application deadline has passed.
+     */
     @Test
     void personalCentreMarksApplicationsClosedAfterDeadline() throws Exception {
         TAClassController controller = new TAClassController();
@@ -478,6 +550,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that accessing the personal centre clears any unread review update flags
+     * for the TA, persists this change to the user store, and updates the session attribute.
+     */
     @Test
     void personalCentreClearsUnreadReviewUpdatesAndPersistsThem() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -513,6 +589,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that viewing the master resume streams the PDF file inline with the
+     * correct content type and Content-Disposition header.
+     */
     @Test
     void viewMasterResumeStreamsPdfInline() throws Exception {
         TAClassController controller = new TAClassController();
@@ -543,6 +623,10 @@ class TAClassControllerTest {
         assertArrayEquals(pdfBytes, outputStream.toByteArray());
     }
 
+    /**
+     * Tests that viewing the master resume with a "download=true" parameter
+     * streams the PDF as an attachment (download) rather than inline display.
+     */
     @Test
     void viewMasterResumeStreamsPdfAsAttachmentWhenDownloadTrue() throws Exception {
         TAClassController controller = new TAClassController();
@@ -570,6 +654,10 @@ class TAClassControllerTest {
         verify(response).setHeader("Content-Disposition", "attachment; filename=\"ta_example.com.pdf\"");
     }
 
+    /**
+     * Tests that the "go_apply_by_id" action resolves the course index from the course ID,
+     * sets the selected course as a request attribute, and forwards to the application page.
+     */
     @Test
     void goApplyByIdResolvesCourseIndexAndForwardsToApplication() throws Exception {
         TAClassController controller = new TAClassController();
@@ -597,6 +685,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "go_apply_by_id" action shows an error and sets applications as closed
+     * when the application deadline has already passed.
+     */
     @Test
     void goApplyByIdAfterDeadlineForwardsToPersonalCentreWithError() throws Exception {
         TAClassController controller = new TAClassController();
@@ -626,6 +718,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that withdrawing an application removes all TA and course references,
+     * persists the updated user data to the store, and forwards to the personal centre page.
+     */
     @Test
     void withdrawApplicationRemovesTaAndCourseReferencesAndPersistsUserData() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
@@ -663,6 +759,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that withdrawing an application preserves the master resume file on disk
+     * even after removing the course-specific references.
+     */
     @Test
     void withdrawApplicationKeepsMasterResumeFileOnDisk() throws Exception {
         StoreTestSupport.useUserStore(tempDir);
@@ -699,6 +799,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that withdrawing an application from the course detail page returns
+     * to the course detail page with the selected course and a success message.
+     */
     @Test
     void withdrawApplicationFromCourseDetailReturnsToCourseDetail() throws Exception {
         StoreTestSupport.useUserStore(tempDir);
@@ -731,6 +835,10 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that withdrawing an application after the deadline has passed
+     * is rejected with an error message, and the application data is preserved.
+     */
     @Test
     void withdrawApplicationAfterDeadlineDoesNotRemoveApplication() throws Exception {
         StoreTestSupport.useUserStore(tempDir);
@@ -763,4 +871,3 @@ class TAClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 }
-

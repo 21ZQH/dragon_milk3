@@ -34,5 +34,9 @@ public interface CourseRepository {
      */
     void updateCourse(Course course);
 
+    /**
+     * Resets all courses to their pre-recruitment state (e.g., clearing
+     * assigned TA information and resetting status flags).
+     */
     void resetRecruitmentCycle();
 }

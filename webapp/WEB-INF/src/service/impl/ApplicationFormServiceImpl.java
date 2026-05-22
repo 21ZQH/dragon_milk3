@@ -15,17 +15,51 @@ import service.ai.ResumeTextExtractor;
 import service.ai.impl.MockApplicationFormAiClient;
 import service.ai.impl.PdfBoxResumeTextExtractor;
 
+/**
+ * Implementation of the {@link ApplicationFormService} interface.
+ * Provides concrete logic for generating, retrieving, building, and
+ * persisting TA application forms. Uses an AI client (with a fallback)
+ * for automatic form generation from resume text, and delegates
+ * persistence to {@link ApplicationFormRepository}.
+ *
+ * @author BUPT TA Recruitment Team
+ * @version 1.0
+ * @since 2024-2025
+ */
 public class ApplicationFormServiceImpl implements ApplicationFormService {
+    /** Primary AI client for generating application form content. */
     private final ApplicationFormAiClient aiClient;
+
+    /** Fallback AI client used when the primary client is unavailable. */
     private final ApplicationFormAiClient fallbackAiClient;
+
+    /** Text extractor for reading resume file content. */
     private final ResumeTextExtractor resumeTextExtractor;
+
+    /** Repository for application form persistence. */
     private final ApplicationFormRepository applicationFormRepository;
 
+    /**
+     * Constructs a new {@code ApplicationFormServiceImpl} with default
+     * dependencies: an {@link ApplicationFormAiClientFactory} instance,
+     * a {@link MockApplicationFormAiClient} fallback, a
+     * {@link PdfBoxResumeTextExtractor}, and a
+     * {@link TxtApplicationFormRepositoryImpl}.
+     */
     public ApplicationFormServiceImpl() {
         this(new ApplicationFormAiClientFactory().create(), new MockApplicationFormAiClient(),
                 new PdfBoxResumeTextExtractor(), new TxtApplicationFormRepositoryImpl());
     }
 
+    /**
+     * Constructs a new {@code ApplicationFormServiceImpl} with the given
+     * dependencies.
+     *
+     * @param aiClient                   the primary AI client for form generation
+     * @param fallbackAiClient           the fallback AI client
+     * @param resumeTextExtractor        the extractor for reading resume text
+     * @param applicationFormRepository  the repository for form persistence
+     */
     ApplicationFormServiceImpl(ApplicationFormAiClient aiClient, ApplicationFormAiClient fallbackAiClient,
             ResumeTextExtractor resumeTextExtractor, ApplicationFormRepository applicationFormRepository) {
         this.aiClient = aiClient;
@@ -34,6 +68,15 @@ public class ApplicationFormServiceImpl implements ApplicationFormService {
         this.applicationFormRepository = applicationFormRepository;
     }
 
+    /**
+     * Generates an initial application form for a TA applying to a course by
+     * extracting the TA's resume text and invoking the AI generation pipeline
+     * with fallback support.
+     *
+     * @param ta     the TA applicant
+     * @param course the course being applied to
+     * @return the generated {@link ApplicationForm}
+     */
     @Override
     public ApplicationForm generateInitialForm(TA ta, Course course) {
         String resumeText = extractResumeText(ta);
@@ -42,11 +85,33 @@ public class ApplicationFormServiceImpl implements ApplicationFormService {
         return form;
     }
 
+    /**
+     * Retrieves an existing application form for the given TA email and course ID.
+     *
+     * @param taEmail  the email address of the TA
+     * @param courseId the unique identifier of the course
+     * @return the matching {@link ApplicationForm}, or {@code null} if not found
+     */
     @Override
     public ApplicationForm getForm(String taEmail, String courseId) {
         return applicationFormRepository.findForm(taEmail, courseId);
     }
 
+    /**
+     * Builds an {@link ApplicationForm} from the given HTTP request parameters.
+     *
+     * @param ta                 the TA applicant
+     * @param course             the course being applied to
+     * @param applicantName      the applicant's display name
+     * @param email              the applicant's email address
+     * @param education          the education background text
+     * @param skills             the skills description
+     * @param relevantExperience the relevant experience description
+     * @param projectExperience  the project experience description
+     * @param feedback           additional feedback or notes
+     * @param submitted          whether the form has been submitted
+     * @return the constructed {@link ApplicationForm}
+     */
     @Override
     public ApplicationForm buildFormFromRequest(TA ta, Course course,
             String applicantName, String email, String education, String skills,
@@ -64,11 +129,25 @@ public class ApplicationFormServiceImpl implements ApplicationFormService {
         return form;
     }
 
+    /**
+     * Persists an application form, creating a new record or updating an existing one.
+     *
+     * @param form the {@link ApplicationForm} to save or update
+     */
     @Override
     public void saveForm(ApplicationForm form) {
         applicationFormRepository.saveOrUpdate(form);
     }
 
+    /**
+     * Generates an application form using the primary AI client, falling back
+     * to the secondary client or a minimal default form if both fail.
+     *
+     * @param ta         the TA applicant
+     * @param course     the course being applied to
+     * @param resumeText the extracted resume text
+     * @return a generated {@link ApplicationForm}
+     */
     private ApplicationForm generateWithFallback(TA ta, Course course, String resumeText) {
         try {
             return aiClient.generate(ta, course, resumeText);
@@ -94,6 +173,12 @@ public class ApplicationFormServiceImpl implements ApplicationFormService {
         }
     }
 
+    /**
+     * Extracts plain text from the TA's master resume file.
+     *
+     * @param ta the TA whose resume should be extracted
+     * @return the extracted resume text, or an empty string if extraction fails
+     */
     private String extractResumeText(TA ta) {
         if (ta == null || ta.getMasterResumeDirectory() == null || ta.getMasterResumeDirectory().isBlank()) {
             return "";
@@ -107,10 +192,23 @@ public class ApplicationFormServiceImpl implements ApplicationFormService {
         }
     }
 
+    /**
+     * Trims a string value, returning an empty string for null input.
+     *
+     * @param value the string to trim
+     * @return the trimmed string, or an empty string if the input is {@code null}
+     */
     private String trimValue(String value) {
         return value == null ? "" : value.trim();
     }
 
+    /**
+     * Builds the stored resume file name for the given TA by normalizing
+     * the email address and appending a {@code .pdf} extension.
+     *
+     * @param ta the TA whose resume file name is to be built
+     * @return the normalized resume file name
+     */
     private String buildStoredResumeFileName(TA ta) {
         String normalizedEmail = ta == null || ta.getEmail() == null || ta.getEmail().trim().isEmpty()
                 ? "unknown"

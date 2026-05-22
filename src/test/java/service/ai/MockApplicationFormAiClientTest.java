@@ -10,7 +10,18 @@ import model.Course;
 import model.TA;
 import service.ai.impl.MockApplicationFormAiClient;
 
+/**
+ * Unit tests for {@link MockApplicationFormAiClient} in the TA Recruitment
+ * system. Verifies AI-driven application form generation from resume text.
+ */
 class MockApplicationFormAiClientTest {
+
+    /**
+     * Tests that the AI client generates form fields using the provided
+     * resume text when the TA's profile fields are empty, extracting the
+     * applicant name, education, skills, project experience, and relevant
+     * experience from the resume content.
+     */
     @Test
     void generateUsesResumeTextWhenProfileFieldsAreEmpty() throws Exception {
         TA ta = new TA("", "2023213248@bupt.edu.cn");

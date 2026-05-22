@@ -23,6 +23,13 @@ import service.AccountService;
 import service.CourseService;
 import service.DeadlineService;
 
+/**
+ * Unit tests for {@link EntryController} in the TA Recruitment system.
+ * Tests cover entry-point routing for different roles (Mo, Admin, TA),
+ * including login page forwarding, course listing, detail views, and error handling.
+ *
+ * @author BUPT-TA-Recruitment-Group33
+ */
 class EntryControllerTest {
 
     private AccountService accountService;
@@ -36,13 +43,17 @@ class EntryControllerTest {
     private ServletContext servletContext;
     private RequestDispatcher dispatcher;
 
+    /**
+     * Sets up the test environment before each test by mocking service dependencies,
+     * instantiating the controller, and preparing standard mock objects for HTTP request/response handling.
+     */
     @BeforeEach
     void setUp() {
         // 1. Mock all Service dependencies
         accountService = mock(AccountService.class);
         courseService = mock(CourseService.class);
         deadlineService = mock(DeadlineService.class);
-        
+
         // 2. Instantiate Controller using the three-parameter constructor (perfectly adapts to your changes)
         controller = new EntryController(accountService, courseService, deadlineService);
 
@@ -59,6 +70,10 @@ class EntryControllerTest {
         when(request.getRequestDispatcher(anyString())).thenReturn(dispatcher);
     }
 
+    /**
+     * Tests that accessing the "/mo" path initializes built-in accounts and forwards
+     * to the MO login page with the correct role and title attributes.
+     */
     @Test
     void testDoGetMoPath() throws Exception {
         // Simulate accessing /mo
@@ -74,6 +89,10 @@ class EntryControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that accessing the "/admin" path initializes built-in accounts and forwards
+     * to the Admin login page with the correct role and title attributes.
+     */
     @Test
     void testDoGetAdminPath() throws Exception {
         // Simulate accessing /admin
@@ -89,6 +108,9 @@ class EntryControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that accessing an unknown path (e.g., "/unknown") results in an HTTP 404 Not Found error.
+     */
     @Test
     void testDoGetUnknownPath() throws Exception {
         // Simulate accessing an unknown path
@@ -100,6 +122,10 @@ class EntryControllerTest {
         verify(response).sendError(HttpServletResponse.SC_NOT_FOUND);
     }
 
+    /**
+     * Tests that the TA entry page without an action parameter displays only published courses,
+     * filtering out any unpublished courses from the course list.
+     */
     @Test
     void testShowTaEntryDefaultShowsPublishedCourses() throws Exception {
         // Simulate accessing /ta without any action
@@ -117,13 +143,17 @@ class EntryControllerTest {
         controller.doGet(request, response);
 
         // Verify that unpublished courses are filtered out, and only publishedCourse is stored in request and session
-        verify(request).setAttribute(eq("courseList"), argThat(list -> 
+        verify(request).setAttribute(eq("courseList"), argThat(list ->
             ((List<?>) list).size() == 1 && ((List<?>) list).contains(publishedCourse)
         ));
         verify(request).getRequestDispatcher("/WEB-INF/views/entry/ta-public.jsp");
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that accessing the TA entry with the "auth" action parameter
+     * forwards to the TA authorization page.
+     */
     @Test
     void testShowTaEntryAuthAction() throws Exception {
         // Simulate accessing /ta?action=auth
@@ -137,6 +167,10 @@ class EntryControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the TA course detail page (action=detail, courseIndex=0) sets the application
+     * state to open when a future deadline exists in the servlet context.
+     */
     @Test
     void testShowTaEntryDetailUsesServletContextDeadline() throws Exception {
         // Simulate accessing /ta?action=detail&courseIndex=0
@@ -162,6 +196,10 @@ class EntryControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the TA course detail page treats a missing servlet context deadline
+     * as an open application period (applicationOpen = true) for backward compatibility.
+     */
     @Test
     void testShowTaEntryDetailTreatsMissingServletContextDeadlineAsOpen() throws Exception {
         // Simulate accessing /ta?action=detail&courseIndex=0

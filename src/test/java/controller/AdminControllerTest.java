@@ -39,17 +39,31 @@ import store.DeadlineStore;
 import store.UserStore;
 import testsupport.StoreTestSupport;
 
+/**
+ * Unit tests for {@link AdminController} in the TA Recruitment system.
+ * Tests cover admin authentication, dashboard, candidate management, MO creation,
+ * deadline management, recruitment cycle reset, resume viewing, and error handling.
+ *
+ * @author BUPT-TA-Recruitment-Group33
+ */
 class AdminControllerTest {
 
     @TempDir
     Path tempDir;
 
+    /**
+     * Clears store overrides and system properties after each test to ensure test isolation.
+     */
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
         System.clearProperty("MO_COURSE_DRAFT_AI_PROVIDER");
     }
 
+    /**
+     * Tests that an unauthenticated user (no session) accessing the admin controller
+     * is redirected to the admin entry page.
+     */
     @Test
     void unauthenticatedUserRedirectsToAdminEntry() throws Exception {
         AdminController controller = new AdminController();
@@ -64,6 +78,10 @@ class AdminControllerTest {
         verify(response).sendRedirect("/SE/admin");
     }
 
+    /**
+     * Tests that a non-admin user (e.g., a TA) accessing the admin controller
+     * receives an HTTP 403 Forbidden error with an appropriate message.
+     */
     @Test
     void nonAdminUserGetsForbiddenError() throws Exception {
         AdminController controller = new AdminController();
@@ -80,6 +98,9 @@ class AdminControllerTest {
         verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: Admin role required");
     }
 
+    /**
+     * Tests that the "dashboard" action forwards the request to the admin dashboard JSP view.
+     */
     @Test
     void dashboardActionForwardsToAdminDashboard() throws Exception {
         AdminController controller = new AdminController();
@@ -99,6 +120,10 @@ class AdminControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "candidate_management" action fetches the list of TA users
+     * and forwards to the candidate management JSP view with the TA list as a request attribute.
+     */
     @Test
     void candidateManagementActionFetchesTAsAndForwards() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -134,6 +159,11 @@ class AdminControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that creating an MO account via the "create_mo" action persists the MO user,
+     * creates assigned courses with auto-generated job descriptions, and forwards
+     * to the MO management page with a success message and generated course drafts.
+     */
     @Test
     void createMoCreatesAccountAndAssignedCourses() throws Exception {
         System.setProperty("MO_COURSE_DRAFT_AI_PROVIDER", "mock");
@@ -174,6 +204,10 @@ class AdminControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "set_deadline" action retrieves any previously saved application deadline
+     * from the servlet context and forwards to the set-deadline JSP page with the saved deadline.
+     */
     @Test
     void setDeadlinePageForwardsWithSavedDeadline() throws Exception {
         AdminController controller = new AdminController();
@@ -199,6 +233,10 @@ class AdminControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "save_deadline" action stores the submitted deadline in the servlet context,
+     * persists it to the deadline store, and forwards with a success message.
+     */
     @Test
     void saveDeadlineStoresValueInServletContextAndForwardsSuccess() throws Exception {
         Path deadlineFile = StoreTestSupport.useApplicationDeadlineStore(tempDir);
@@ -231,6 +269,10 @@ class AdminControllerTest {
         assertTrue(Files.exists(deadlineFile));
     }
 
+    /**
+     * Tests that saving a deadline with blank date and time inputs rejects the submission
+     * and forwards with an error message instead of saving.
+     */
     @Test
     void saveDeadlineRejectsBlankInput() throws Exception {
         AdminController controller = new AdminController();
@@ -256,6 +298,10 @@ class AdminControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "set_mo_deadline" action retrieves any previously saved MO course modification
+     * deadline from the servlet context and forwards to the set-MO-deadline JSP page.
+     */
     @Test
     void setMoDeadlinePageForwardsWithSavedDeadline() throws Exception {
         AdminController controller = new AdminController();
@@ -281,6 +327,10 @@ class AdminControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "save_mo_deadline" action stores the MO modification deadline
+     * in the servlet context, persists it to the deadline store, and forwards with a success message.
+     */
     @Test
     void saveMoDeadlineStoresValueInServletContextAndForwardsSuccess() throws Exception {
         Path deadlineFile = StoreTestSupport.useMoDeadlineStore(tempDir);
@@ -313,6 +363,11 @@ class AdminControllerTest {
         assertTrue(Files.exists(deadlineFile));
     }
 
+    /**
+     * Tests that resetting the recruitment cycle clears all applications, returns courses to draft state,
+     * clears picked applicants and TA submissions, removes deadlines from the servlet context,
+     * and forwards the admin to the dashboard with a confirmation notice.
+     */
     @Test
     void resetRecruitmentCycleClearsApplicationsAndReturnsCoursesToDraft() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -374,6 +429,10 @@ class AdminControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the reset recruitment cycle action requires the user to type the exact
+     * confirmation text "RESET". If the confirmation text does not match, an error is shown.
+     */
     @Test
     void resetRecruitmentCycleRequiresConfirmationText() throws Exception {
         AdminController controller = new AdminController();
@@ -397,6 +456,10 @@ class AdminControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the admin logout action invalidates the current session
+     * and redirects the admin to the admin entry page.
+     */
     @Test
     void adminLogoutInvalidatesSessionAndRedirectsToAdminEntry() throws Exception {
         AdminController controller = new AdminController();
@@ -416,6 +479,10 @@ class AdminControllerTest {
         verify(response).sendRedirect("/SE/admin");
     }
 
+    /**
+     * Tests that the "view_resume" action streams a PDF resume file inline to the response
+     * for an authenticated admin user, setting the correct content type and disposition headers.
+     */
     @Test
     void viewResumeStreamsPdfForAdmin() throws Exception {
         AdminController controller = new AdminController();
@@ -447,6 +514,9 @@ class AdminControllerTest {
         Assertions.assertArrayEquals(Files.readAllBytes(resumeFile), outputStream.toByteArray());
     }
 
+    /**
+     * Tests that an unknown action parameter results in an HTTP 400 Bad Request error.
+     */
     @Test
     void unknownActionReturnsBadRequest() throws Exception {
         AdminController controller = new AdminController();
@@ -464,12 +534,22 @@ class AdminControllerTest {
         verify(response).sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
     }
 
+    /**
+     * Initializes the controller with a mocked servlet config.
+     *
+     * @param controller     the AdminController instance to initialize
+     * @param servletContext the mocked ServletContext
+     * @throws ServletException if initialization fails
+     */
     private void initController(AdminController controller, ServletContext servletContext) throws ServletException {
         ServletConfig config = mock(ServletConfig.class);
         when(config.getServletContext()).thenReturn(servletContext);
         controller.init(config);
     }
 
+    /**
+     * A helper servlet output stream that captures written bytes into a byte array for verification.
+     */
     private static final class ByteArrayServletOutputStream extends ServletOutputStream {
         private final ByteArrayOutputStream delegate = new ByteArrayOutputStream();
 

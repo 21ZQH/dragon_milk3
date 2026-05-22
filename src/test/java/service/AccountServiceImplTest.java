@@ -17,17 +17,32 @@ import org.junit.jupiter.api.io.TempDir;
 import service.impl.AccountServiceImpl;
 import testsupport.StoreTestSupport;
 
+/**
+ * Unit tests for {@link AccountServiceImpl} in the TA Recruitment system.
+ * Verifies user registration, login, built-in account seeding, and email
+ * validation behavior.
+ */
 class AccountServiceImplTest {
+    /** Temporary directory used for file-based store overrides. */
     @TempDir
     Path tempDir;
 
+    /** The service implementation under test. */
     private final AccountService service = new AccountServiceImpl();
 
+    /**
+     * Clears store overrides after each test to prevent state leakage between
+     * test cases.
+     */
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
     }
 
+    /**
+     * Tests that registering a user creates a role-specific instance ({@link TA})
+     * and persists the user record to the store file with the correct fields.
+     */
     @Test
     void registerBuildsRoleSpecificUserAndPersistsIt() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
@@ -40,6 +55,10 @@ class AccountServiceImplTest {
         assertEquals("Alice,secret123,TA,ta@example.com,,,,", java.nio.file.Files.readAllLines(usersFile).get(0));
     }
 
+    /**
+     * Tests that registering a user with an email address that already exists
+     * in the store returns {@code EMAIL_REGISTERED} and does not create a user.
+     */
     @Test
     void registerRejectsDuplicateEmail() {
         StoreTestSupport.useUserStore(tempDir);
@@ -51,6 +70,10 @@ class AccountServiceImplTest {
         assertNull(result.getUser());
     }
 
+    /**
+     * Tests that login returns the correct user type regardless of whether the
+     * role parameter is provided or empty, as long as the credentials match.
+     */
     @Test
     void loginSupportsOptionalRole() {
         StoreTestSupport.useUserStore(tempDir);
@@ -63,6 +86,11 @@ class AccountServiceImplTest {
         assertInstanceOf(Mo.class, withRole);
     }
 
+    /**
+     * Tests that TA registration with a non-{@code bupt.edu.cn} email domain
+     * is rejected, while a valid {@code bupt.edu.cn} email succeeds and
+     * generates an access key prefixed with {@code TA-}.
+     */
     @Test
     void taRegistrationRequiresBuptEmailAndGeneratesAccessKey() {
         StoreTestSupport.useUserStore(tempDir);
@@ -77,6 +105,12 @@ class AccountServiceImplTest {
         assertInstanceOf(TA.class, service.loginTaByAccessKey(accepted.getUser().getPassword()));
     }
 
+    /**
+     * Tests that the built-in Mo and Admin accounts are seeded correctly,
+     * can be logged in with their default credentials, and that Mo accounts
+     * own the expected courses with recruitment initially unpublished.
+     * Verifies that incorrect passwords return null.
+     */
     @Test
     void builtInMoAndAdminAccountsCanBeSeededAndLoggedIn() {
         StoreTestSupport.useCourseStore(tempDir);

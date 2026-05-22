@@ -15,9 +15,30 @@ import java.util.stream.Collectors;
 import model.Course;
 import model.TA;
 
+/**
+ * Data access layer for persisting and retrieving course records.
+ *
+ * <p>Courses are stored as CSV records in a file-based store. This class provides
+ * operations for reading, saving, updating, and resetting course data used in the
+ * TA recruitment workflow. It also manages the association between courses and
+ * their TA applicants.</p>
+ *
+ * @author BUPT Group33
+ * @version 1.0
+ * @since 1.0
+ */
 public class CourseStore {
+    /** System property key for overriding the default course store file path. */
     public static final String FILE_PATH_PROPERTY = "course.store.path";
 
+    /**
+     * Retrieves all course records from the store.
+     * <p>Supports multiple CSV format versions for backward compatibility,
+     * including legacy 6-field records. Applicant data is populated from the
+     * {@link UserStore} after all courses are loaded.</p>
+     *
+     * @return a list of all courses with populated applicant data
+     */
     public static List<Course> getCourseList() {
         List<Course> courseList = new ArrayList<>();
         Path filePath = resolveFilePath();
@@ -87,6 +108,11 @@ public class CourseStore {
         return courseList;
     }
 
+    /**
+     * Saves a new course record to the store file.
+     *
+     * @param course the course to save
+     */
     public static void saveCourse(Course course) {
         String line = buildCourseLine(course);
 
@@ -105,6 +131,12 @@ public class CourseStore {
         }
     }
 
+    /**
+     * Updates a course at the specified index in the course list.
+     *
+     * @param courseIndex    the index of the course to update
+     * @param updatedCourse  the updated course data
+     */
     public static void updateCourse(int courseIndex, Course updatedCourse) {
         List<Course> courseList = getCourseList();
         if (courseIndex < 0 || courseIndex >= courseList.size()) {
@@ -127,6 +159,11 @@ public class CourseStore {
         }
     }
 
+    /**
+     * Updates a course identified by its unique ID in the store.
+     *
+     * @param updatedCourse the course with updated data (must have a valid non-blank ID)
+     */
     public static void updateCourse(Course updatedCourse) {
         if (updatedCourse == null || updatedCourse.getId() == null || updatedCourse.getId().isBlank()) {
             return;
@@ -154,6 +191,11 @@ public class CourseStore {
         }
     }
 
+    /**
+     * Resets the recruitment cycle state for all courses.
+     * <p>Clears picked applicant emails, review published status, and recruitment
+     * published status for every course.</p>
+     */
     public static void resetRecruitmentCycle() {
         List<Course> courseList = getCourseList();
         List<String> linesToWrite = new ArrayList<>();
@@ -173,6 +215,12 @@ public class CourseStore {
         }
     }
 
+    /**
+     * Builds a CSV line representation of a course.
+     *
+     * @param course the course to serialize
+     * @return the CSV line string
+     */
     private static String buildCourseLine(Course course) {
         return CsvRecord.toLine(
                 safe(course.getId()),
@@ -187,10 +235,21 @@ public class CourseStore {
                 String.valueOf(course.isRecruitmentPublished()));
     }
 
+    /**
+     * Returns the given value or an empty string if it is {@code null}.
+     *
+     * @param value the value to check
+     * @return the original value if non-null, or an empty string otherwise
+     */
     private static String safe(String value) {
         return value == null ? "" : value;
     }
 
+    /**
+     * Resolves the course store file path from system properties or defaults.
+     *
+     * @return the resolved file path
+     */
     private static Path resolveFilePath() {
         String overridePath = System.getProperty(FILE_PATH_PROPERTY);
         if (overridePath != null && !overridePath.isBlank()) {
@@ -205,6 +264,12 @@ public class CourseStore {
         return Paths.get(System.getProperty("user.dir"), "webapp", "WEB-INF", "file", "courses.txt");
     }
 
+    /**
+     * Ensures the parent directory of the given file path exists, creating it if necessary.
+     *
+     * @param filePath the file path whose parent directory should be checked
+     * @throws IOException if an I/O error occurs during directory creation
+     */
     private static void ensureParentDirectoryExists(Path filePath) throws IOException {
         Path parentPath = filePath.getParent();
         if (parentPath != null) {
@@ -212,10 +277,23 @@ public class CourseStore {
         }
     }
 
+    /**
+     * Builds a legacy course identifier from the CSV line content.
+     * <p>Used for backward compatibility with older 6-field course records.</p>
+     *
+     * @param line the original CSV line
+     * @return a UUID-based legacy course identifier
+     */
     private static String buildLegacyCourseId(String line) {
         return "legacy-" + UUID.nameUUIDFromBytes(line.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * Serializes the picked applicant emails of a course into a pipe-delimited string.
+     *
+     * @param course the course whose picked applicant emails to serialize
+     * @return the serialized email string
+     */
     private static String serializePickedApplicantEmails(Course course) {
         return course.getPickedApplicantEmails().stream()
                 .filter(email -> email != null && !email.isBlank())
@@ -223,6 +301,12 @@ public class CourseStore {
                 .collect(Collectors.joining("|"));
     }
 
+    /**
+     * Parses a pipe-delimited string of email addresses into a list.
+     *
+     * @param value the pipe-delimited email string to parse
+     * @return the list of parsed email addresses
+     */
     private static List<String> parsePickedApplicantEmails(String value) {
         List<String> pickedApplicantEmails = new ArrayList<>();
         if (value == null || value.isBlank()) {
@@ -237,6 +321,11 @@ public class CourseStore {
         return pickedApplicantEmails;
     }
 
+    /**
+     * Populates the applicant lists for all courses from the TA user store.
+     *
+     * @param courseList the list of courses to populate with applicants
+     */
     private static void populateApplicants(List<Course> courseList) {
         if (courseList.isEmpty()) {
             return;

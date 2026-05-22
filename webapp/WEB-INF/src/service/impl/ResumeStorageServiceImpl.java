@@ -8,7 +8,26 @@ import model.Course;
 import model.TA;
 import service.ResumeStorageService;
 
+/**
+ * Implementation of the {@link ResumeStorageService} interface.
+ * Provides concrete file-system operations for managing TA resume
+ * files, including storing uploaded resumes, resolving file paths,
+ * and cleaning up stored files. Supports both per-course and master
+ * resume directories.
+ *
+ * @author BUPT TA Recruitment Team
+ * @version 1.0
+ * @since 2024-2025
+ */
 public class ResumeStorageServiceImpl implements ResumeStorageService {
+
+    /**
+     * Builds the stored resume file name for the given TA by normalizing
+     * the email address and appending a {@code .pdf} extension.
+     *
+     * @param ta the TA whose resume file name is to be built
+     * @return the normalized resume file name
+     */
     @Override
     public String buildStoredResumeFileName(TA ta) {
         String normalizedEmail = ta == null || ta.getEmail() == null || ta.getEmail().trim().isEmpty()
@@ -17,6 +36,13 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
         return normalizedEmail + ".pdf";
     }
 
+    /**
+     * Resolves the base directory for resume uploads. Prefers the
+     * {@code catalina.base} system property when running inside a Tomcat
+     * container; falls back to the current working directory otherwise.
+     *
+     * @return the absolute path to the resume upload directory
+     */
     @Override
     public String resolveResumeUploadDirectory() {
         String catalinaBase = System.getProperty("catalina.base");
@@ -29,6 +55,14 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
                 + File.separator + "WEB-INF" + File.separator + "file" + File.separator + "resume";
     }
 
+    /**
+     * Constructs a {@link File} object representing the resume file for the
+     * given applicant within the specified directory.
+     *
+     * @param applicant       the TA applicant
+     * @param resumeDirectory the directory containing the resume file
+     * @return the resume {@link File}, or {@code null} if inputs are invalid
+     */
     @Override
     public File buildResumeFile(TA applicant, String resumeDirectory) {
         if (applicant == null || applicant.getEmail() == null || applicant.getEmail().isBlank()
@@ -38,6 +72,13 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
         return new File(resumeDirectory, buildStoredResumeFileName(applicant));
     }
 
+    /**
+     * Retrieves the resume file for a TA for a specific course.
+     *
+     * @param ta       the TA applicant
+     * @param courseId the unique identifier of the course
+     * @return the resume {@link File}, or {@code null} if not found
+     */
     @Override
     public File getTaResumeFile(TA ta, String courseId) {
         if (ta == null || courseId == null || courseId.isBlank()) {
@@ -51,6 +92,12 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
         return buildResumeFile(ta, resumeDirectory);
     }
 
+    /**
+     * Retrieves the master resume file for a TA.
+     *
+     * @param ta the TA whose master resume is to be retrieved
+     * @return the master resume {@link File}, or {@code null} if not set
+     */
     @Override
     public File getMasterResumeFile(TA ta) {
         if (ta == null || ta.getMasterResumeDirectory() == null || ta.getMasterResumeDirectory().isBlank()) {
@@ -59,6 +106,13 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
         return buildResumeFile(ta, ta.getMasterResumeDirectory());
     }
 
+    /**
+     * Retrieves the resume file for a given applicant email within a course.
+     *
+     * @param course           the course the applicant applied to
+     * @param applicantEmail   the email address of the applicant
+     * @return the applicant's resume {@link File}, or {@code null} if not found
+     */
     @Override
     public File getApplicantResumeFile(Course course, String applicantEmail) {
         if (course == null || applicantEmail == null || applicantEmail.isBlank()) {
@@ -80,6 +134,13 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
         return null;
     }
 
+    /**
+     * Retrieves the resume file for a given email and course ID combination.
+     *
+     * @param email    the email address of the applicant
+     * @param courseId the unique identifier of the course
+     * @return the resume {@link File}, or {@code null} if inputs are invalid
+     */
     @Override
     public File getResumeFile(String email, String courseId) {
         if (email == null || courseId == null) {
@@ -90,6 +151,16 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
         return new File(resolveResumeUploadDirectory() + File.separator + courseId, normalizedEmail + ".pdf");
     }
 
+    /**
+     * Stores an uploaded resume part for a TA under the given course.
+     * Creates the necessary directory structure if it does not exist.
+     *
+     * @param resumePart the uploaded file part
+     * @param ta         the TA applicant
+     * @param course     the course the resume is for
+     * @return the absolute path of the directory where the resume was stored
+     * @throws IOException if directory creation or file writing fails
+     */
     @Override
     public String storeResume(Part resumePart, TA ta, Course course) throws IOException {
         String courseDirectoryName = course == null || course.getId() == null || course.getId().trim().isEmpty()
@@ -108,6 +179,15 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
         return uploadDirectory.getAbsolutePath();
     }
 
+    /**
+     * Stores an uploaded resume part as the TA's master resume in a
+     * dedicated directory.
+     *
+     * @param resumePart the uploaded file part
+     * @param ta         the TA whose master resume is being stored
+     * @return the absolute path of the master resume directory
+     * @throws IOException if directory creation or file writing fails
+     */
     @Override
     public String storeMasterResume(Part resumePart, TA ta) throws IOException {
         File uploadDirectory = new File(resolveResumeUploadDirectory(), "master");
@@ -123,6 +203,15 @@ public class ResumeStorageServiceImpl implements ResumeStorageService {
         return uploadDirectory.getAbsolutePath();
     }
 
+    /**
+     * Deletes the stored resume file for a TA in the given directory.
+     * Also removes the parent directory if it becomes empty after deletion.
+     *
+     * @param ta              the TA whose resume file should be deleted
+     * @param resumeDirectory the directory containing the resume file
+     * @return {@code true} if the deletion succeeded or no action was needed,
+     *         {@code false} if the file exists but could not be deleted
+     */
     @Override
     public boolean deleteStoredResumeFileIfPresent(TA ta, String resumeDirectory) {
         if (ta == null || resumeDirectory == null || resumeDirectory.isBlank()) {
