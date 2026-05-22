@@ -33,16 +33,32 @@ import store.CourseStore;
 import store.UserStore;
 import testsupport.StoreTestSupport;
 
+/**
+ * Unit tests for {@link MOClassController} in the TA Recruitment system.
+ * Tests cover MO dashboard, course management, class creation, deadline enforcement,
+ * candidate review, review publishing, and profile/error handling scenarios.
+ *
+ * @author BUPT-TA-Recruitment-Group33
+ */
 class MOClassControllerTest {
     @TempDir
     Path tempDir;
 
+    /**
+     * Clears store overrides and system properties after each test to ensure test isolation.
+     */
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
         System.clearProperty(ApplicationFormStore.FILE_PATH_PROPERTY);
     }
 
+    /**
+     * Creates a fully initialized MO user with name, degree, and college fields populated.
+     *
+     * @param email the email address for the MO user
+     * @return a configured Mo instance
+     */
     private Mo createCompleteMo(String email) {
         Mo mo = new Mo("secret123", email);
         mo.setName("Molly");
@@ -51,10 +67,19 @@ class MOClassControllerTest {
         return mo;
     }
 
+    /**
+     * Configures the application form store file path to a temp directory location.
+     */
     private void useApplicationFormStore() {
         System.setProperty(ApplicationFormStore.FILE_PATH_PROPERTY, tempDir.resolve("application-forms.txt").toString());
     }
 
+    /**
+     * Saves a submitted application form for a given email and course ID.
+     *
+     * @param email    the applicant's email
+     * @param courseId the course identifier
+     */
     private void saveSubmittedForm(String email, String courseId) {
         ApplicationForm form = new ApplicationForm(email, courseId);
         form.setApplicantName(email);
@@ -69,6 +94,9 @@ class MOClassControllerTest {
         ApplicationFormStore.saveOrUpdate(form);
     }
 
+    /**
+     * Tests that the "create_class" action forwards the MO user to the my-project page.
+     */
     @Test
     void createClassActionForwardsToMyProjectPage() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -89,6 +117,10 @@ class MOClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "create_class" action works for MO users who have not completed
+     * their profile, forwarding them to the my-project page without requiring full profile data.
+     */
     @Test
     void createClassDoesNotRequireCompleteProfileAndUsesMyProjectPage() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -109,6 +141,10 @@ class MOClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "dashboard" action forwards the MO user to the dashboard page
+     * with the modify state set to open and no locked modal shown.
+     */
     @Test
     void dashboardActionForwardsToDashboardPage() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -131,6 +167,10 @@ class MOClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "personal_center" action forwards the MO user to the personal center page
+     * with the review stage open by default.
+     */
     @Test
     void personalCenterActionForwardsToPersonalCenterPage() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -152,6 +192,9 @@ class MOClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the removed "profile_center" action returns an HTTP 400 Bad Request error.
+     */
     @Test
     void removedProfileCenterActionReturnsBadRequest() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -170,6 +213,10 @@ class MOClassControllerTest {
         verify(response).sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
     }
 
+    /**
+     * Tests that the personal center page marks the review stage as unavailable
+     * when the application deadline has not yet passed (review cannot start before the deadline).
+     */
     @Test
     void personalCenterMarksReviewUnavailableBeforeDeadline() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -194,6 +241,10 @@ class MOClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the dashboard action ignores a removed "profileIncomplete" parameter
+     * and proceeds to forward to the dashboard page without error.
+     */
     @Test
     void dashboardIgnoresRemovedProfileIncompleteFlag() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -216,6 +267,10 @@ class MOClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that an unauthenticated request (no session) to the MO controller
+     * redirects to the MO entry page.
+     */
     @Test
     void unauthenticatedMoRequestRedirectsToMoEntry() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -232,6 +287,10 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/mo");
     }
 
+    /**
+     * Tests that a non-MO user (e.g., a TA) accessing the MO controller
+     * receives an HTTP 403 Forbidden error.
+     */
     @Test
     void nonMoRequestReturnsForbidden() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -249,6 +308,11 @@ class MOClassControllerTest {
         verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: MO role required");
     }
 
+    /**
+     * Tests that publishing a course via "publish_course" persists the course details
+     * (job title, working hours, description, requirements), marks recruitment as published,
+     * and redirects to the project detail page with a success flag.
+     */
     @Test
     void publishCoursePublishesAssignedCourseAndRedirectsToDetail() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -290,6 +354,10 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=project_detail&courseIndex=0&success=1");
     }
 
+    /**
+     * Tests that the removed "save_personal_information" action returns an HTTP 400 Bad Request
+     * and does not modify the user's personal information or the users file.
+     */
     @Test
     void removedSavePersonalInformationActionReturnsBadRequest() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
@@ -318,6 +386,10 @@ class MOClassControllerTest {
         verify(response).sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
     }
 
+    /**
+     * Tests that attempting to publish a course without a selected course index
+     * redirects without saving any data to the course store.
+     */
     @Test
     void publishCourseWithoutSelectedCourseRedirectsWithoutSaving() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -339,6 +411,10 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=my_project");
     }
 
+    /**
+     * Tests that attempting to create a class after the MO course modification deadline
+     * has passed redirects to the dashboard with a locked modification flag.
+     */
     @Test
     void createClassAfterMoModifyDeadlineRedirectsToDashboard() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -361,6 +437,10 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=dashboard&modifyLocked=1");
     }
 
+    /**
+     * Tests that the dashboard page shows a locked modification modal when the
+     * "modifyLocked" redirect flag is present and the deadline has passed.
+     */
     @Test
     void dashboardShowsModifyLockedModalAfterRedirectFlag() throws Exception {
         StoreTestSupport.useCourseStore(tempDir);
@@ -387,6 +467,10 @@ class MOClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that attempting to publish a course after the MO modification deadline
+     * redirects without saving any changes to the course store.
+     */
     @Test
     void publishCourseAfterMoModifyDeadlineRedirectsWithoutSaving() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -411,6 +495,10 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=dashboard&modifyLocked=1");
     }
 
+    /**
+     * Tests that the "review_candidates" action loads the selected course with its
+     * TA applicants and application forms, and forwards to the review page.
+     */
     @Test
     void reviewCandidatesLoadsSelectedCourseApplicants() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -452,6 +540,10 @@ class MOClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that accessing the review candidates page before the application deadline
+     * redirects to the personal center with a review locked indicator.
+     */
     @Test
     void reviewCandidatesBeforeDeadlineRedirectsToPersonalCenter() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -481,6 +573,10 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=personal_center&reviewLocked=1");
     }
 
+    /**
+     * Tests that accessing the review candidates page without specifying a course index
+     * defaults to the first course owned by the MO user.
+     */
     @Test
     void reviewCandidatesWithoutCourseIndexDefaultsToFirstOwnedCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -512,6 +608,11 @@ class MOClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that the "project_detail" action exposes the MO modification availability
+     * flag and the MO modification deadline as request attributes, along with forwarding
+     * to the project detail page.
+     */
     @Test
     void projectDetailExposesMoModifyAvailabilityAndDeadline() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -547,6 +648,10 @@ class MOClassControllerTest {
         verify(dispatcher).forward(request, response);
     }
 
+    /**
+     * Tests that saving course changes via "save_course_changes" does not require
+     * a complete MO profile and redirects to the project detail page on success.
+     */
     @Test
     void saveCourseChangesDoesNotRequireCompleteProfile() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -578,6 +683,11 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=project_detail&courseIndex=0&success=1");
     }
 
+    /**
+     * Tests that saving course changes after the MO modification deadline has passed
+     * does not persist the changes and forwards to the project detail page with a locked state
+     * and an appropriate error message.
+     */
     @Test
     void saveCourseChangesAfterMoModifyDeadlineForwardsWithLockedState() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -615,6 +725,10 @@ class MOClassControllerTest {
                 Files.readAllLines(courseFile).get(0));
     }
 
+    /**
+     * Tests that saving review picks ("save_review_picks") stores the selected applicant emails
+     * on the course record and redirects to the review candidates page with a saved flag.
+     */
     @Test
     void saveReviewPicksStoresPickedApplicantEmailsOnCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -651,6 +765,10 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=review_candidates&courseIndex=0&saved=1");
     }
 
+    /**
+     * Tests that saving review picks before the application deadline has passed
+     * redirects without modifying the course data, as reviews cannot be conducted yet.
+     */
     @Test
     void saveReviewPicksBeforeDeadlineRedirectsWithoutChangingCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -688,6 +806,11 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=personal_center&reviewLocked=1");
     }
 
+    /**
+     * Tests that publishing a review ("publish_review") updates TA resume statuses
+     * (approving selected candidates and rejecting others), marks the course review as published,
+     * sets unread review flags for affected TAs, and redirects to the review candidates page.
+     */
     @Test
     void publishReviewUpdatesTaStatusesAndLocksCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -735,6 +858,10 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=review_candidates&courseIndex=0&published=1");
     }
 
+    /**
+     * Tests that publishing a review before the application deadline has passed
+     * redirects without changing any TA statuses or course data.
+     */
     @Test
     void publishReviewBeforeDeadlineRedirectsWithoutPublishing() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);

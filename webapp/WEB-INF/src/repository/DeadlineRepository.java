@@ -38,5 +38,9 @@ public interface DeadlineRepository {
      */
     void saveMoModifyDeadline(LocalDateTime deadline);
 
+    /**
+     * Removes all persisted deadline records, effectively resetting the
+     * scheduling configuration.
+     */
     void clearDeadlines();
 }

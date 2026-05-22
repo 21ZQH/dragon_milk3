@@ -36,6 +36,9 @@ public class TxtApplicationFormRepositoryImpl implements ApplicationFormReposito
         ApplicationFormStore.saveOrUpdate(form);
     }
 
+    /**
+     * Delegates removal of all forms to {@link ApplicationFormStore}.
+     */
     @Override
     public void clearAll() {
         ApplicationFormStore.clearAll();

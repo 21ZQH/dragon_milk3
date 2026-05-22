@@ -122,6 +122,9 @@ public class TxtUserRepositoryImpl implements UserRepository {
         UserStore.updateOwnedCourseIds(mo);
     }
 
+    /**
+     * Delegates TA application state reset to the underlying store.
+     */
     @Override
     public void resetTaApplicationState() {
         UserStore.resetTaApplicationState();

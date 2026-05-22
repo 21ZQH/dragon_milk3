@@ -16,12 +16,44 @@ import model.Course;
 import model.TA;
 import service.ai.ApplicationFormAiClient;
 
+/**
+ * Implementation of {@link ApplicationFormAiClient} that communicates with
+ * the Groq API to generate TA application forms.
+ * <p>
+ * This client constructs a structured prompt from the TA's profile, course
+ * information, and resume text, sends it to Groq's chat completions endpoint,
+ * and parses the returned JSON into an {@link ApplicationForm}. The
+ * transport layer uses PowerShell's {@code Invoke-RestMethod} on Windows.
+ * </p>
+ *
+ * @author TA Recruitment Team
+ * @version 1.0
+ * @since 2025-03-01
+ * @see ApplicationFormAiClient
+ * @see MockApplicationFormAiClient
+ */
 public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
+    /** The Groq API chat completions endpoint URL. */
     private static final String ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
+    /**
+     * Constructs a new {@code GroqApplicationFormAiClient}.
+     */
     public GroqApplicationFormAiClient() {
     }
 
+    /**
+     * Generates an application form by sending the TA, course, and resume
+     * data to the Groq API and parsing the AI response.
+     *
+     * @param ta         the teaching assistant applicant
+     * @param course     the target course
+     * @param resumeText the full resume text
+     * @return a populated {@link ApplicationForm} with AI-generated content
+     * @throws IOException          if the API key is missing, the PowerShell
+     *                              transport fails, or response parsing fails
+     * @throws InterruptedException if the request thread is interrupted
+     */
     @Override
     public ApplicationForm generate(TA ta, Course course, String resumeText) throws IOException, InterruptedException {
         String apiKey = readConfig("GROQ_API_KEY", "");
@@ -36,6 +68,16 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return parseApplicationForm(ta, course, content);
     }
 
+    /**
+     * Sends the request to the Groq API via PowerShell.
+     *
+     * @param apiKey the Groq API key
+     * @param body   the JSON request body
+     * @return the raw JSON response body
+     * @throws IOException          if the transport fails or the API returns
+     *                              an error
+     * @throws InterruptedException if the process is interrupted
+     */
     private String sendRequest(String apiKey, String body) throws IOException, InterruptedException {
         if (!isWindows()) {
             throw new IOException("PowerShell Groq transport is only available on Windows.");
@@ -46,6 +88,17 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return responseBody;
     }
 
+    /**
+     * Executes the HTTP request to the Groq API using a PowerShell child
+     * process with {@code Invoke-RestMethod}.
+     *
+     * @param apiKey the Groq API key passed as an environment variable
+     * @param body   the JSON request body piped to the process stdin
+     * @return the JSON response from the API
+     * @throws IOException          if the process fails or returns a non-zero
+     *                              exit code
+     * @throws InterruptedException if the process is interrupted
+     */
     private String sendWithPowerShell(String apiKey, String body) throws IOException, InterruptedException {
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "powershell",
@@ -80,6 +133,15 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return stdout;
     }
 
+    /**
+     * Builds the JSON request body for the Groq chat completions API.
+     *
+     * @param model      the model identifier (e.g., {@code llama-3.1-8b-instant})
+     * @param ta         the TA applicant
+     * @param course     the target course
+     * @param resumeText the applicant's resume text (truncated to 16,000 chars)
+     * @return a JSON string suitable for the Groq API
+     */
     private String buildRequestBody(String model, TA ta, Course course, String resumeText) {
         String systemPrompt = """
                 You generate job-specific TA application forms.
@@ -126,10 +188,17 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
                 + "\"messages\":["
                 + "{\"role\":\"system\",\"content\":\"" + escapeJson(systemPrompt) + "\"},"
                 + "{\"role\":\"user\",\"content\":\"" + escapeJson(userPrompt) + "\"}"
-                + "]"
-                + "}";
+                + "]}";
     }
 
+    /**
+     * Parses the AI-generated JSON content into an {@link ApplicationForm}.
+     *
+     * @param ta     the TA applicant used for default values
+     * @param course the target course
+     * @param json   the JSON string containing application form fields
+     * @return a populated {@link ApplicationForm}
+     */
     private ApplicationForm parseApplicationForm(TA ta, Course course, String json) {
         ApplicationForm form = new ApplicationForm(ta.getEmail(), course.getId());
         form.setApplicantName(extractJsonValue(json, "applicantName"));
@@ -143,6 +212,13 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return form;
     }
 
+    /**
+     * Extracts the message content from a Groq API response JSON.
+     *
+     * @param responseBody the raw API response JSON
+     * @return the content string from the first choice message
+     * @throws IOException if the response does not contain message content
+     */
     private String extractMessageContent(String responseBody) throws IOException {
         String marker = "\"content\"";
         int markerIndex = responseBody.indexOf(marker);
@@ -159,6 +235,14 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return readJsonString(responseBody, quoteIndex);
     }
 
+    /**
+     * Extracts the string value associated with a given JSON key.
+     *
+     * @param json the JSON string to search
+     * @param key  the key whose value should be extracted
+     * @return the extracted string value, or an empty string if the key is
+     *         not found
+     */
     private String extractJsonValue(String json, String key) {
         String marker = "\"" + key + "\"";
         int markerIndex = json.indexOf(marker);
@@ -178,6 +262,15 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return readJsonString(json, startQuote);
     }
 
+    /**
+     * Reads a JSON string literal starting from the opening quote,
+     * handling escape sequences such as {@code \\n}, {@code \\t},
+     * {@code \\uXXXX}, and {@code \\"}.
+     *
+     * @param json       the JSON string
+     * @param startQuote the index of the opening double-quote character
+     * @return the unescaped string content
+     */
     private String readJsonString(String json, int startQuote) {
         StringBuilder value = new StringBuilder();
         boolean escaped = false;
@@ -217,6 +310,13 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return value.toString();
     }
 
+    /**
+     * Escapes a string for safe inclusion in a JSON value.
+     *
+     * @param value the raw string to escape
+     * @return the JSON-escaped string, or an empty string if the input was
+     *         {@code null}
+     */
     private String escapeJson(String value) {
         if (value == null) {
             return "";
@@ -229,6 +329,14 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
                 .replace("\t", "\\t");
     }
 
+    /**
+     * Truncates a string to the specified maximum length.
+     *
+     * @param value     the string to truncate
+     * @param maxLength the maximum number of characters to keep
+     * @return the truncated string, or an empty string if the input was
+     *         {@code null}
+     */
     private String limitText(String value, int maxLength) {
         if (value == null) {
             return "";
@@ -236,14 +344,37 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return value.length() <= maxLength ? value : value.substring(0, maxLength);
     }
 
+    /**
+     * Returns an empty string if the input is {@code null}, otherwise the
+     * input unchanged.
+     *
+     * @param value the string to check
+     * @return the original string, or an empty string if {@code null}
+     */
     private String safe(String value) {
         return value == null ? "" : value;
     }
 
+    /**
+     * Returns the primary value if it is non-null and non-blank, otherwise
+     * the fallback value.
+     *
+     * @param value    the primary value
+     * @param fallback the fallback value
+     * @return {@code value} if non-null and non-blank, else {@code fallback}
+     */
     private String defaultValue(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
     }
 
+    /**
+     * Reads a configuration value from system property, environment
+     * variable, or the Windows user-level registry, in that order.
+     *
+     * @param key      the configuration key
+     * @param fallback the default value if not found
+     * @return the resolved value, or {@code fallback} if absent
+     */
     private String readConfig(String key, String fallback) {
         String propertyValue = System.getProperty(key);
         if (propertyValue != null && !propertyValue.isBlank()) {
@@ -262,6 +393,14 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return fallback;
     }
 
+    /**
+     * Reads a Windows user-level environment variable from the registry
+     * ({@code HKCU\Environment}).
+     *
+     * @param key the environment variable name
+     * @return the variable value, or an empty string if not found or on
+     *         non-Windows platforms
+     */
     private String readWindowsUserEnvironment(String key) {
         if (!isWindows() || key == null || key.isBlank()) {
             return "";
@@ -294,10 +433,23 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return "";
     }
 
+    /**
+     * Checks whether the application is running on a Windows operating
+     * system.
+     *
+     * @return {@code true} if the {@code os.name} system property contains
+     *         {@code "win"}; {@code false} otherwise
+     */
     private boolean isWindows() {
         return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
     }
 
+    /**
+     * Appends a timestamped transport log message to the
+     * {@code groq-transport.log} file.
+     *
+     * @param message the log message to record
+     */
     private void logTransport(String message) {
         try {
             Path logPath = resolveRuntimeFilePath("groq-transport.log");
@@ -312,6 +464,13 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         }
     }
 
+    /**
+     * Resolves the runtime file path relative to the Tomcat catalina base
+     * directory, falling back to the current working directory.
+     *
+     * @param fileName the name of the runtime file
+     * @return the resolved {@link Path}
+     */
     private Path resolveRuntimeFilePath(String fileName) {
         String catalinaBase = System.getProperty("catalina.base");
         if (catalinaBase != null && !catalinaBase.isBlank()) {

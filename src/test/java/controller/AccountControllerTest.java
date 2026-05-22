@@ -23,15 +23,29 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import testsupport.StoreTestSupport;
 
+/**
+ * Unit tests for {@link AccountController} in the TA Recruitment system.
+ * Tests cover user registration, login, session management, and error handling
+ * for various account-related HTTP requests.
+ *
+ * @author BUPT-TA-Recruitment-Group33
+ */
 class AccountControllerTest {
     @TempDir
     Path tempDir;
 
+    /**
+     * Clears store overrides after each test to ensure test isolation.
+     */
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
     }
 
+    /**
+     * Tests that registering a user with the "Mo" (Module Officer) role is forbidden
+     * and results in an HTTP 403 Forbidden error, as registration is only available for TA.
+     */
     @Test
     void registeringMoUserIsForbidden() throws Exception {
         StoreTestSupport.useUserStore(tempDir);
@@ -50,6 +64,10 @@ class AccountControllerTest {
         verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Registration is only available for TA.");
     }
 
+    /**
+     * Tests that attempting to register a user with an email that already exists
+     * redirects back to the TA authentication page with an appropriate error message.
+     */
     @Test
     void duplicateRegistrationRedirectsBackToTaAuthWithError() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
@@ -71,6 +89,10 @@ class AccountControllerTest {
         verify(response).sendRedirect("/SE/ta?action=auth&error=The+email+is+already+registered.");
     }
 
+    /**
+     * Tests that a login attempt without a specified role performs look-up by email and password,
+     * creates a user session, and redirects the MO user to their dashboard.
+     */
     @Test
     void loginWithoutRoleUsesEmailAndPasswordLookup() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
@@ -100,6 +122,10 @@ class AccountControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=dashboard");
     }
 
+    /**
+     * Tests that a TA login attempt correctly creates a user session with the TA role
+     * and redirects the TA to their unified home page.
+     */
     @Test
     void taLoginRedirectsToUnifiedTaHome() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
@@ -129,6 +155,10 @@ class AccountControllerTest {
         verify(response).sendRedirect("/SE/ta");
     }
 
+    /**
+     * Tests that a successful login invalidates any existing session before creating
+     * a new one and storing the authenticated user. This ensures session fixation prevention.
+     */
     @Test
     void successfulLoginInvalidatesPreviousSessionBeforeStoringUser() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);
@@ -160,6 +190,10 @@ class AccountControllerTest {
         verify(response).sendRedirect("/SE/ta");
     }
 
+    /**
+     * Tests that a login attempt with invalid credentials (wrong password or non-existent email)
+     * redirects back to the TA authentication page with an error message.
+     */
     @Test
     void invalidLoginRedirectsBackToTaAuthWithError() throws Exception {
         StoreTestSupport.useUserStore(tempDir);
@@ -180,6 +214,9 @@ class AccountControllerTest {
         verify(response).sendRedirect("/SE/ta?action=auth&error=Invalid+password+or+email.");
     }
 
+    /**
+     * Tests that an unknown action parameter results in an HTTP 400 Bad Request error.
+     */
     @Test
     void unknownActionReturnsBadRequest() throws Exception {
         StoreTestSupport.useUserStore(tempDir);

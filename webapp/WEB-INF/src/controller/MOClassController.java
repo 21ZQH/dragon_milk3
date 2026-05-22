@@ -22,12 +22,53 @@ import service.CourseService;
 import service.DeadlineService;
 import service.impl.DeadlineServiceImpl;
 
+/**
+ * Servlet controller handling all MO (Module Organiser) operations within the
+ * TA Recruitment System.
+ * <p>
+ * This controller manages MO workflows including course management, recruitment
+ * publishing, applicant review, course draft saving, and project management.
+ * It ensures all requests come from an authenticated MO session before processing.
+ * </p>
+ *
+ * <p>Supported actions in GET requests:
+ * <ul>
+ *   <li>{@code dashboard} - display the MO dashboard</li>
+ *   <li>{@code create_class} - create or modify a course listing</li>
+ *   <li>{@code personal_center} - display the MO personal centre</li>
+ *   <li>{@code review_candidates} - review and select TA candidates</li>
+ *   <li>{@code my_project} - view the MO's assigned courses</li>
+ *   <li>{@code project_detail} - view details of a specific course project</li>
+ * </ul>
+ * </p>
+ *
+ * <p>Supported actions in POST requests:
+ * <ul>
+ *   <li>{@code publish_course} - publish a course's TA recruitment</li>
+ *   <li>{@code save_course_draft} - save course information as a draft</li>
+ *   <li>{@code save_review_picks} - save selected TA candidates</li>
+ *   <li>{@code publish_review} - publish review results</li>
+ *   <li>{@code save_course_changes} - update existing course information</li>
+ * </ul>
+ * </p>
+ *
+ * @author BUPT TA Recruitment Team
+ * @version 1.0
+ * @since 1.0
+ * @see ApplicationReviewService
+ * @see MOProjectService
+ * @see CourseService
+ * @see DeadlineService
+ */
 public class MOClassController extends HttpServlet {
     private final ApplicationReviewService applicationReviewService;
     private final CourseService courseService;
     private final DeadlineService deadlineService;
     private final MOProjectService moProjectService;
 
+    /**
+     * Constructs a {@code MOClassController} with default service implementations.
+     */
     public MOClassController() {
         this(
                 new ApplicationReviewServiceImpl(),
@@ -35,6 +76,13 @@ public class MOClassController extends HttpServlet {
                 new DeadlineServiceImpl());
     }
 
+    /**
+     * Constructs a {@code MOClassController} with the specified application review service
+     * and default implementations for other services.
+     * <p>Package-private constructor used for dependency injection in unit tests.</p>
+     *
+     * @param applicationReviewService the service for reviewing applications
+     */
     MOClassController(ApplicationReviewService applicationReviewService) {
         this(
                 applicationReviewService,
@@ -42,6 +90,14 @@ public class MOClassController extends HttpServlet {
                 new DeadlineServiceImpl());
     }
 
+    /**
+     * Constructs a {@code MOClassController} with the specified services and a
+     * default {@link MOProjectServiceImpl}.
+     *
+     * @param applicationReviewService the service for reviewing applications
+     * @param courseService            the service for course data access
+     * @param deadlineService          the service for deadline checks
+     */
     MOClassController(
             ApplicationReviewService applicationReviewService,
             CourseService courseService,
@@ -53,6 +109,15 @@ public class MOClassController extends HttpServlet {
                 new MOProjectServiceImpl(courseService, new UserProfileServiceImpl()));
     }
 
+    /**
+     * Constructs a {@code MOClassController} with all specified service instances.
+     * <p>Full constructor used for dependency injection.</p>
+     *
+     * @param applicationReviewService the service for reviewing applications
+     * @param courseService            the service for course data access
+     * @param deadlineService          the service for deadline checks
+     * @param moProjectService         the service for MO project management
+     */
     MOClassController(
             ApplicationReviewService applicationReviewService,
             CourseService courseService,
@@ -64,6 +129,16 @@ public class MOClassController extends HttpServlet {
         this.moProjectService = moProjectService;
     }
 
+    /**
+     * Handles HTTP GET requests for MO operations.
+     * <p>Dispatches to the appropriate handler based on the {@code action} parameter.
+     * All actions except logout require an authenticated MO session.</p>
+     *
+     * @param request  the {@link HttpServletRequest} containing the client request
+     * @param response the {@link HttpServletResponse} containing the response
+     * @throws ServletException if the request cannot be processed
+     * @throws IOException      if an I/O error occurs
+     */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
        String action = request.getParameter("action");
@@ -95,6 +170,16 @@ public class MOClassController extends HttpServlet {
 
     }
 
+    /**
+     * Handles HTTP POST requests for MO operations.
+     * <p>Dispatches to the appropriate handler based on the {@code action} parameter.
+     * All actions except logout require an authenticated MO session.</p>
+     *
+     * @param request  the {@link HttpServletRequest} containing the client request
+     * @param response the {@link HttpServletResponse} containing the response
+     * @throws ServletException if the request cannot be processed
+     * @throws IOException      if an I/O error occurs
+     */
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         String action = request.getParameter("action");
@@ -128,6 +213,14 @@ public class MOClassController extends HttpServlet {
 
     }
 
+    /**
+     * Ensures the current session belongs to an authenticated MO user.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @return {@code true} if an authenticated MO session exists, {@code false} otherwise
+     * @throws IOException if redirection or error sending fails
+     */
     private boolean ensureMoSession(HttpServletRequest request, HttpServletResponse response) throws IOException {
         HttpSession session = request.getSession(false);
         if (session == null) {
@@ -144,6 +237,14 @@ public class MOClassController extends HttpServlet {
         return false;
     }
 
+    /**
+     * Displays the MO dashboard with deadline information.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws ServletException if forwarding fails
+     * @throws IOException      if an I/O error occurs
+     */
     private void show_dashboard(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         LocalDateTime applicationDeadline = resolveApplicationDeadline(request);
@@ -157,12 +258,29 @@ public class MOClassController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
     }
 
+    /**
+     * Displays the MO personal centre page.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws ServletException if forwarding fails
+     * @throws IOException      if an I/O error occurs
+     */
     private void show_personal_center(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.setAttribute("reviewStageOpen", isReviewStageOpen(request));
         request.getRequestDispatcher("/WEB-INF/views/mo/personal-center.jsp").forward(request, response);
     }
 
+    /**
+     * Handles the create class action. If MO modification is locked, redirects to
+     * the dashboard. Otherwise delegates to the my project page.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws ServletException if forwarding fails
+     * @throws IOException      if an I/O error occurs
+     */
     private void create_class(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!isMoModifyOpen(request)) {
@@ -172,6 +290,14 @@ public class MOClassController extends HttpServlet {
         show_my_project(request, response);
     }
 
+    /**
+     * Displays the MO's list of assigned courses.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws ServletException if forwarding fails
+     * @throws IOException      if an I/O error occurs
+     */
     private void show_my_project(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         List<Course> courseList = getCurrentMoCourseList(request);
@@ -179,6 +305,14 @@ public class MOClassController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/mo/my-project.jsp").forward(request, response);
     }
 
+    /**
+     * Displays detailed information for a specific course project.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws ServletException if forwarding fails
+     * @throws IOException      if an I/O error occurs
+     */
     private void show_project_detail(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         List<Course> courseList = getCurrentMoCourseList(request);
@@ -205,6 +339,14 @@ public class MOClassController extends HttpServlet {
         }
     }
 
+    /**
+     * Publishes a course's TA recruitment by updating the course's job details.
+     * MO modification lock is checked before proceeding.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws IOException if redirection fails
+     */
     private void publish_course(HttpServletRequest request, HttpServletResponse response) throws IOException {
         if (!isMoModifyOpen(request)) {
             redirectMoModifyLocked(request, response);
@@ -234,6 +376,14 @@ public class MOClassController extends HttpServlet {
                 + courseIndexParam + "&success=1");
     }
 
+    /**
+     * Saves course information as a draft without publishing.
+     * MO modification lock is checked before proceeding.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws IOException if redirection fails
+     */
     private void save_course_draft(HttpServletRequest request, HttpServletResponse response) throws IOException {
         if (!isMoModifyOpen(request)) {
             redirectMoModifyLocked(request, response);
@@ -262,6 +412,15 @@ public class MOClassController extends HttpServlet {
                 + courseIndexParam + "&draftSaved=1");
     }
 
+    /**
+     * Saves changes to existing course information. If MO modification is locked,
+     * an error is displayed on the project detail page instead.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws IOException      if redirection fails
+     * @throws ServletException if forwarding fails
+     */
     private void save_course_changes(HttpServletRequest request, HttpServletResponse response)throws IOException, ServletException {
         if (!isMoModifyOpen(request)) {
             List<Course> courseList = getCurrentMoCourseList(request);
@@ -321,7 +480,15 @@ public class MOClassController extends HttpServlet {
             }
     }
 
-
+    /**
+     * Displays the review candidates page for a specific course, showing all submitted
+     * application forms grouped by applicant email.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws ServletException if forwarding fails
+     * @throws IOException      if an I/O error occurs
+     */
     private void show_review_candidates(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!isReviewStageOpen(request)) {
@@ -345,6 +512,13 @@ public class MOClassController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/mo/review.jsp").forward(request, response);
     }
 
+    /**
+     * Saves the MO's selected TA candidates for a course without publishing the results.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws IOException if redirection fails
+     */
     private void save_review_picks(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isReviewStageOpen(request)) {
@@ -371,6 +545,13 @@ public class MOClassController extends HttpServlet {
                 + courseIndex + "&saved=1");
     }
 
+    /**
+     * Publishes the MO's review results for a course, notifying selected candidates.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws IOException if redirection fails
+     */
     private void publish_review(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isReviewStageOpen(request)) {
@@ -394,6 +575,12 @@ public class MOClassController extends HttpServlet {
                 + courseIndex + "&published=1");
     }
 
+    /**
+     * Retrieves the currently authenticated MO from the session.
+     *
+     * @param request the {@link HttpServletRequest}
+     * @return the authenticated {@link Mo}, or {@code null} if not present
+     */
     private Mo getCurrentMo(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session == null) {
@@ -407,6 +594,12 @@ public class MOClassController extends HttpServlet {
         return null;
     }
 
+    /**
+     * Retrieves the list of courses owned by the current MO, refreshing from the data store.
+     *
+     * @param request the {@link HttpServletRequest}
+     * @return the list of {@link Course} objects owned by the current MO
+     */
     private List<Course> getCurrentMoCourseList(HttpServletRequest request) {
         Mo mo = getCurrentMo(request);
         if (mo != null) {
@@ -417,6 +610,12 @@ public class MOClassController extends HttpServlet {
         return List.of();
     }
 
+    /**
+     * Retrieves the course being reviewed by the MO based on the course index parameter.
+     *
+     * @param request the {@link HttpServletRequest}
+     * @return the {@link Course} being reviewed, or {@code null} if not found
+     */
     private Course getCourseForReview(HttpServletRequest request) {
         List<Course> courseList = getCurrentMoCourseList(request);
         if (courseList.isEmpty()) {
@@ -426,16 +625,35 @@ public class MOClassController extends HttpServlet {
         return courseList.get(courseIndex);
     }
 
+    /**
+     * Resolves the course index for the review page based on the request parameter.
+     *
+     * @param request    the {@link HttpServletRequest}
+     * @param courseList the list of courses
+     * @return the resolved course index
+     */
     private int resolveCourseIndexForReview(HttpServletRequest request, List<Course> courseList) {
         return moProjectService.resolveCourseIndexForReview(request.getParameter("courseIndex"), courseList);
     }
 
+    /**
+     * Synchronises a course's data in the current MO's session after modifications.
+     *
+     * @param request the {@link HttpServletRequest}
+     * @param course  the course to sync
+     */
     private void syncCurrentMoCourse(HttpServletRequest request, Course course) {
         Mo mo = getCurrentMo(request);
         moProjectService.syncOwnedCourse(mo, course);
         refreshCurrentMoSession(request, mo);
     }
 
+    /**
+     * Refreshes the MO object stored in the current session.
+     *
+     * @param request the {@link HttpServletRequest}
+     * @param mo      the {@link Mo} to store in the session
+     */
     private void refreshCurrentMoSession(HttpServletRequest request, Mo mo) {
         if (mo == null) {
             return;
@@ -446,6 +664,13 @@ public class MOClassController extends HttpServlet {
         }
     }
 
+    /**
+     * Prepares request attributes for the project detail page.
+     *
+     * @param request        the {@link HttpServletRequest}
+     * @param selectedCourse the course being viewed
+     * @param courseIndex    the course index for navigation
+     */
     private void prepareProjectDetailAttributes(HttpServletRequest request, Course selectedCourse, String courseIndex) {
         request.setAttribute("selectedCourse", selectedCourse);
         request.setAttribute("courseIndex", courseIndex);
@@ -453,11 +678,23 @@ public class MOClassController extends HttpServlet {
         request.setAttribute("moModifyDeadline", resolveMoModifyDeadline(request));
     }
 
+    /**
+     * Checks whether the MO modification period is currently open.
+     *
+     * @param request the {@link HttpServletRequest}
+     * @return {@code true} if the MO modification deadline has not passed
+     */
     private boolean isMoModifyOpen(HttpServletRequest request) {
         LocalDateTime deadline = resolveMoModifyDeadline(request);
         return deadlineService.isMoModifyOpen(deadline);
     }
 
+    /**
+     * Resolves the MO course modification deadline from the servlet context.
+     *
+     * @param request the {@link HttpServletRequest} used to obtain the servlet context
+     * @return the {@link LocalDateTime} deadline, or {@code null} if not set
+     */
     private LocalDateTime resolveMoModifyDeadline(HttpServletRequest request) {
         ServletContext servletContext = request.getServletContext();
         if (servletContext != null) {
@@ -469,6 +706,13 @@ public class MOClassController extends HttpServlet {
         return null;
     }
 
+    /**
+     * Logs out the current MO by invalidating the session and redirecting to the MO login page.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws IOException if redirection fails
+     */
     private void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
         HttpSession session = request.getSession(false);
         if (session != null) {
@@ -477,11 +721,23 @@ public class MOClassController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/mo");
     }
 
+    /**
+     * Checks whether the review stage is currently open.
+     *
+     * @param request the {@link HttpServletRequest}
+     * @return {@code true} if the application deadline has passed (review stage is open)
+     */
     private boolean isReviewStageOpen(HttpServletRequest request) {
         LocalDateTime deadline = resolveApplicationDeadline(request);
         return deadlineService.isReviewStageOpen(deadline);
     }
 
+    /**
+     * Resolves the TA application deadline from the servlet context.
+     *
+     * @param request the {@link HttpServletRequest} used to obtain the servlet context
+     * @return the {@link LocalDateTime} deadline, or {@code null} if not set
+     */
     private LocalDateTime resolveApplicationDeadline(HttpServletRequest request) {
         ServletContext servletContext = request.getServletContext();
         if (servletContext != null) {
@@ -493,10 +749,24 @@ public class MOClassController extends HttpServlet {
         return null;
     }
 
+    /**
+     * Redirects the MO to the personal centre with a review locked indicator.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws IOException if redirection fails
+     */
     private void redirectReviewLocked(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=personal_center&reviewLocked=1");
     }
 
+    /**
+     * Redirects the MO to the dashboard with a modify locked indicator.
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws IOException if redirection fails
+     */
     private void redirectMoModifyLocked(HttpServletRequest request, HttpServletResponse response) throws IOException {
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=dashboard&modifyLocked=1");
     }

@@ -14,16 +14,31 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletContextEvent;
 import testsupport.StoreTestSupport;
 
+/**
+ * Unit tests for {@link AppContextListener} in the TA Recruitment system.
+ * Tests cover the context initialization behavior for loading deadlines
+ * into the servlet context.
+ *
+ * @author BUPT-TA-Recruitment-Group33
+ */
 class AppContextListenerTest {
 
     @TempDir
     java.nio.file.Path tempDir;
 
+    /**
+     * Clears store overrides after each test to ensure test isolation.
+     */
     @AfterEach
     void tearDown() {
         StoreTestSupport.clearStoreOverrides();
     }
 
+    /**
+     * Tests that the contextInitialized method loads both the application deadline
+     * and the MO course modification deadline from the persistent store and sets them
+     * as servlet context attributes.
+     */
     @Test
     void contextInitializedLoadsDeadlinesIntoServletContext() {
         StoreTestSupport.useApplicationDeadlineStore(tempDir);

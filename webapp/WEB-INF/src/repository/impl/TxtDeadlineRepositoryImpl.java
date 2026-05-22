@@ -53,6 +53,9 @@ public class TxtDeadlineRepositoryImpl implements DeadlineRepository {
         DeadlineStore.saveMoModifyDeadline(deadline);
     }
 
+    /**
+     * Delegates deadline clearing to {@link DeadlineStore}.
+     */
     @Override
     public void clearDeadlines() {
         DeadlineStore.clearDeadlines();

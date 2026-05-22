@@ -44,6 +44,9 @@ public class TxtCourseRepositoryImpl implements CourseRepository {
         CourseStore.updateCourse(course);
     }
 
+    /**
+     * Delegates recruitment cycle reset to {@link CourseStore}.
+     */
     @Override
     public void resetRecruitmentCycle() {
         CourseStore.resetRecruitmentCycle();

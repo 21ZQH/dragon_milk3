@@ -92,5 +92,9 @@ public interface UserRepository {
      */
     void updateOwnedCourseIds(Mo mo);
 
+    /**
+     * Resets the application state for all TA accounts (e.g., at the start of
+     * a new recruitment cycle).
+     */
     void resetTaApplicationState();
 }

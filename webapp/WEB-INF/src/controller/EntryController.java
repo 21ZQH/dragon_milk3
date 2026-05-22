@@ -20,21 +20,60 @@ import service.impl.AccountServiceImpl;
 import service.impl.CourseServiceImpl;
 import service.impl.DeadlineServiceImpl;
 
+/**
+ * Servlet controller handling entry-point requests for the TA Recruitment System.
+ * <p>
+ * This controller manages navigation to the three main role-specific login/entry pages:
+ * TA (Teaching Assistant) public entry, MO (Module Organiser) login, and Admin login.
+ * It resolves public course listings, deadline information, and authenticated TA session refreshing.
+ * </p>
+ *
+ * <p>URL mappings are determined by the servlet path:
+ * <ul>
+ *   <li>{@code /ta} - TA public entry with course listings and authentication</li>
+ *   <li>{@code /mo} - MO login page</li>
+ *   <li>{@code /admin} - Admin login page</li>
+ * </ul>
+ * </p>
+ *
+ * @author BUPT TA Recruitment Team
+ * @version 1.0
+ * @since 1.0
+ */
 public class EntryController extends HttpServlet {
     private final AccountService accountService;
     private final CourseService courseService;
     private final DeadlineService deadlineService;
 
+    /**
+     * Constructs an {@code EntryController} with default service implementations.
+     */
     public EntryController() {
         this(new AccountServiceImpl(), new CourseServiceImpl(), new DeadlineServiceImpl());
     }
 
+    /**
+     * Constructs an {@code EntryController} with the specified service instances.
+     * <p>Package-private constructor used for dependency injection in unit tests.</p>
+     *
+     * @param accountService  the account service for authentication operations
+     * @param courseService   the course service for retrieving course data
+     * @param deadlineService the deadline service for checking time constraints
+     */
     EntryController(AccountService accountService, CourseService courseService, DeadlineService deadlineService) {
         this.accountService = accountService;
         this.courseService = courseService;
-        this.deadlineService = deadlineService; 
+        this.deadlineService = deadlineService;
     }
 
+    /**
+     * Handles HTTP GET requests to serve the appropriate entry page based on the servlet path.
+     *
+     * @param request  the {@link HttpServletRequest} containing the client request
+     * @param response the {@link HttpServletResponse} containing the response
+     * @throws ServletException if the request cannot be forwarded
+     * @throws IOException      if an I/O error occurs during forwarding or redirection
+     */
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
@@ -56,6 +95,21 @@ public class EntryController extends HttpServlet {
         }
     }
 
+    /**
+     * Displays the TA entry page with the public course listing and deadline attributes.
+     * <p>Supports the following actions via the {@code action} parameter:
+     * <ul>
+     *   <li>{@code auth} - forward to the TA authentication page</li>
+     *   <li>{@code detail} - forward to a specific course detail page</li>
+     *   <li>default (no action) - forward to the public TA listing page</li>
+     * </ul>
+     * </p>
+     *
+     * @param request  the {@link HttpServletRequest}
+     * @param response the {@link HttpServletResponse}
+     * @throws ServletException if forwarding fails
+     * @throws IOException      if an I/O error occurs
+     */
     private void showTaEntry(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         refreshAuthenticatedTa(request);
@@ -83,6 +137,12 @@ public class EntryController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/entry/ta-public.jsp").forward(request, response);
     }
 
+    /**
+     * Refreshes the authenticated TA's session data by re-fetching their user information
+     * from the data store. If the current session user is a TA, their data is updated in place.
+     *
+     * @param request the {@link HttpServletRequest} containing the current session
+     */
     private void refreshAuthenticatedTa(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
         if (session == null) {
@@ -98,6 +158,12 @@ public class EntryController extends HttpServlet {
         }
     }
 
+    /**
+     * Resolves deadline information from the servlet context and sets the relevant
+     * request attributes for use by the view layer.
+     *
+     * @param request the {@link HttpServletRequest} whose attributes will be populated
+     */
     private void prepareDeadlineAttributes(HttpServletRequest request) {
         LocalDateTime applicationDeadline = resolveApplicationDeadline(request);
         LocalDateTime moModifyDeadline = resolveMoModifyDeadline(request);
@@ -109,18 +175,43 @@ public class EntryController extends HttpServlet {
         request.setAttribute("moModifyOpen", isMoModifyOpen(moModifyDeadline));
     }
 
+    /**
+     * Checks whether the TA application period is currently open based on the given deadline.
+     *
+     * @param deadline the application deadline, may be {@code null} indicating no deadline
+     * @return {@code true} if the deadline is {@code null} or has not yet passed
+     */
     private boolean isApplicationOpen(LocalDateTime deadline) {
         return deadline == null || !LocalDateTime.now().isAfter(deadline);
     }
 
+    /**
+     * Checks whether the review stage is open (i.e., the application deadline has passed).
+     *
+     * @param deadline the application deadline, may be {@code null}
+     * @return {@code true} if the deadline is {@code null} or has already passed
+     */
     private boolean isReviewStageOpen(LocalDateTime deadline) {
         return deadline == null || LocalDateTime.now().isAfter(deadline);
     }
 
+    /**
+     * Checks whether MO course modification is currently allowed.
+     *
+     * @param deadline the MO modification deadline, may be {@code null}
+     * @return {@code true} if the deadline is {@code null} or has not yet passed
+     */
     private boolean isMoModifyOpen(LocalDateTime deadline) {
         return deadline == null || !LocalDateTime.now().isAfter(deadline);
     }
 
+    /**
+     * Retrieves a {@link Course} from the provided list by its index parameter.
+     *
+     * @param courses    the list of available courses
+     * @param indexParam the string representation of the course index
+     * @return the {@link Course} at the given index, or {@code null} if the index is invalid
+     */
     private Course getCourseByIndex(List<Course> courses, String indexParam) {
         if (courses == null || indexParam == null) {
             return null;
@@ -136,6 +227,12 @@ public class EntryController extends HttpServlet {
         }
     }
 
+    /**
+     * Resolves the TA application deadline stored in the servlet context.
+     *
+     * @param request the {@link HttpServletRequest} used to obtain the servlet context
+     * @return the {@link LocalDateTime} deadline, or {@code null} if not set
+     */
     private LocalDateTime resolveApplicationDeadline(HttpServletRequest request) {
         ServletContext servletContext = request.getServletContext();
         if (servletContext != null) {
@@ -147,6 +244,12 @@ public class EntryController extends HttpServlet {
         return null;
     }
 
+    /**
+     * Resolves the MO course modification deadline stored in the servlet context.
+     *
+     * @param request the {@link HttpServletRequest} used to obtain the servlet context
+     * @return the {@link LocalDateTime} deadline, or {@code null} if not set
+     */
     private LocalDateTime resolveMoModifyDeadline(HttpServletRequest request) {
         ServletContext servletContext = request.getServletContext();
         if (servletContext != null) {
