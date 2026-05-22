@@ -129,8 +129,7 @@
                     <div class="course-box">
                         <div class="course-name"><%= c.getCourseName() %></div>
                         <div class="course-info">
-                            <%= c.getJobTitle() %> | <%= c.getWorkingHours() %>
-                            <% if (c.getSalary() != null) { %> | <%= c.getSalary() %> <% } %>
+                            <%= c.getJobTitle() %>
                         </div>
                     </div>
                 </a>

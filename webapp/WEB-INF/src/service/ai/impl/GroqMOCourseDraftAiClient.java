@@ -3,50 +3,33 @@ package service.ai.impl;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
-import java.time.LocalDateTime;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-import model.ApplicationForm;
-import model.Course;
-import model.TA;
-import service.ai.ApplicationFormAiClient;
+import service.ai.MOCourseDraftAiClient;
 
-public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
+public class GroqMOCourseDraftAiClient implements MOCourseDraftAiClient {
     private static final String ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
-    public GroqApplicationFormAiClient() {
-    }
-
     @Override
-    public ApplicationForm generate(TA ta, Course course, String resumeText) throws IOException, InterruptedException {
+    public MOCourseDraft generate(String courseName) throws IOException, InterruptedException {
         String apiKey = readConfig("GROQ_API_KEY", "");
         if (apiKey.isBlank()) {
             throw new IOException("GROQ_API_KEY is not configured.");
         }
 
         String model = readConfig("GROQ_MODEL", "llama-3.1-8b-instant");
-        String body = buildRequestBody(model, ta, course, resumeText);
-        String responseBody = sendRequest(apiKey, body);
+        String responseBody = sendWithPowerShell(apiKey, buildRequestBody(model, courseName));
+        System.out.println("[Groq] mo-course-draft transport=powershell");
         String content = extractMessageContent(responseBody);
-        return parseApplicationForm(ta, course, content);
-    }
-
-    private String sendRequest(String apiKey, String body) throws IOException, InterruptedException {
-        if (!isWindows()) {
-            throw new IOException("PowerShell Groq transport is only available on Windows.");
-        }
-        String responseBody = sendWithPowerShell(apiKey, body);
-        System.out.println("[Groq] transport=powershell");
-        logTransport("powershell");
-        return responseBody;
+        return parseDraft(content);
     }
 
     private String sendWithPowerShell(String apiKey, String body) throws IOException, InterruptedException {
+        if (!isWindows()) {
+            throw new IOException("PowerShell Groq transport is only available on Windows.");
+        }
+
         ProcessBuilder processBuilder = new ProcessBuilder(
                 "powershell",
                 "-NoProfile",
@@ -80,45 +63,31 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return stdout;
     }
 
-    private String buildRequestBody(String model, TA ta, Course course, String resumeText) {
+    private String buildRequestBody(String model, String courseName) {
         String systemPrompt = """
-                You generate job-specific TA application forms.
+                You generate initial TA recruitment drafts for university courses.
                 Return strict JSON only, with no markdown or explanation.
-                Required JSON keys:
-                applicantName, email, education, skills, relevantExperience, projectExperience, feedback.
+                Required JSON keys: jobTitle, jobDescription, jobRequirement.
                 Every JSON value must be a plain string. Do not return arrays, nested objects, or null values.
-                Do not invent unsupported facts. Use "Not provided" when resume information is missing.
+                Do not invent professor names, rooms, exact dates, email addresses, or unavailable facts.
+                Make the draft realistic and editable by the course owner.
+                In jobRequirement, include course-specific technical expectations where appropriate, such as
+                professional software, lab tools, frameworks, programming languages, engineering platforms, or
+                mathematical methods relevant to the course.
+                Avoid generic requirements like only "communication skills"; include concrete technical evidence.
                 Use normal English punctuation. Write complete sentences, not keyword fragments.
                 Do not use unicode escape sequences such as \\u0027 when ordinary punctuation can be used.
-                Tailor feedback to the target job.
-                The feedback field must be advice to the applicant, written in second person.
-                Do not write feedback as an applicant statement. Avoid "I", "my", "me", or "I believe".
-                Feedback should name specific missing evidence or improvements that would make the application stronger.
                 """;
         String userPrompt = """
-                Resume text:
-                %s
+                Course name: %s
 
-                Job information:
-                Course: %s
-                Job title: %s
-                Working hours: %s
-                Description: %s
-                Requirement: %s
-                Applicant account email: %s
-                """.formatted(
-                limitText(resumeText, 16000),
-                safe(course.getCourseName()),
-                safe(course.getJobTitle()),
-                safe(course.getWorkingHours()),
-                safe(course.getJobDescription()),
-                safe(course.getJobRequirement()),
-                safe(ta.getEmail()));
+                Generate a concise TA recruitment draft for this course.
+                """.formatted(safe(courseName));
 
         return "{"
                 + "\"model\":\"" + escapeJson(model) + "\","
-                + "\"temperature\":0.2,"
-                + "\"max_completion_tokens\":1200,"
+                + "\"temperature\":0.3,"
+                + "\"max_completion_tokens\":900,"
                 + "\"top_p\":1,"
                 + "\"stream\":false,"
                 + "\"stop\":null,"
@@ -130,17 +99,11 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
                 + "}";
     }
 
-    private ApplicationForm parseApplicationForm(TA ta, Course course, String json) {
-        ApplicationForm form = new ApplicationForm(ta.getEmail(), course.getId());
-        form.setApplicantName(extractJsonValue(json, "applicantName"));
-        form.setEmail(defaultValue(extractJsonValue(json, "email"), ta.getEmail()));
-        form.setEducation(extractJsonValue(json, "education"));
-        form.setSkills(extractJsonValue(json, "skills"));
-        form.setRelevantExperience(extractJsonValue(json, "relevantExperience"));
-        form.setProjectExperience(extractJsonValue(json, "projectExperience"));
-        form.setFeedback(extractJsonValue(json, "feedback"));
-        form.setSubmitted(false);
-        return form;
+    private MOCourseDraft parseDraft(String json) {
+        return new MOCourseDraft(
+                extractJsonValue(json, "jobTitle"),
+                extractJsonValue(json, "jobDescription"),
+                extractJsonValue(json, "jobRequirement"));
     }
 
     private String extractMessageContent(String responseBody) throws IOException {
@@ -167,11 +130,7 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         }
 
         int colonIndex = json.indexOf(':', markerIndex + marker.length());
-        if (colonIndex < 0) {
-            return "";
-        }
-
-        int startQuote = json.indexOf('"', colonIndex + 1);
+        int startQuote = colonIndex < 0 ? -1 : json.indexOf('"', colonIndex + 1);
         if (startQuote < 0) {
             return "";
         }
@@ -240,10 +199,6 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         return value == null ? "" : value;
     }
 
-    private String defaultValue(String value, String fallback) {
-        return value == null || value.isBlank() ? fallback : value;
-    }
-
     private String readConfig(String key, String fallback) {
         String propertyValue = System.getProperty(key);
         if (propertyValue != null && !propertyValue.isBlank()) {
@@ -254,69 +209,10 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
         if (envValue != null && !envValue.isBlank()) {
             return envValue;
         }
-
-        String windowsUserValue = readWindowsUserEnvironment(key);
-        if (windowsUserValue != null && !windowsUserValue.isBlank()) {
-            return windowsUserValue;
-        }
         return fallback;
-    }
-
-    private String readWindowsUserEnvironment(String key) {
-        if (!isWindows() || key == null || key.isBlank()) {
-            return "";
-        }
-
-        try {
-            Process process = new ProcessBuilder("reg", "query", "HKCU\\Environment", "/v", key).start();
-            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
-            if (!finished) {
-                process.destroyForcibly();
-                return "";
-            }
-            if (process.exitValue() != 0) {
-                return "";
-            }
-
-            String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            for (String line : output.split("\\R")) {
-                String trimmed = line.trim();
-                if (trimmed.startsWith(key + " ")) {
-                    String[] parts = trimmed.split("\\s+", 3);
-                    return parts.length >= 3 ? parts[2].trim() : "";
-                }
-            }
-        } catch (IOException | InterruptedException e) {
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        return "";
     }
 
     private boolean isWindows() {
         return System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
-    }
-
-    private void logTransport(String message) {
-        try {
-            Path logPath = resolveRuntimeFilePath("groq-transport.log");
-            Files.createDirectories(logPath.getParent());
-            Files.writeString(
-                    logPath,
-                    LocalDateTime.now() + " " + message + System.lineSeparator(),
-                    StandardCharsets.UTF_8,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.APPEND);
-        } catch (IOException ignored) {
-        }
-    }
-
-    private Path resolveRuntimeFilePath(String fileName) {
-        String catalinaBase = System.getProperty("catalina.base");
-        if (catalinaBase != null && !catalinaBase.isBlank()) {
-            return Paths.get(catalinaBase, "webapps", "SE", "WEB-INF", "file", fileName);
-        }
-        return Paths.get(System.getProperty("user.dir"), "webapp", "WEB-INF", "file", fileName);
     }
 }

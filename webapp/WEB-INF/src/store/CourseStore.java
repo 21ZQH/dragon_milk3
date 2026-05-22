@@ -28,7 +28,7 @@ public class CourseStore {
         try (BufferedReader br = Files.newBufferedReader(filePath)) {
             String line;
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",", -1);
+                String[] parts = CsvRecord.parse(line);
                 if (parts.length >= 10) {
                     String courseId = parts[0];
                     String courseName = parts[1];
@@ -155,23 +155,21 @@ public class CourseStore {
     }
 
     private static String buildCourseLine(Course course) {
-        return safe(course.getId()) + ","
-                + safe(course.getCourseName()) + ","
-                + safe(course.getJobTitle()) + ","
-                + safe(course.getWorkingHours()) + ","
-                + safe(course.getSalary()) + ","
-                + safe(course.getJobDescription()) + ","
-                + safe(course.getJobRequirement()) + ","
-                + safe(serializePickedApplicantEmails(course)) + ","
-                + course.isReviewPublished() + ","
-                + course.isRecruitmentPublished();
+        return CsvRecord.toLine(
+                safe(course.getId()),
+                safe(course.getCourseName()),
+                safe(course.getJobTitle()),
+                safe(course.getWorkingHours()),
+                safe(course.getSalary()),
+                safe(course.getJobDescription()),
+                safe(course.getJobRequirement()),
+                safe(serializePickedApplicantEmails(course)),
+                String.valueOf(course.isReviewPublished()),
+                String.valueOf(course.isRecruitmentPublished()));
     }
 
     private static String safe(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.replace(",", " ");
+        return value == null ? "" : value;
     }
 
     private static Path resolveFilePath() {

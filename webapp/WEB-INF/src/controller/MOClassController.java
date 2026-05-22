@@ -12,8 +12,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Course;
 import model.Mo;
-import repository.UserRepository;
-import repository.impl.TxtUserRepositoryImpl;
 import service.ApplicationReviewService;
 import service.MOProjectService;
 import service.impl.ApplicationReviewServiceImpl;
@@ -26,7 +24,6 @@ import service.impl.DeadlineServiceImpl;
 
 public class MOClassController extends HttpServlet {
     private final ApplicationReviewService applicationReviewService;
-    private final UserRepository userRepository;
     private final CourseService courseService;
     private final DeadlineService deadlineService;
     private final MOProjectService moProjectService;
@@ -34,27 +31,23 @@ public class MOClassController extends HttpServlet {
     public MOClassController() {
         this(
                 new ApplicationReviewServiceImpl(),
-                new TxtUserRepositoryImpl(),
                 new CourseServiceImpl(),
                 new DeadlineServiceImpl());
     }
 
-    MOClassController(ApplicationReviewService applicationReviewService, UserRepository userRepository) {
+    MOClassController(ApplicationReviewService applicationReviewService) {
         this(
                 applicationReviewService,
-                userRepository,
                 new CourseServiceImpl(),
                 new DeadlineServiceImpl());
     }
 
     MOClassController(
             ApplicationReviewService applicationReviewService,
-            UserRepository userRepository,
             CourseService courseService,
             DeadlineService deadlineService) {
         this(
                 applicationReviewService,
-                userRepository,
                 courseService,
                 deadlineService,
                 new MOProjectServiceImpl(courseService, new UserProfileServiceImpl()));
@@ -62,12 +55,10 @@ public class MOClassController extends HttpServlet {
 
     MOClassController(
             ApplicationReviewService applicationReviewService,
-            UserRepository userRepository,
             CourseService courseService,
             DeadlineService deadlineService,
             MOProjectService moProjectService) {
         this.applicationReviewService = applicationReviewService;
-        this.userRepository = userRepository;
         this.courseService = courseService;
         this.deadlineService = deadlineService;
         this.moProjectService = moProjectService;
@@ -92,8 +83,6 @@ public class MOClassController extends HttpServlet {
             create_class(request, response);
         } else if ("personal_center".equals(action)) {
             show_personal_center(request, response);
-        } else if ("profile_center".equals(action)) {
-            profile_center(request, response);
         } else if ("review_candidates".equals(action)) {
             show_review_candidates(request, response);
         } else if ("my_project".equals(action)) {
@@ -122,6 +111,9 @@ public class MOClassController extends HttpServlet {
         if ("publish_course".equals(action)) {
             publish_course(request, response);
 
+        } else if ("save_course_draft".equals(action)) {
+            save_course_draft(request, response);
+
         } else if ("save_review_picks".equals(action)) {
             save_review_picks(request, response);
         } else if ("publish_review".equals(action)) {
@@ -129,9 +121,6 @@ public class MOClassController extends HttpServlet {
 
         } else if ("save_course_changes".equals(action)) {
             save_course_changes(request, response);
-
-        } else if ("save_personal_information".equals(action)) {
-            save_personal_information(request, response);
 
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
@@ -157,10 +146,14 @@ public class MOClassController extends HttpServlet {
 
     private void show_dashboard(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        request.setAttribute("moProfileComplete", isMoProfileComplete(request));
-        request.setAttribute("moModifyOpen", isMoModifyOpen(request));
+        LocalDateTime applicationDeadline = resolveApplicationDeadline(request);
+        LocalDateTime moModifyDeadline = resolveMoModifyDeadline(request);
+        request.setAttribute("applicationDeadline", applicationDeadline);
+        request.setAttribute("applicationOpen", deadlineService.isApplicationOpen(applicationDeadline));
+        request.setAttribute("reviewStageOpen", deadlineService.isReviewStageOpen(applicationDeadline));
+        request.setAttribute("moModifyDeadline", moModifyDeadline);
+        request.setAttribute("moModifyOpen", deadlineService.isMoModifyOpen(moModifyDeadline));
         request.setAttribute("showModifyLockedModal", "1".equals(request.getParameter("modifyLocked")));
-        request.setAttribute("showProfileIncompleteModal", "1".equals(request.getParameter("profileIncomplete")));
         request.getRequestDispatcher("/WEB-INF/views/mo/dashboard.jsp").forward(request, response);
     }
 
@@ -170,41 +163,13 @@ public class MOClassController extends HttpServlet {
         request.getRequestDispatcher("/WEB-INF/views/mo/personal-center.jsp").forward(request, response);
     }
 
-    private void profile_center(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.getRequestDispatcher("/WEB-INF/views/mo/profile-center.jsp").forward(request, response);
-    }
-
-    private void save_personal_information(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        Mo mo = getCurrentMo(request);
-        if (mo == null) {
-            response.sendRedirect(request.getContextPath() + "/mo");
-            return;
-        }
-
-        mo.setName(trimValue(request.getParameter("name")));
-        mo.setDegree(trimValue(request.getParameter("degree")));
-        mo.setCollege(trimValue(request.getParameter("college")));
-        userRepository.updateMoProfile(mo);
-
-        request.getSession().setAttribute("user", mo);
-        request.setAttribute("success", "Personal information saved successfully.");
-        request.getRequestDispatcher("/WEB-INF/views/mo/profile-center.jsp").forward(request, response);
-    }
-
     private void create_class(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         if (!isMoModifyOpen(request)) {
             redirectMoModifyLocked(request, response);
             return;
         }
-        if (!isMoProfileComplete(request)) {
-            redirectProfileIncomplete(request, response);
-            return;
-        }
-        request.setAttribute("courseList", getCurrentMoCourseList(request));
-        request.getRequestDispatcher("/WEB-INF/views/mo/create-project.jsp").forward(request, response);
+        show_my_project(request, response);
     }
 
     private void show_my_project(HttpServletRequest request, HttpServletResponse response)
@@ -245,10 +210,6 @@ public class MOClassController extends HttpServlet {
             redirectMoModifyLocked(request, response);
             return;
         }
-        if (!isMoProfileComplete(request)) {
-            redirectProfileIncomplete(request, response);
-            return;
-        }
 
         String courseIndexParam = request.getParameter("courseIndex");
         List<Course> courseList = getCurrentMoCourseList(request);
@@ -264,13 +225,41 @@ public class MOClassController extends HttpServlet {
                 assignedCourse,
                 assignedCourse.getCourseName(),
                 request.getParameter("jobTitle"),
-                request.getParameter("workingHours"),
+                "",
                 request.getParameter("jobDescription"),
                 request.getParameter("jobRequirement"));
         refreshCurrentMoSession(request, mo);
 
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex="
                 + courseIndexParam + "&success=1");
+    }
+
+    private void save_course_draft(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        if (!isMoModifyOpen(request)) {
+            redirectMoModifyLocked(request, response);
+            return;
+        }
+
+        String courseIndexParam = request.getParameter("courseIndex");
+        List<Course> courseList = getCurrentMoCourseList(request);
+        Course assignedCourse = moProjectService.getCourseByIndex(courseList, courseIndexParam);
+        if (assignedCourse == null) {
+            response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");
+            return;
+        }
+
+        Mo mo = getCurrentMo(request);
+        moProjectService.saveCourseDraft(
+                mo,
+                assignedCourse,
+                assignedCourse.getCourseName(),
+                request.getParameter("jobTitle"),
+                request.getParameter("jobDescription"),
+                request.getParameter("jobRequirement"));
+        refreshCurrentMoSession(request, mo);
+
+        response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex="
+                + courseIndexParam + "&draftSaved=1");
     }
 
     private void save_course_changes(HttpServletRequest request, HttpServletResponse response)throws IOException, ServletException {
@@ -293,25 +282,6 @@ public class MOClassController extends HttpServlet {
             return;
         }
 
-        if (!isMoProfileComplete(request)) {
-            List<Course> courseList = getCurrentMoCourseList(request);
-            String courseIndexParam = request.getParameter("courseIndex");
-            if (courseIndexParam != null) {
-                try {
-                    int courseIndex = Integer.parseInt(courseIndexParam);
-                    if (courseIndex >= 0 && courseIndex < courseList.size()) {
-                        prepareProjectDetailAttributes(request, courseList.get(courseIndex), courseIndexParam);
-                    }
-                } catch (NumberFormatException ignored) {
-                }
-            }
-
-            request.setAttribute("error", "Please complete your personal information before creating or modifying course projects.");
-            request.setAttribute("showProfileIncompleteModal", true);
-            request.getRequestDispatcher("/WEB-INF/views/mo/project-detail.jsp").forward(request, response);
-            return;
-        }
-
         String courseIndexParam = request.getParameter("courseIndex");
         if (courseIndexParam == null) {
             response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=my_project");
@@ -323,7 +293,6 @@ public class MOClassController extends HttpServlet {
 
             String courseName = request.getParameter("courseName");
             String jobTitle = request.getParameter("jobTitle");
-            String workingHours = request.getParameter("workingHours");
             String jobDescription = request.getParameter("jobDescription");
             String jobRequirement = request.getParameter("jobRequirement");
 
@@ -339,7 +308,7 @@ public class MOClassController extends HttpServlet {
                     courseList.get(courseIndex),
                     courseName,
                     jobTitle,
-                    workingHours,
+                    "",
                     jobDescription,
                     jobRequirement);
             refreshCurrentMoSession(request, mo);
@@ -480,14 +449,8 @@ public class MOClassController extends HttpServlet {
     private void prepareProjectDetailAttributes(HttpServletRequest request, Course selectedCourse, String courseIndex) {
         request.setAttribute("selectedCourse", selectedCourse);
         request.setAttribute("courseIndex", courseIndex);
-        request.setAttribute("moProfileComplete", isMoProfileComplete(request));
         request.setAttribute("moModifyOpen", isMoModifyOpen(request));
         request.setAttribute("moModifyDeadline", resolveMoModifyDeadline(request));
-    }
-
-    private boolean isMoProfileComplete(HttpServletRequest request) {
-        Mo mo = getCurrentMo(request);
-        return mo != null && mo.hasCompleteProfile();
     }
 
     private boolean isMoModifyOpen(HttpServletRequest request) {
@@ -503,7 +466,7 @@ public class MOClassController extends HttpServlet {
                 return localDateTime;
             }
         }
-        return deadlineService.getMoModifyDeadline();
+        return null;
     }
 
     private void logout(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -512,10 +475,6 @@ public class MOClassController extends HttpServlet {
             session.invalidate();
         }
         response.sendRedirect(request.getContextPath() + "/mo");
-    }
-
-    private String trimValue(String value) {
-        return value == null ? "" : value.trim();
     }
 
     private boolean isReviewStageOpen(HttpServletRequest request) {
@@ -531,7 +490,7 @@ public class MOClassController extends HttpServlet {
                 return localDateTime;
             }
         }
-        return deadlineService.getApplicationDeadline();
+        return null;
     }
 
     private void redirectReviewLocked(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -542,7 +501,4 @@ public class MOClassController extends HttpServlet {
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=dashboard&modifyLocked=1");
     }
 
-    private void redirectProfileIncomplete(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=dashboard&profileIncomplete=1");
-    }
 }

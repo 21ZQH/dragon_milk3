@@ -22,8 +22,6 @@ public class MockApplicationFormAiClient implements ApplicationFormAiClient {
                 "Not provided. Please add teaching, tutoring, grading, lab, or project experience relevant to this course."));
         form.setProjectExperience(defaultValue(summary.projects,
                 "Not provided. Please add projects that show your fit for " + safe(course.getCourseName()) + "."));
-        form.setCourseFit("This application is prepared for " + safe(course.getCourseName())
-                + " (" + safe(course.getJobTitle()) + "). Please refine this section using your strongest course-specific evidence.");
         form.setFeedback("Strengthen the application by adding concrete evidence matching the job requirement: "
                 + safe(course.getJobRequirement()) + ".");
         form.setSubmitted(false);

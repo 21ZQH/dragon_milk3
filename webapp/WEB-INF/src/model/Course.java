@@ -6,6 +6,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Course recruitment project managed by an MO.
+ *
+ * <p>The model stores both course information and recruitment workflow state:
+ * draft/published status, TA applicants, submitted application form ids,
+ * picked applicant emails, and whether final review results have been
+ * published.</p>
+ */
 public class Course {
     private final String id;
     private String courseName;

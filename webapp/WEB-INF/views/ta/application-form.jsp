@@ -198,10 +198,6 @@
                             <label for="projectExperience">Project Experience</label>
                             <textarea id="projectExperience" name="projectExperience"><%= form.getProjectExperience() == null ? "" : form.getProjectExperience() %></textarea>
                         </div>
-                        <div class="field full">
-                            <label>Course Fit</label>
-                            <div class="readonly-text"><%= form.getCourseFit() == null || form.getCourseFit().isBlank() ? "No course fit summary generated yet." : form.getCourseFit() %></div>
-                        </div>
                     </div>
                 </div>
 

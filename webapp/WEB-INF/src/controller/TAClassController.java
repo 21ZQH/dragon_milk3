@@ -123,7 +123,8 @@ public class TAClassController extends HttpServlet {
         }
 
         Object currentUser = session == null ? null : session.getAttribute("user");
-        if (currentUser instanceof TA) {
+        if (currentUser instanceof TA ta) {
+            session.setAttribute("user", taApplicationService.refreshTa(ta));
             return true;
         }
 
@@ -588,6 +589,7 @@ public class TAClassController extends HttpServlet {
         request.setAttribute("applicationLimit", personalCentreData.getApplicationLimit());
         request.setAttribute("selectedCourse", selectedCourse);
         request.setAttribute("selectedCourseId", selectedCourse == null ? null : selectedCourse.getId());
+        request.setAttribute("unreadReviewCourseIds", personalCentreData.getUnreadReviewCourseIds());
         request.setAttribute("applicationOpen", personalCentreData.isApplicationOpen());
         request.setAttribute("applicationDeadline", resolveApplicationDeadline(request));
         request.setAttribute("hasMasterResume", taApplicationService.hasMasterResume(ta));
@@ -651,7 +653,7 @@ public class TAClassController extends HttpServlet {
                 return localDateTime;
             }
         }
-        return deadlineService.getApplicationDeadline();
+        return null;
     }
 
 }

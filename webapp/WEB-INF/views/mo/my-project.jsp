@@ -56,6 +56,12 @@
             flex-wrap: wrap;
         }
 
+        .back-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
         .search-box {
             flex: 1;
             min-width: 260px;
@@ -93,7 +99,10 @@
         }
 
         .back-link {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 170px;
             text-decoration: none;
             color: #22223b;
             font-weight: 600;
@@ -140,8 +149,37 @@
             font-size: 1.7em;
             font-weight: 700;
             color: #22223b;
-            margin-bottom: 14px;
             word-break: break-word;
+        }
+
+        .course-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .status-pill {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 6px 12px;
+            font-size: 0.88em;
+            font-weight: 800;
+            white-space: nowrap;
+            border: 1px solid #d1d5db;
+        }
+
+        .status-published {
+            background: #edf7ed;
+            color: #256029;
+            border-color: #b7dfb9;
+        }
+
+        .status-draft {
+            background: #fff7e6;
+            color: #9a6400;
+            border-color: #f2cf7a;
         }
 
         .course-meta {
@@ -169,6 +207,17 @@
             color: #666;
             font-size: 0.98em;
         }
+
+        @media (max-width: 720px) {
+            .back-actions {
+                width: 100%;
+            }
+
+            .back-link {
+                flex: 1;
+                min-width: 220px;
+            }
+        }
     </style>
     <link rel="stylesheet" href="<%= request.getContextPath() %>/css/role-style.css">
 </head>
@@ -181,7 +230,10 @@
     <div class="top-bar">
         <input type="text" id="searchInput" class="search-box" placeholder="Search by course name or job title...">
         <button type="button" id="searchBtn" class="search-btn">Search</button>
-        <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=personal_center") %>">Back</a>
+        <div class="back-actions">
+            <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=personal_center") %>">Back to Personal Centre</a>
+            <a class="back-link" href="<%= response.encodeURL("MOclasscontroller?action=dashboard") %>">Back to Dashboard</a>
+        </div>
     </div>
 
     <div class="course-list" id="courseList">
@@ -193,17 +245,19 @@
         <a class="course-card-link course-item"
            href="<%= response.encodeURL("MOclasscontroller?action=project_detail&courseIndex=" + i) %>"
            data-name="<%= c.getCourseName() == null ? "" : c.getCourseName().toLowerCase() %>"
-           data-job="<%= c.getJobTitle() == null ? "" : c.getJobTitle().toLowerCase() %>">
+            data-job="<%= c.getJobTitle() == null ? "" : c.getJobTitle().toLowerCase() %>">
             <div class="course-card">
-                <div class="course-name">
-                    <%= c.getCourseName() == null || c.getCourseName().trim().isEmpty() ? "Untitled Course" : c.getCourseName() %>
+                <div class="course-card-header">
+                    <div class="course-name">
+                        <%= c.getCourseName() == null || c.getCourseName().trim().isEmpty() ? "Untitled Course" : c.getCourseName() %>
+                    </div>
+                    <span class="status-pill <%= c.isRecruitmentPublished() ? "status-published" : "status-draft" %>">
+                        <%= c.isRecruitmentPublished() ? "Published" : "Draft" %>
+                    </span>
                 </div>
                 <div class="course-meta">
                     <strong>Job Title:</strong>
                     <%= c.getJobTitle() == null || c.getJobTitle().trim().isEmpty() ? "Not set" : c.getJobTitle() %>
-                    <br>
-                    <strong>Working Hours:</strong>
-                    <%= c.getWorkingHours() == null || c.getWorkingHours().trim().isEmpty() ? "Not set" : c.getWorkingHours() %>
                 </div>
             </div>
         </a>

@@ -3,7 +3,9 @@ package service.impl;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.Locale;
 
 import jakarta.servlet.http.Part;
@@ -105,6 +107,20 @@ public class TAApplicationServiceImpl implements TAApplicationService {
                 getStoredResumeFileName(ta),
                 hasCurrentApplication,
                 hasCurrentApplication ? "Submitted application form" : null);
+    }
+
+    @Override
+    public TA refreshTa(TA ta) {
+        if (ta == null || ta.getEmail() == null || ta.getEmail().isBlank()) {
+            return ta;
+        }
+
+        for (TA savedTa : userProfileService.getTAList()) {
+            if (savedTa != null && ta.getEmail().equals(savedTa.getEmail())) {
+                return savedTa;
+            }
+        }
+        return ta;
     }
 
     @Override
@@ -226,19 +242,35 @@ public class TAApplicationServiceImpl implements TAApplicationService {
 
     @Override
     public PersonalCentreData preparePersonalCentreData(TA ta, String selectedCourseId, boolean applicationOpen) {
-        if (ta.markAllReviewUpdatesRead()) {
-            userProfileService.updateAppliedCourseIds(ta);
-        }
         List<Course> appliedCourses = ta.getAppliedClasses();
         Course selectedCourse = resolveSelectedAppliedCourse(appliedCourses, selectedCourseId);
         Integer selectedStatus = selectedCourse == null ? null : resolveResumeStatus(ta, selectedCourse.getId());
+        Set<String> unreadReviewCourseIds = resolveUnreadReviewCourseIds(ta, appliedCourses);
+        if (ta.markAllReviewUpdatesRead()) {
+            userProfileService.updateAppliedCourseIds(ta);
+        }
         return new PersonalCentreData(
                 appliedCourses,
                 selectedCourse,
                 selectedStatus,
+                unreadReviewCourseIds,
                 applicationOpen,
                 getApplicationCount(ta),
                 MAX_DISTINCT_APPLICATIONS);
+    }
+
+    private Set<String> resolveUnreadReviewCourseIds(TA ta, List<Course> appliedCourses) {
+        Set<String> unreadCourseIds = new LinkedHashSet<>();
+        if (ta == null || appliedCourses == null) {
+            return unreadCourseIds;
+        }
+
+        for (Course course : appliedCourses) {
+            if (course != null && course.getId() != null && ta.isReviewUnreadForCourse(course.getId())) {
+                unreadCourseIds.add(course.getId());
+            }
+        }
+        return unreadCourseIds;
     }
 
     private Course resolveSelectedAppliedCourse(List<Course> appliedCourses, String selectedCourseId) {

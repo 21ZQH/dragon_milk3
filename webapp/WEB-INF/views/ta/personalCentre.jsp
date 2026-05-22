@@ -1,4 +1,6 @@
 <%@ page import="java.util.List" %>
+<%@ page import="java.util.Collections" %>
+<%@ page import="java.util.Set" %>
 <%@ page import="model.Course" %>
 <%@ page import="model.ResumeSubmission" %>
 <%@ page import="model.TA" %>
@@ -14,6 +16,10 @@
     List<Course> appliedCourses = (List<Course>) request.getAttribute("appliedCourses");
     if (appliedCourses == null && currentTA != null) {
         appliedCourses = currentTA.getAppliedClasses();
+    }
+    Set<String> unreadReviewCourseIds = (Set<String>) request.getAttribute("unreadReviewCourseIds");
+    if (unreadReviewCourseIds == null) {
+        unreadReviewCourseIds = Collections.emptySet();
     }
 
     Course selectedCourse = (Course) request.getAttribute("selectedCourse");
@@ -213,6 +219,7 @@
             flex-wrap: wrap;
         }
         .course-pill {
+            position: relative;
             display: inline-block;
             padding: 14px 24px;
             border-radius: 999px;
@@ -226,6 +233,17 @@
         .course-pill.active {
             background: #2b2b4f;
             color: #fff;
+        }
+        .course-pill .review-dot {
+            position: absolute;
+            top: -3px;
+            right: 8px;
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            background: #d92d20;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px #2b2b4f;
         }
         .detail-card {
             border: 1px solid #d2d7e2;
@@ -560,11 +578,15 @@
                                if (course == null) {
                                    continue;
                                }
-                               boolean active = course.getId() != null && course.getId().equals(selectedCourseId);
+                                boolean active = course.getId() != null && course.getId().equals(selectedCourseId);
+                               boolean unreadReview = course.getId() != null && unreadReviewCourseIds.contains(course.getId());
                         %>
                             <a class="course-pill <%= active ? "active" : "" %>"
                                href="<%= response.encodeURL("TAclasscontroller?action=personal_centre&courseId=" + course.getId()) %>">
-                                <%= course.getCourseName() %>
+                                 <%= course.getCourseName() %>
+                                <% if (unreadReview) { %>
+                                    <span class="review-dot" aria-hidden="true"></span>
+                                <% } %>
                             </a>
                         <% } %>
                     </div>
@@ -573,7 +595,7 @@
                 <% if (selectedCourse != null) { %>
                     <div class="detail-card">
                         <div class="course-name"><%= selectedCourse.getCourseName() %></div>
-                        <div class="course-info"><%= selectedCourse.getJobTitle() %> | <%= selectedCourse.getWorkingHours() %></div>
+                        <div class="course-info"><%= selectedCourse.getJobTitle() %></div>
 
                         <div class="action-row">
                             <% if (applicationOpen) { %>

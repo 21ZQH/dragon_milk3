@@ -59,7 +59,6 @@ public class ApplicationFormServiceImpl implements ApplicationFormService {
         form.setSkills(trimValue(skills));
         form.setRelevantExperience(trimValue(relevantExperience));
         form.setProjectExperience(trimValue(projectExperience));
-        form.setCourseFit(existingForm == null ? "" : trimValue(existingForm.getCourseFit()));
         form.setFeedback(trimValue(feedback));
         form.setSubmitted(submitted);
         return form;
@@ -89,7 +88,6 @@ public class ApplicationFormServiceImpl implements ApplicationFormService {
                 form.setSkills("Not provided");
                 form.setRelevantExperience("Not provided");
                 form.setProjectExperience("Not provided");
-                form.setCourseFit("Please complete this field based on the target course.");
                 form.setFeedback("AI feedback is temporarily unavailable. Please add concrete evidence matching the job requirement.");
                 return form;
             }

@@ -163,7 +163,7 @@ class EntryControllerTest {
     }
 
     @Test
-    void testShowTaEntryDetailUsesDeadlineServiceFallback() throws Exception {
+    void testShowTaEntryDetailTreatsMissingServletContextDeadlineAsOpen() throws Exception {
         // Simulate accessing /ta?action=detail&courseIndex=0
         when(request.getServletPath()).thenReturn("/ta");
         when(request.getParameter("action")).thenReturn("detail");
@@ -173,18 +173,12 @@ class EntryControllerTest {
         publishedCourse.setRecruitmentPublished(true);
         when(courseService.getCourseList()).thenReturn(Arrays.asList(publishedCourse));
 
-        // Simulate that there is no deadline in the ServletContext 
+        // Simulate that there is no deadline in the ServletContext.
         when(servletContext.getAttribute("applicationDeadline")).thenReturn(null);
-        
-        // Simulate that DeadlineService fallback returns a past deadline
-        LocalDateTime pastDeadline = LocalDateTime.now().minusDays(1);
-        when(deadlineService.getApplicationDeadline()).thenReturn(pastDeadline);
 
         controller.doGet(request, response);
 
-        // Verify that deadlineService was indeed called for fallback, and applicationOpen is false
-        verify(deadlineService).getApplicationDeadline();
-        verify(request).setAttribute("applicationOpen", false);
+        verify(request).setAttribute("applicationOpen", true);
         verify(dispatcher).forward(request, response);
     }
 }

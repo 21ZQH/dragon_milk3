@@ -1,5 +1,12 @@
 package model;
 
+/**
+ * Base type for every account in the system.
+ *
+ * <p>Concrete subclasses provide the role name used by controllers and
+ * services for access checks. The shared fields are intentionally small because
+ * TA, MO, and Admin accounts store role-specific state separately.</p>
+ */
 public abstract class User {
     private String name;
     private String password;
