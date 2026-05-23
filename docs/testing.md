@@ -8,7 +8,7 @@ coursework submission inspection.
 
 - Primary test source: `src/test/java/`
 - Submission copy: `test_programs/java/`
-- Test-program instructions: `test_programs/README.txt`
+- Test-program instructions: `test_programs/README.md`
 
 ## Current Coverage
 

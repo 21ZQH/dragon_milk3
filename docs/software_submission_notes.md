@@ -7,7 +7,7 @@ This file maps the required `Software_groupXXX.zip` contents to the current proj
 | Requirement | Current Draft Status | Project Location |
 |---|---|---|
 | Source code | Ready as project source | `webapp/WEB-INF/src/`, `webapp/WEB-INF/views/`, `webapp/css/`, `pom.xml` |
-| Test programs | Ready as JUnit tests, with a submission copy and standalone Maven runner for easy inspection | `src/test/java/`, `test_programs/pom.xml`, `test_programs/java/`, `test_programs/README.txt` |
+| Test programs | Ready as JUnit tests, with a submission copy and standalone Maven runner for easy inspection | `src/test/java/`, `test_programs/pom.xml`, `test_programs/java/`, `test_programs/README.md` |
 | Code documentation, such as JavaDocs | Initial JavaDoc generated successfully | `target/reports/apidocs/`, `docs/controller-service-outline.md` |
 | User manual with key screenshots | English Word user manual is ready; screenshots should be checked against the final running app | `user manual.docx`, `docs/images/` |
 | README setup/config/run instructions | Ready as text README | `README.md` |
