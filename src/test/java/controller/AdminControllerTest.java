@@ -48,6 +48,7 @@ import testsupport.StoreTestSupport;
  */
 class AdminControllerTest {
 
+    /** Temporary directory for isolated test file storage. */
     @TempDir
     Path tempDir;
 

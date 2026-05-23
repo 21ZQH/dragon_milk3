@@ -41,6 +41,7 @@ import testsupport.StoreTestSupport;
  * @author BUPT-TA-Recruitment-Group33
  */
 class MOClassControllerTest {
+    /** Temporary directory for isolated test file storage. */
     @TempDir
     Path tempDir;
 
@@ -398,6 +399,11 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=project_detail&courseIndex=0&success=1");
     }
 
+    /**
+     * Tests that saving a course draft via the "save_course_draft" action does not
+     * alter the published status or content of a previously published course,
+     * and redirects with an appropriate error indicator.
+     */
     @Test
     void saveDraftDoesNotUnpublishPublishedCourse() throws Exception {
         Path courseFile = StoreTestSupport.useCourseStore(tempDir);
@@ -429,6 +435,11 @@ class MOClassControllerTest {
         verify(response).sendRedirect("/SE/MOclasscontroller?action=project_detail&courseIndex=0&error=published");
     }
 
+    /**
+     * Tests that the removed "save_personal_information" action returns an HTTP 400 Bad Request
+     * error without modifying the MO user's name, degree, or college fields, and without
+     * altering the persisted user data file.
+     */
     @Test
     void removedSavePersonalInformationActionReturnsBadRequest() throws Exception {
         Path usersFile = StoreTestSupport.useUserStore(tempDir);

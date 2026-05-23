@@ -32,15 +32,24 @@ import service.DeadlineService;
  */
 class EntryControllerTest {
 
+    /** Mocked account service for authentication and account management. */
     private AccountService accountService;
+    /** Mocked course service for course data operations. */
     private CourseService courseService;
+    /** Mocked deadline service for deadline-related queries. */
     private DeadlineService deadlineService;
+    /** The controller under test. */
     private EntryController controller;
 
+    /** Mocked HTTP servlet request. */
     private HttpServletRequest request;
+    /** Mocked HTTP servlet response. */
     private HttpServletResponse response;
+    /** Mocked HTTP session. */
     private HttpSession session;
+    /** Mocked servlet context. */
     private ServletContext servletContext;
+    /** Mocked request dispatcher for forward verification. */
     private RequestDispatcher dispatcher;
 
     /**

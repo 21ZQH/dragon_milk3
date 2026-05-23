@@ -46,6 +46,7 @@ import testsupport.StoreTestSupport;
  * @author BUPT-TA-Recruitment-Group33
  */
 class TAClassControllerTest {
+    /** Temporary directory for isolated test file storage. */
     @TempDir
     Path tempDir;
 

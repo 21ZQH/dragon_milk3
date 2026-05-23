@@ -23,6 +23,7 @@ import testsupport.StoreTestSupport;
  */
 class AppContextListenerTest {
 
+    /** Temporary directory for isolated test file storage. */
     @TempDir
     java.nio.file.Path tempDir;
 
