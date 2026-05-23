@@ -1,4 +1,4 @@
-# Software Submission Notes
+﻿# Software Submission Notes
 
 This file maps the required `Software_groupXXX.zip` contents to the current project files.
 
@@ -10,7 +10,7 @@ This file maps the required `Software_groupXXX.zip` contents to the current proj
 | Test programs | Ready as JUnit tests, with a submission copy and standalone Maven runner for easy inspection | `src/test/java/`, `test_programs/pom.xml`, `test_programs/java/`, `test_programs/README.txt` |
 | Code documentation, such as JavaDocs | Initial JavaDoc generated successfully | `target/reports/apidocs/`, `docs/controller-service-outline.md` |
 | User manual with key screenshots | English Word user manual is ready; screenshots should be checked against the final running app | `user manual.docx`, `docs/images/` |
-| README setup/config/run instructions | Ready as text README | `readme.txt` |
+| README setup/config/run instructions | Ready as text README | `README.md` |
 
 ## Current Feature Notes
 
@@ -67,4 +67,5 @@ The user manual asks for key screenshots. At least one screenshot should be capt
 - Do not include real API keys.
 - AI keys should be configured through `GROQ_API_KEY`; do not store them in source files or data files.
 - Runtime test data can be cleared before packaging if a clean demonstration state is preferred.
-- Keep `readme.txt` and `user manual.docx` at the project root so they are easy to find after unzip.
+- Keep `README.md` and `user manual.docx` at the project root so they are easy to find after unzip.
+

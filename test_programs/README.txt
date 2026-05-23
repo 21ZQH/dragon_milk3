@@ -1,5 +1,4 @@
-Test Programs
-=============
+﻿Test Programs
 
 This folder is provided as a clear submission entry point for the coursework
 requirement "Test programs".
