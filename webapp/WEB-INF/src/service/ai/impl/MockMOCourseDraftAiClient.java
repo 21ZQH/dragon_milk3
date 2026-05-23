@@ -12,7 +12,7 @@ import service.ai.MOCourseDraftAiClient;
  * provider is explicitly set to a non-Groq value. It produces a simple
  * template-like draft with the course name interpolated into the description
  * and requirement fields, suitable for local development and testing.
- * </p>
+ *
  *
  * @author TA Recruitment Team
  * @version 1.0
@@ -26,7 +26,7 @@ public class MockMOCourseDraftAiClient implements MOCourseDraftAiClient {
      * <p>
      * The draft contains placeholder text that includes the course name in
      * the job description and requirements fields.
-     * </p>
+ *
      *
      * @param courseName the name of the course
      * @return a mock {@link MOCourseDraft} with a standard title and

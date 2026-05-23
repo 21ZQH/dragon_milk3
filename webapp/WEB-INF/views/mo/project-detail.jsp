@@ -6,6 +6,12 @@
     String success = request.getParameter("success");
     String draftSaved = request.getParameter("draftSaved");
     String error = (String) request.getAttribute("error");
+    if (error == null && "published".equals(request.getParameter("error"))) {
+        error = "Published courses can only be updated with Save Changes.";
+    }
+    if (error == null && "positions".equals(request.getParameter("error"))) {
+        error = "Please enter a positive number of TA positions before publishing recruitment.";
+    }
     Object moModifyDeadline = request.getAttribute("moModifyDeadline");
     Boolean moModifyOpenAttr = (Boolean) request.getAttribute("moModifyOpen");
     boolean moModifyOpen = moModifyOpenAttr == null ? true : moModifyOpenAttr.booleanValue();
@@ -444,6 +450,27 @@
 
         <div class="section">
             <div class="section-header">
+                <h2 class="section-title">TA Positions</h2>
+                <button type="button"
+                        class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
+                        data-target="taPositions"
+                        data-locked="<%= !canModifyProject %>"
+                        data-lock-reason="<%= !moModifyOpen ? "deadline" : "" %>">Edit</button>
+            </div>
+            <input
+                id="taPositions"
+                class="input-box"
+                type="number"
+                name="taPositions"
+                min="1"
+                step="1"
+                value="<%= course.getTaPositions() > 0 ? course.getTaPositions() : "" %>"
+                placeholder="Enter the maximum number of TAs to approve"
+                readonly>
+        </div>
+
+        <div class="section">
+            <div class="section-header">
                 <h2 class="section-title">Job Description</h2>
                 <button type="button"
                         class="edit-btn <%= canModifyProject ? "" : "disabled" %>"
@@ -475,12 +502,16 @@
         </div>
 
         <div class="save-section">
-            <% if (canModifyProject) { %>
-                <button type="submit" name="action" value="save_course_draft" class="save-btn secondary">Save draft</button>
-                <button type="submit" name="action" value="save_course_changes" class="save-btn">Publish recruitment</button>
+            <% if (canModifyProject && course.isRecruitmentPublished()) { %>
+                <button type="submit" name="action" value="update_published" class="save-btn">Save Changes</button>
+            <% } else if (canModifyProject) { %>
+                <button type="submit" name="action" value="save_course_draft" class="save-btn secondary">Save Draft</button>
+                <button type="submit" name="action" value="publish_course" class="save-btn">Publish Recruitment</button>
+            <% } else if (!moModifyOpen && course.isRecruitmentPublished()) { %>
+                <button type="button" class="save-btn disabled" onclick="openMoModifyLockedModal()">Save Changes</button>
             <% } else if (!moModifyOpen) { %>
-                <button type="button" class="save-btn disabled" onclick="openMoModifyLockedModal()">Save draft</button>
-                <button type="button" class="save-btn disabled" onclick="openMoModifyLockedModal()">Publish recruitment</button>
+                <button type="button" class="save-btn disabled" onclick="openMoModifyLockedModal()">Save Draft</button>
+                <button type="button" class="save-btn disabled" onclick="openMoModifyLockedModal()">Publish Recruitment</button>
             <% } %>
         </div>
     </form>

@@ -25,10 +25,11 @@ public interface MOProjectService {
      * @param workingHours    the expected weekly working hours
      * @param jobDescription  a description of the job responsibilities
      * @param jobRequirement  the qualifications and requirements for the position
+     * @param taPositions     the maximum number of TA applicants that can be approved
      * @return the published {@link Course} object
      */
     Course publishCourse(Mo mo, String courseName, String jobTitle, String workingHours,
-            String jobDescription, String jobRequirement);
+            String jobDescription, String jobRequirement, int taPositions);
 
     /**
      * Saves a course as a draft without publishing it. Used for creating
@@ -40,10 +41,11 @@ public interface MOProjectService {
      * @param jobTitle        the job title for the TA position
      * @param jobDescription  a description of the job responsibilities
      * @param jobRequirement  the qualifications and requirements for the position
+     * @param taPositions     the maximum number of TA applicants that can be approved
      * @return the saved draft {@link Course} object
      */
     Course saveCourseDraft(Mo mo, Course oldCourse, String courseName, String jobTitle,
-            String jobDescription, String jobRequirement);
+            String jobDescription, String jobRequirement, int taPositions);
 
     /**
      * Updates an existing published course with new details.
@@ -55,10 +57,11 @@ public interface MOProjectService {
      * @param workingHours    the updated weekly working hours
      * @param jobDescription  the updated job description
      * @param jobRequirement  the updated job requirements
+     * @param taPositions     the maximum number of TA applicants that can be approved
      * @return the updated {@link Course} object
      */
     Course updateCourse(Mo mo, Course oldCourse, String courseName, String jobTitle, String workingHours,
-            String jobDescription, String jobRequirement);
+            String jobDescription, String jobRequirement, int taPositions);
 
     /**
      * Updates the profile information for a Module Officer.
@@ -128,6 +131,7 @@ public interface MOProjectService {
      *
      * @param course        the course for which to publish results
      * @param pickedEmails  an array of email addresses of the selected applicants
+     * @return {@code true} if the review was published, {@code false} otherwise
      */
-    void publishReview(Course course, String[] pickedEmails);
+    boolean publishReview(Course course, String[] pickedEmails);
 }

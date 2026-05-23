@@ -9,13 +9,13 @@ import java.io.IOException;
  * Implementations support different document formats (e.g., PDF) and
  * extraction strategies, returning the content as a single string for
  * downstream processing by AI clients or other services.
- * </p>
+ *
  *
  * @author TA Recruitment Team
  * @version 1.0
  * @since 2025-03-01
- * @see PdfBoxResumeTextExtractor
- * @see SimplePdfResumeTextExtractor
+ * @see service.ai.impl.PdfBoxResumeTextExtractor
+ * @see service.ai.impl.SimplePdfResumeTextExtractor
  */
 public interface ResumeTextExtractor {
     /**

@@ -23,7 +23,7 @@ import store.UserStore;
  * <ul>
  *   <li>Configures runtime file store paths for persistent data (users, courses,
  *       deadlines, application forms) relative to the servlet context's real path</li>
- *   <li>Ensures built-in MO and Admin accounts exist in the system</li>
+ *   <li>Ensures built-in Admin accounts exist in the system</li>
  *   <li>Loads persisted deadlines (TA application deadline and MO modification
  *       deadline) into the servlet context attributes for runtime access</li>
  * </ul>

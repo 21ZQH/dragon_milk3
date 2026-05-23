@@ -20,18 +20,18 @@ import service.impl.AccountServiceImpl;
  * This controller processes POST requests with an {@code action} parameter to determine
  * the specific operation: TA registration via BUPT email, TA login via access key,
  * MO/Admin built-in account login, and general registration/login flows.
- * </p>
+ *
  *
  * <p>Supported actions:
  * <ul>
  *   <li>{@code RegisterTA} - register a TA using a @bupt.edu.cn email address</li>
  *   <li>{@code LoginTA} - authenticate a TA using their access key</li>
- *   <li>{@code LoginMo} - authenticate a built-in MO account</li>
+ *   <li>{@code LoginMo} - authenticate an Admin-created MO account</li>
  *   <li>{@code LoginAdmin} - authenticate a built-in Admin account</li>
  *   <li>{@code Register} - general registration (TA only)</li>
  *   <li>{@code Login} - general login with name, password, role, and email</li>
  * </ul>
- * </p>
+ *
  *
  * @author BUPT TA Recruitment Team
  * @version 1.0
@@ -213,7 +213,7 @@ public class AccountController extends HttpServlet {
     }
 
     /**
-     * Handles login for built-in MO and Admin accounts.
+     * Handles login for MO and built-in Admin accounts.
      *
      * @param request  the {@link HttpServletRequest}
      * @param response the {@link HttpServletResponse}

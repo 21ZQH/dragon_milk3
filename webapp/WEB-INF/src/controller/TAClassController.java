@@ -40,7 +40,7 @@ import service.impl.UserProfileServiceImpl;
  * and editing applications, uploading resumes, managing personal centres, and
  * generating application forms. It is configured with {@link MultipartConfig} to
  * support file upload functionality for resume submission.
- * </p>
+ *
  *
  * <p>Supported actions in GET requests:
  * <ul>
@@ -55,7 +55,7 @@ import service.impl.UserProfileServiceImpl;
  *   <li>{@code view_master_resume} - view or download the master resume PDF</li>
  *   <li>{@code personal_centre} - display the TA personal centre</li>
  * </ul>
- * </p>
+ *
  *
  * <p>Supported actions in POST requests:
  * <ul>
@@ -65,7 +65,7 @@ import service.impl.UserProfileServiceImpl;
  *   <li>{@code save_application_form} - save an application form as draft</li>
  *   <li>{@code submit_application_form} - submit an application form</li>
  * </ul>
- * </p>
+ *
  *
  * @author BUPT TA Recruitment Team
  * @version 1.0

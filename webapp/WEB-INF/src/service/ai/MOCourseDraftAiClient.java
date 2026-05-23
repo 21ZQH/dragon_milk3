@@ -8,13 +8,13 @@ import java.io.IOException;
  * <p>
  * Implementations use AI services to produce an initial draft containing a
  * job title, job description, and job requirement for a given course.
- * </p>
+ *
  *
  * @author TA Recruitment Team
  * @version 1.0
  * @since 2025-03-01
- * @see GroqMOCourseDraftAiClient
- * @see MockMOCourseDraftAiClient
+ * @see service.ai.impl.GroqMOCourseDraftAiClient
+ * @see service.ai.impl.MockMOCourseDraftAiClient
  */
 public interface MOCourseDraftAiClient {
     /**
@@ -34,7 +34,7 @@ public interface MOCourseDraftAiClient {
      * <p>
      * Holds the three core fields that course owners typically edit before
      * publishing: job title, job description, and job requirement.
-     * </p>
+ *
      *
      * @author TA Recruitment Team
      * @version 1.0
