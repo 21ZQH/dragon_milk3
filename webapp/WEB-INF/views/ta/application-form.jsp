@@ -167,6 +167,7 @@
             <div class="course-box">
                 <div class="course-row"><strong>Course:</strong> <%= course.getCourseName() %></div>
                 <div class="course-row"><strong>Job Title:</strong> <%= course.getJobTitle() %></div>
+                <div class="course-row"><strong>TA Positions:</strong> <%= course.getTaPositions() > 0 ? course.getTaPositions() : "Not set" %></div>
                 <div class="course-row"><strong>Requirement:</strong> <%= course.getJobRequirement() %></div>
             </div>
 

@@ -58,9 +58,10 @@ public class MOProjectServiceImpl implements MOProjectService {
      */
     @Override
     public Course publishCourse(Mo mo, String courseName, String jobTitle, String workingHours,
-            String jobDescription, String jobRequirement) {
+            String jobDescription, String jobRequirement, int taPositions) {
         Course newCourse = new Course(UUID.randomUUID().toString(), courseName, jobTitle, workingHours,
                 "TBD", jobDescription, jobRequirement);
+        newCourse.setTaPositions(taPositions);
         newCourse.setRecruitmentPublished(true);
         courseService.saveCourse(newCourse);
         if (mo != null) {
@@ -83,8 +84,8 @@ public class MOProjectServiceImpl implements MOProjectService {
      */
     @Override
     public Course saveCourseDraft(Mo mo, Course oldCourse, String courseName, String jobTitle,
-            String jobDescription, String jobRequirement) {
-        return applyCourseUpdate(mo, oldCourse, courseName, jobTitle, "", jobDescription, jobRequirement, false);
+            String jobDescription, String jobRequirement, int taPositions) {
+        return applyCourseUpdate(mo, oldCourse, courseName, jobTitle, "", jobDescription, jobRequirement, taPositions, false);
     }
 
     /**
@@ -101,8 +102,8 @@ public class MOProjectServiceImpl implements MOProjectService {
      */
     @Override
     public Course updateCourse(Mo mo, Course oldCourse, String courseName, String jobTitle, String workingHours,
-            String jobDescription, String jobRequirement) {
-        return applyCourseUpdate(mo, oldCourse, courseName, jobTitle, workingHours, jobDescription, jobRequirement, true);
+            String jobDescription, String jobRequirement, int taPositions) {
+        return applyCourseUpdate(mo, oldCourse, courseName, jobTitle, workingHours, jobDescription, jobRequirement, taPositions, true);
     }
 
     /**
@@ -120,11 +121,12 @@ public class MOProjectServiceImpl implements MOProjectService {
      * @return the updated {@link Course}
      */
     private Course applyCourseUpdate(Mo mo, Course oldCourse, String courseName, String jobTitle, String workingHours,
-            String jobDescription, String jobRequirement, boolean recruitmentPublished) {
+            String jobDescription, String jobRequirement, int taPositions, boolean recruitmentPublished) {
         String salary = oldCourse.getSalary() == null ? "TBD" : oldCourse.getSalary();
         String resolvedCourseName = courseName == null || courseName.isBlank() ? oldCourse.getCourseName() : courseName;
         Course updatedCourse = new Course(oldCourse.getId(), resolvedCourseName, jobTitle, workingHours,
                 salary, jobDescription, jobRequirement);
+        updatedCourse.setTaPositions(taPositions);
         updatedCourse.setPickedApplicantEmails(oldCourse.getPickedApplicantEmails());
         updatedCourse.setReviewPublished(oldCourse.isReviewPublished());
         updatedCourse.setRecruitmentPublished(recruitmentPublished);
@@ -290,7 +292,8 @@ public class MOProjectServiceImpl implements MOProjectService {
         if (course == null || course.isReviewPublished()) {
             return false;
         }
-        course.setPickedApplicantEmails(resolvePickedApplicantEmails(course, pickedEmails));
+        List<String> resolvedPickedEmails = resolvePickedApplicantEmails(course, pickedEmails);
+        course.setPickedApplicantEmails(resolvedPickedEmails);
         courseService.updateCourse(course);
         return true;
     }
@@ -303,14 +306,19 @@ public class MOProjectServiceImpl implements MOProjectService {
      * @param pickedEmails  an array of applicant email addresses that were picked
      */
     @Override
-    public void publishReview(Course course, String[] pickedEmails) {
+    public boolean publishReview(Course course, String[] pickedEmails) {
         if (course == null || course.isReviewPublished()) {
-            return;
+            return false;
         }
-        course.setPickedApplicantEmails(resolvePickedApplicantEmails(course, pickedEmails));
+        List<String> resolvedPickedEmails = resolvePickedApplicantEmails(course, pickedEmails);
+        if (course.getTaPositions() > 0 && resolvedPickedEmails.size() > course.getTaPositions()) {
+            return false;
+        }
+        course.setPickedApplicantEmails(resolvedPickedEmails);
         applyPublishedStatuses(course);
         course.setReviewPublished(true);
         courseService.updateCourse(course);
+        return true;
     }
 
     /**

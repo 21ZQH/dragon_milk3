@@ -24,7 +24,7 @@ import service.ai.ApplicationFormAiClient;
  * information, and resume text, sends it to Groq's chat completions endpoint,
  * and parses the returned JSON into an {@link ApplicationForm}. The
  * transport layer uses PowerShell's {@code Invoke-RestMethod} on Windows.
- * </p>
+ *
  *
  * @author TA Recruitment Team
  * @version 1.0
@@ -35,6 +35,7 @@ import service.ai.ApplicationFormAiClient;
 public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
     /** The Groq API chat completions endpoint URL. */
     private static final String ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+    private static final String DEFAULT_MODEL = "llama-3.3-70b-versatile";
 
     /**
      * Constructs a new {@code GroqApplicationFormAiClient}.
@@ -61,7 +62,7 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
             throw new IOException("GROQ_API_KEY is not configured.");
         }
 
-        String model = readConfig("GROQ_MODEL", "llama-3.1-8b-instant");
+        String model = readConfig("GROQ_MODEL", DEFAULT_MODEL);
         String body = buildRequestBody(model, ta, course, resumeText);
         String responseBody = sendRequest(apiKey, body);
         String content = extractMessageContent(responseBody);
@@ -136,7 +137,7 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
     /**
      * Builds the JSON request body for the Groq chat completions API.
      *
-     * @param model      the model identifier (e.g., {@code llama-3.1-8b-instant})
+     * @param model      the model identifier (e.g., {@code llama-3.3-70b-versatile})
      * @param ta         the TA applicant
      * @param course     the target course
      * @param resumeText the applicant's resume text (truncated to 16,000 chars)
@@ -155,7 +156,10 @@ public class GroqApplicationFormAiClient implements ApplicationFormAiClient {
                 Tailor feedback to the target job.
                 The feedback field must be advice to the applicant, written in second person.
                 Do not write feedback as an applicant statement. Avoid "I", "my", "me", or "I believe".
-                Feedback should name specific missing evidence or improvements that would make the application stronger.
+                Feedback should briefly separate strengths supported by the resume from missing evidence.
+                Only mention a missing skill if it is required by the job but not clearly supported by the resume.
+                Do not simply repeat the job requirement.
+                Give two or three concrete suggestions that would make the application stronger.
                 """;
         String userPrompt = """
                 Resume text:

@@ -1,0 +1,574 @@
+package controller;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.io.ByteArrayOutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.WriteListener;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import model.Admin;
+import model.Course;
+import model.Mo;
+import model.TA;
+import store.CourseStore;
+import store.DeadlineStore;
+import store.UserStore;
+import testsupport.StoreTestSupport;
+
+/**
+ * Unit tests for {@link AdminController} in the TA Recruitment system.
+ * Tests cover admin authentication, dashboard, candidate management, MO creation,
+ * deadline management, recruitment cycle reset, resume viewing, and error handling.
+ *
+ * @author BUPT-TA-Recruitment-Group33
+ */
+class AdminControllerTest {
+
+    @TempDir
+    Path tempDir;
+
+    /**
+     * Clears store overrides and system properties after each test to ensure test isolation.
+     */
+    @AfterEach
+    void tearDown() {
+        StoreTestSupport.clearStoreOverrides();
+        System.clearProperty("MO_COURSE_DRAFT_AI_PROVIDER");
+    }
+
+    /**
+     * Tests that an unauthenticated user (no session) accessing the admin controller
+     * is redirected to the admin entry page.
+     */
+    @Test
+    void unauthenticatedUserRedirectsToAdminEntry() throws Exception {
+        AdminController controller = new AdminController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        when(request.getSession(false)).thenReturn(null);
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doGet(request, response);
+
+        verify(response).sendRedirect("/SE/admin");
+    }
+
+    /**
+     * Tests that a non-admin user (e.g., a TA) accessing the admin controller
+     * receives an HTTP 403 Forbidden error with an appropriate message.
+     */
+    @Test
+    void nonAdminUserGetsForbiddenError() throws Exception {
+        AdminController controller = new AdminController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        TA taUser = new TA("secret", "ta@example.com");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(taUser);
+
+        controller.doGet(request, response);
+
+        verify(response).sendError(HttpServletResponse.SC_FORBIDDEN, "Access Denied: Admin role required");
+    }
+
+    /**
+     * Tests that the "dashboard" action forwards the request to the admin dashboard JSP view.
+     */
+    @Test
+    void dashboardActionForwardsToAdminDashboard() throws Exception {
+        AdminController controller = new AdminController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("dashboard");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(dispatcher).forward(request, response);
+    }
+
+    /**
+     * Tests that the "candidate_management" action fetches the list of TA users
+     * and forwards to the candidate management JSP view with the TA list as a request attribute.
+     */
+    @Test
+    void candidateManagementActionFetchesTAsAndForwards() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,");
+
+        AdminController controller = new AdminController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("candidate_management");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/candidate-management.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute(eq("taList"), argThat(list -> {
+            if (!(list instanceof List<?> taList) || taList.size() != 1) {
+                return false;
+            }
+            TA ta = (TA) taList.get(0);
+            return "Alice".equals(ta.getName()) && "alice@example.com".equals(ta.getEmail());
+        }));
+        verify(dispatcher).forward(request, response);
+    }
+
+    /**
+     * Tests that creating an MO account via the "create_mo" action persists the MO user,
+     * creates assigned courses with auto-generated job descriptions, and forwards
+     * to the MO management page with a success message and generated course drafts.
+     */
+    @Test
+    void createMoCreatesAccountAndAssignedCourses() throws Exception {
+        System.setProperty("MO_COURSE_DRAFT_AI_PROVIDER", "mock");
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+
+        AdminController controller = new AdminController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("create_mo");
+        when(request.getParameter("account")).thenReturn("mo-one");
+        when(request.getParameter("password")).thenReturn("secret");
+        when(request.getParameter("courseNames")).thenReturn("Software Engineering\nDatabase Systems");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/mo-management.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        List<Course> courses = CourseStore.getCourseList();
+        assertEquals(2, courses.size());
+        assertTrue(courses.stream().noneMatch(Course::isRecruitmentPublished));
+        assertTrue(courses.stream().allMatch(course -> course.getJobDescription().contains(course.getCourseName())));
+
+        Mo mo = (Mo) UserStore.validateUser("secret", "Mo", "mo-one");
+        Assertions.assertNotNull(mo);
+        assertEquals("mo-one", mo.getName());
+        assertEquals(2, mo.getOwnedCourses().size());
+        assertTrue(Files.readString(usersFile).contains("mo-one,secret,Mo,mo-one,"));
+        assertTrue(Files.exists(courseFile));
+        verify(request).setAttribute("success", "MO account created successfully.");
+        verify(request).setAttribute(eq("generatedCourseDrafts"), argThat(value ->
+                value instanceof List<?> drafts && drafts.size() == 2));
+        verify(dispatcher).forward(request, response);
+    }
+
+    /**
+     * Tests that the "set_deadline" action retrieves any previously saved application deadline
+     * from the servlet context and forwards to the set-deadline JSP page with the saved deadline.
+     */
+    @Test
+    void setDeadlinePageForwardsWithSavedDeadline() throws Exception {
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        LocalDateTime deadline = LocalDateTime.of(2026, 4, 20, 18, 0);
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("set_deadline");
+        when(servletContext.getAttribute("applicationDeadline")).thenReturn(deadline);
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/set-deadline.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("savedDeadline", deadline);
+        verify(dispatcher).forward(request, response);
+    }
+
+    /**
+     * Tests that the "save_deadline" action stores the submitted deadline in the servlet context,
+     * persists it to the deadline store, and forwards with a success message.
+     */
+    @Test
+    void saveDeadlineStoresValueInServletContextAndForwardsSuccess() throws Exception {
+        Path deadlineFile = StoreTestSupport.useApplicationDeadlineStore(tempDir);
+
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        LocalDateTime expectedDeadline = LocalDateTime.of(2026, 4, 18, 23, 45);
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("save_deadline");
+        when(request.getParameter("deadlineDate")).thenReturn("2026-04-18");
+        when(request.getParameter("deadlineTime")).thenReturn("23:45");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/set-deadline.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(servletContext).setAttribute("applicationDeadline", expectedDeadline);
+        verify(request).setAttribute("success", "TA resume submission deadline has been saved successfully.");
+        verify(request).setAttribute("savedDeadline", expectedDeadline);
+        verify(dispatcher).forward(request, response);
+        assertEquals(expectedDeadline, DeadlineStore.getDeadline());
+        assertTrue(Files.exists(deadlineFile));
+    }
+
+    /**
+     * Tests that saving a deadline with blank date and time inputs rejects the submission
+     * and forwards with an error message instead of saving.
+     */
+    @Test
+    void saveDeadlineRejectsBlankInput() throws Exception {
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("save_deadline");
+        when(request.getParameter("deadlineDate")).thenReturn("");
+        when(request.getParameter("deadlineTime")).thenReturn("");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/set-deadline.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(request).setAttribute("error", "Please complete both deadline date and deadline time.");
+        verify(dispatcher).forward(request, response);
+    }
+
+    /**
+     * Tests that the "set_mo_deadline" action retrieves any previously saved MO course modification
+     * deadline from the servlet context and forwards to the set-MO-deadline JSP page.
+     */
+    @Test
+    void setMoDeadlinePageForwardsWithSavedDeadline() throws Exception {
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        LocalDateTime deadline = LocalDateTime.of(2026, 4, 30, 12, 30);
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("set_mo_deadline");
+        when(servletContext.getAttribute("moCourseModifyDeadline")).thenReturn(deadline);
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/set-mo-deadline.jsp")).thenReturn(dispatcher);
+
+        controller.doGet(request, response);
+
+        verify(request).setAttribute("savedMoDeadline", deadline);
+        verify(dispatcher).forward(request, response);
+    }
+
+    /**
+     * Tests that the "save_mo_deadline" action stores the MO modification deadline
+     * in the servlet context, persists it to the deadline store, and forwards with a success message.
+     */
+    @Test
+    void saveMoDeadlineStoresValueInServletContextAndForwardsSuccess() throws Exception {
+        Path deadlineFile = StoreTestSupport.useMoDeadlineStore(tempDir);
+
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        LocalDateTime expectedDeadline = LocalDateTime.of(2026, 5, 1, 9, 15);
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("save_mo_deadline");
+        when(request.getParameter("deadlineDate")).thenReturn("2026-05-01");
+        when(request.getParameter("deadlineTime")).thenReturn("09:15");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/set-mo-deadline.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(servletContext).setAttribute("moCourseModifyDeadline", expectedDeadline);
+        verify(request).setAttribute("success", "MO course modification deadline has been saved successfully.");
+        verify(request).setAttribute("savedMoDeadline", expectedDeadline);
+        verify(dispatcher).forward(request, response);
+        assertEquals(expectedDeadline, DeadlineStore.getMoModifyDeadline());
+        assertTrue(Files.exists(deadlineFile));
+    }
+
+    /**
+     * Tests that resetting the recruitment cycle clears all applications, returns courses to draft state,
+     * clears picked applicants and TA submissions, removes deadlines from the servlet context,
+     * and forwards the admin to the dashboard with a confirmation notice.
+     */
+    @Test
+    void resetRecruitmentCycleClearsApplicationsAndReturnsCoursesToDraft() throws Exception {
+        Path courseFile = StoreTestSupport.useCourseStore(tempDir);
+        Path usersFile = StoreTestSupport.useUserStore(tempDir);
+        Path formsFile = StoreTestSupport.useApplicationFormStore(tempDir);
+        Path applicationDeadlineFile = StoreTestSupport.useApplicationDeadlineStore(tempDir);
+        Path moDeadlineFile = StoreTestSupport.useMoDeadlineStore(tempDir);
+        StoreTestSupport.writeLines(
+                courseFile,
+                "course-1,Software Engineering,TA,10 hours/week,TBD,Support labs,Communication skills,alice@example.com,true,true");
+        StoreTestSupport.writeLines(
+                usersFile,
+                "Alice,pass123,TA,alice@example.com,School of Software,Java,course-1,course-1@1@true",
+                "Molly,secret123,Mo,mo@example.com,course-1");
+        StoreTestSupport.writeLines(formsFile, "form-data");
+        Files.writeString(applicationDeadlineFile, "2026-04-18 23:45");
+        Files.writeString(moDeadlineFile, "2026-05-01 09:15");
+
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("reset_cycle_confirm");
+        when(request.getParameter("confirmation")).thenReturn("RESET");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/dashboard.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        List<Course> courses = CourseStore.getCourseList();
+        assertEquals(1, courses.size());
+        Course course = courses.get(0);
+        assertEquals("Support labs", course.getJobDescription());
+        assertFalse(course.isRecruitmentPublished());
+        assertFalse(course.isReviewPublished());
+        assertTrue(course.getPickedApplicantEmails().isEmpty());
+        assertTrue(course.getTaApplicants().isEmpty());
+
+        TA ta = (TA) UserStore.validateUser("pass123", "TA", "alice@example.com");
+        assertTrue(ta.getAppliedClasses().isEmpty());
+        assertTrue(ta.getResumeSubmissions().isEmpty());
+        Mo mo = (Mo) UserStore.validateUser("secret123", "Mo", "mo@example.com");
+        assertEquals(1, mo.getOwnedCourses().size());
+        assertEquals("course-1", mo.getOwnedCourses().get(0).getId());
+        assertTrue(Files.readAllLines(formsFile).isEmpty());
+        assertEquals("", Files.readString(applicationDeadlineFile));
+        assertEquals("", Files.readString(moDeadlineFile));
+
+        verify(servletContext).removeAttribute("applicationDeadline");
+        verify(servletContext).removeAttribute("moCourseModifyDeadline");
+        verify(request).setAttribute(eq("notice"), argThat(value ->
+                value instanceof String message && message.contains("Recruitment cycle has been reset")));
+        verify(dispatcher).forward(request, response);
+    }
+
+    /**
+     * Tests that the reset recruitment cycle action requires the user to type the exact
+     * confirmation text "RESET". If the confirmation text does not match, an error is shown.
+     */
+    @Test
+    void resetRecruitmentCycleRequiresConfirmationText() throws Exception {
+        AdminController controller = new AdminController();
+        ServletContext servletContext = mock(ServletContext.class);
+        initController(controller, servletContext);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        RequestDispatcher dispatcher = mock(RequestDispatcher.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("reset_cycle_confirm");
+        when(request.getParameter("confirmation")).thenReturn("reset");
+        when(request.getRequestDispatcher("/WEB-INF/views/admin/reset-cycle.jsp")).thenReturn(dispatcher);
+
+        controller.doPost(request, response);
+
+        verify(request).setAttribute("error", "Please type RESET to confirm the recruitment cycle reset.");
+        verify(dispatcher).forward(request, response);
+    }
+
+    /**
+     * Tests that the admin logout action invalidates the current session
+     * and redirects the admin to the admin entry page.
+     */
+    @Test
+    void adminLogoutInvalidatesSessionAndRedirectsToAdminEntry() throws Exception {
+        AdminController controller = new AdminController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("logout");
+        when(request.getContextPath()).thenReturn("/SE");
+
+        controller.doGet(request, response);
+
+        verify(session).invalidate();
+        verify(response).sendRedirect("/SE/admin");
+    }
+
+    /**
+     * Tests that the "view_resume" action streams a PDF resume file inline to the response
+     * for an authenticated admin user, setting the correct content type and disposition headers.
+     */
+    @Test
+    void viewResumeStreamsPdfForAdmin() throws Exception {
+        AdminController controller = new AdminController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        System.setProperty("catalina.base", tempDir.toString());
+        Path resumeFile = tempDir.resolve("webapps").resolve("SE").resolve("WEB-INF").resolve("file")
+                .resolve("resume").resolve("course-1").resolve("alice_example.com.pdf");
+        Files.createDirectories(resumeFile.getParent());
+        Files.write(resumeFile, "fake-pdf".getBytes(StandardCharsets.UTF_8));
+
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        ByteArrayServletOutputStream outputStream = new ByteArrayServletOutputStream();
+
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("view_resume");
+        when(request.getParameter("applicantEmail")).thenReturn("alice@example.com");
+        when(request.getParameter("courseId")).thenReturn("course-1");
+        when(response.getOutputStream()).thenReturn(outputStream);
+
+        controller.doGet(request, response);
+
+        verify(response).setContentType("application/pdf");
+        verify(response).setHeader("Content-Disposition", "inline; filename=\"alice_example.com.pdf\"");
+        verify(response).setContentLengthLong(resumeFile.toFile().length());
+        Assertions.assertArrayEquals(Files.readAllBytes(resumeFile), outputStream.toByteArray());
+    }
+
+    /**
+     * Tests that an unknown action parameter results in an HTTP 400 Bad Request error.
+     */
+    @Test
+    void unknownActionReturnsBadRequest() throws Exception {
+        AdminController controller = new AdminController();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        HttpSession session = mock(HttpSession.class);
+
+        Admin adminUser = new Admin("admin123", "admin@example.com");
+        when(request.getSession(false)).thenReturn(session);
+        when(session.getAttribute("user")).thenReturn(adminUser);
+        when(request.getParameter("action")).thenReturn("UnknownActionXYZ");
+
+        controller.doGet(request, response);
+
+        verify(response).sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
+    }
+
+    /**
+     * Initializes the controller with a mocked servlet config.
+     *
+     * @param controller     the AdminController instance to initialize
+     * @param servletContext the mocked ServletContext
+     * @throws ServletException if initialization fails
+     */
+    private void initController(AdminController controller, ServletContext servletContext) throws ServletException {
+        ServletConfig config = mock(ServletConfig.class);
+        when(config.getServletContext()).thenReturn(servletContext);
+        controller.init(config);
+    }
+
+    /**
+     * A helper servlet output stream that captures written bytes into a byte array for verification.
+     */
+    private static final class ByteArrayServletOutputStream extends ServletOutputStream {
+        private final ByteArrayOutputStream delegate = new ByteArrayOutputStream();
+
+        @Override
+        public void write(int b) {
+            delegate.write(b);
+        }
+
+        @Override
+        public boolean isReady() {
+            return true;
+        }
+
+        @Override
+        public void setWriteListener(WriteListener writeListener) {
+        }
+
+        byte[] toByteArray() {
+            return delegate.toByteArray();
+        }
+    }
+}

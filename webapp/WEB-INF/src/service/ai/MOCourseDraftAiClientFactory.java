@@ -9,13 +9,13 @@ import service.ai.impl.MockMOCourseDraftAiClient;
  * Reads the {@code MO_COURSE_DRAFT_AI_PROVIDER} configuration (from system
  * property, environment variable, or fallback) to decide whether to return a
  * real Groq-backed client or a mock client for local development / testing.
- * </p>
+ *
  *
  * @author TA Recruitment Team
  * @version 1.0
  * @since 2025-03-01
- * @see GroqMOCourseDraftAiClient
- * @see MockMOCourseDraftAiClient
+ * @see service.ai.impl.GroqMOCourseDraftAiClient
+ * @see service.ai.impl.MockMOCourseDraftAiClient
  */
 public class MOCourseDraftAiClientFactory {
     /**

@@ -4,7 +4,7 @@ import model.User;
 
 /**
  * Service interface for managing user accounts including registration,
- * login, authentication, and built-in account initialization.
+ * login, authentication, and built-in admin account initialization.
  * Provides methods for validating user credentials and handling
  * registration with various role types.
  *
@@ -89,7 +89,8 @@ public interface AccountService {
     User loginTaByAccessKey(String accessKey);
 
     /**
-     * Authenticates a built-in MO (Module Officer) account using email and password.
+     * Authenticates an MO (Module Organiser) account using email and password.
+     * The historical method name is retained for controller compatibility.
      *
      * @param email    the MO account email
      * @param password the MO account password
@@ -107,7 +108,7 @@ public interface AccountService {
     User loginBuiltInAdmin(String email, String password);
 
     /**
-     * Ensures that all built-in system accounts (admin, MO defaults, etc.)
+     * Ensures that all built-in admin accounts
      * exist in the data store, creating them if necessary.
      */
     void ensureBuiltInAccounts();

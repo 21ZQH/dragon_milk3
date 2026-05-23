@@ -62,6 +62,9 @@ public class CourseStore {
                     course.setPickedApplicantEmails(parsePickedApplicantEmails(parts[7]));
                     course.setReviewPublished(Boolean.parseBoolean(parts[8]));
                     course.setRecruitmentPublished(Boolean.parseBoolean(parts[9]));
+                    if (parts.length >= 11) {
+                        course.setTaPositions(parseTaPositions(parts[10]));
+                    }
                     courseList.add(course);
                 } else if (parts.length >= 9) {
                     String courseId = parts[0];
@@ -232,7 +235,8 @@ public class CourseStore {
                 safe(course.getJobRequirement()),
                 safe(serializePickedApplicantEmails(course)),
                 String.valueOf(course.isReviewPublished()),
-                String.valueOf(course.isRecruitmentPublished()));
+                String.valueOf(course.isRecruitmentPublished()),
+                String.valueOf(course.getTaPositions()));
     }
 
     /**
@@ -319,6 +323,23 @@ public class CourseStore {
             }
         }
         return pickedApplicantEmails;
+    }
+
+    /**
+     * Parses the configured number of TA positions.
+     *
+     * @param value the raw stored value
+     * @return a positive number of TA positions, or {@code 0} if missing/invalid
+     */
+    private static int parseTaPositions(String value) {
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(value.trim()));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     /**

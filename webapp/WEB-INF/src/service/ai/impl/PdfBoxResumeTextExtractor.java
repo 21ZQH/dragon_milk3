@@ -17,7 +17,7 @@ import service.ai.ResumeTextExtractor;
  * employs {@link PDFTextStripper} with position-based sorting, and normalises
  * the resulting text (removing excessive whitespace and normalising line
  * endings).
- * </p>
+ *
  *
  * @author TA Recruitment Team
  * @version 1.0

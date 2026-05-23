@@ -29,8 +29,9 @@ public interface ApplicationReviewService {
      *
      * @param course        the course being reviewed
      * @param pickedEmails  an array of email addresses of the picked applicants
+     * @return {@code true} if the picks were saved, {@code false} otherwise
      */
-    void saveReviewPicks(Course course, String[] pickedEmails);
+    boolean saveReviewPicks(Course course, String[] pickedEmails);
 
     /**
      * Publishes the review results for a course, making the selected
@@ -38,6 +39,7 @@ public interface ApplicationReviewService {
      *
      * @param course        the course for which to publish results
      * @param pickedEmails  an array of email addresses of the selected applicants
+     * @return {@code true} if the review was published, {@code false} otherwise
      */
-    void publishReview(Course course, String[] pickedEmails);
+    boolean publishReview(Course course, String[] pickedEmails);
 }

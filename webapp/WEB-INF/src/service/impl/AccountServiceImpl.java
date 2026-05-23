@@ -1,11 +1,9 @@
 package service.impl;
 
 import java.security.SecureRandom;
-import java.util.ArrayList;
 import java.util.List;
 
 import model.Admin;
-import model.Course;
 import model.Mo;
 import model.TA;
 import model.User;
@@ -17,8 +15,8 @@ import service.AccountService;
 
 /**
  * Implementation of the {@link AccountService} interface.
- * Provides concrete logic for user registration, login, built-in account
- * seeding, and access key generation for Teaching Assistant (TA) users.
+ * Provides concrete logic for user registration, role-based login, built-in
+ * admin seeding, and access key generation for Teaching Assistant (TA) users.
  * Delegates persistence operations to {@link UserRepository} and
  * {@link CourseRepository}.
  *
@@ -29,15 +27,6 @@ import service.AccountService;
 public class AccountServiceImpl implements AccountService {
     /** The email suffix required for TA registration with a BUPT email address. */
     private static final String BUPT_EMAIL_SUFFIX = "@bupt.edu.cn";
-
-    /** Pre-configured built-in MO (Module Organiser) accounts with seed courses. */
-    private static final String[][] BUILT_IN_MO_ACCOUNTS = {
-            {"Built-in MO 1", "mo1@bupt.edu.cn", "mo123456", "seed-course-se", "Software Engineering", "seed-course-db", "Database Systems"},
-            {"Built-in MO 2", "mo2@bupt.edu.cn", "mo223456", "seed-course-cn", "Communication Networks", "seed-course-sp", "Signal Processing"},
-            {"Built-in MO 3", "mo3@bupt.edu.cn", "mo323456", "seed-course-ai", "Artificial Intelligence", "seed-course-ml", "Machine Learning"},
-            {"Built-in MO 4", "mo4@bupt.edu.cn", "mo423456", "seed-course-ca", "Computer Architecture", "seed-course-embedded", "Embedded Systems"},
-            {"Built-in MO 5", "mo5@bupt.edu.cn", "mo523456", "seed-course-de", "Data Engineering", "seed-course-iot", "Internet of Things"}
-    };
 
     /** Pre-configured built-in Admin accounts. */
     private static final String[][] BUILT_IN_ADMIN_ACCOUNTS = {
@@ -210,8 +199,8 @@ public class AccountServiceImpl implements AccountService {
     }
 
     /**
-     * Logs in a built-in MO account by email and password, ensuring built-in
-     * accounts have been seeded first.
+     * Logs in an MO account by email and password. MO accounts are created by
+     * an Admin, while the method name is retained for controller compatibility.
      *
      * @param email    the MO's email address
      * @param password the MO's password
@@ -219,7 +208,6 @@ public class AccountServiceImpl implements AccountService {
      */
     @Override
     public User loginBuiltInMo(String email, String password) {
-        ensureBuiltInAccounts();
         return validateUser(password, "Mo", email);
     }
 
@@ -238,28 +226,10 @@ public class AccountServiceImpl implements AccountService {
     }
 
     /**
-     * Ensures that all built-in MO and Admin accounts exist in the data store.
-     * Creates any missing accounts and assigns the predefined seed courses to MOs.
-     * Updates existing MOs if their assigned courses have changed.
+     * Ensures that all built-in Admin accounts exist in the data store.
      */
     @Override
     public void ensureBuiltInAccounts() {
-        List<Course> availableCourses = courseRepository.getCourseList();
-        for (String[] account : BUILT_IN_MO_ACCOUNTS) {
-            List<Course> assignedCourses = ensureBuiltInCourses(availableCourses, account);
-            if (!isEmailRegistered(account[1])) {
-                Mo mo = new Mo(account[2], account[1]);
-                mo.setName(account[0]);
-                mo.setOwnedCourses(assignedCourses);
-                saveUser(mo);
-            } else {
-                User existingUser = validateUser(account[2], "Mo", account[1]);
-                if (existingUser instanceof Mo mo && isMissingAssignedCourse(mo, assignedCourses)) {
-                    mo.setOwnedCourses(assignedCourses);
-                    userRepository.updateOwnedCourseIds(mo);
-                }
-            }
-        }
         for (String[] account : BUILT_IN_ADMIN_ACCOUNTS) {
             if (!isEmailRegistered(account[1])) {
                 Admin admin = new Admin(account[2], account[1]);
@@ -267,60 +237,6 @@ public class AccountServiceImpl implements AccountService {
                 saveUser(admin);
             }
         }
-    }
-
-    /**
-     * Ensures that the two seed courses for a MO account exist, creating them if
-     * necessary, and returns the list of resolved courses.
-     *
-     * @param availableCourses the list of courses already in the data store
-     * @param account          the MO account data containing course IDs and names
-     * @return a list of two {@link Course} objects assigned to the MO
-     */
-    private List<Course> ensureBuiltInCourses(List<Course> availableCourses, String[] account) {
-        List<Course> assignedCourses = new ArrayList<>();
-        assignedCourses.add(ensureBuiltInCourse(availableCourses, account[3], account[4]));
-        assignedCourses.add(ensureBuiltInCourse(availableCourses, account[5], account[6]));
-        return assignedCourses;
-    }
-
-    /**
-     * Ensures a single seed course exists, creating it if not found in the
-     * available courses list.
-     *
-     * @param availableCourses the list of courses already in the data store
-     * @param courseId         the unique identifier of the course
-     * @param courseName       the display name of the course
-     * @return the existing or newly created {@link Course}
-     */
-    private Course ensureBuiltInCourse(List<Course> availableCourses, String courseId, String courseName) {
-        for (Course course : availableCourses) {
-            if (courseId.equals(course.getId()) || courseName.equalsIgnoreCase(course.getCourseName())) {
-                return course;
-            }
-        }
-
-        Course course = new Course(courseId, courseName, "", "", "TBD", "", "");
-        course.setRecruitmentPublished(false);
-        courseRepository.saveCourse(course);
-        availableCourses.add(course);
-        return course;
-    }
-
-    /**
-     * Checks whether a MO is missing any of the required assigned courses.
-     *
-     * @param mo              the MO to check
-     * @param assignedCourses the list of courses that should be assigned
-     * @return {@code true} if the MO is missing at least one assigned course
-     */
-    private boolean isMissingAssignedCourse(Mo mo, List<Course> assignedCourses) {
-        for (Course assignedCourse : assignedCourses) {
-            if (assignedCourse != null && !mo.getOwnedCourses().contains(assignedCourse)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**

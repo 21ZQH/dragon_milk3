@@ -26,7 +26,7 @@ import service.impl.DeadlineServiceImpl;
  * This controller manages navigation to the three main role-specific login/entry pages:
  * TA (Teaching Assistant) public entry, MO (Module Organiser) login, and Admin login.
  * It resolves public course listings, deadline information, and authenticated TA session refreshing.
- * </p>
+ *
  *
  * <p>URL mappings are determined by the servlet path:
  * <ul>
@@ -34,7 +34,7 @@ import service.impl.DeadlineServiceImpl;
  *   <li>{@code /mo} - MO login page</li>
  *   <li>{@code /admin} - Admin login page</li>
  * </ul>
- * </p>
+ *
  *
  * @author BUPT TA Recruitment Team
  * @version 1.0
@@ -103,7 +103,7 @@ public class EntryController extends HttpServlet {
      *   <li>{@code detail} - forward to a specific course detail page</li>
      *   <li>default (no action) - forward to the public TA listing page</li>
      * </ul>
-     * </p>
+ *
      *
      * @param request  the {@link HttpServletRequest}
      * @param response the {@link HttpServletResponse}

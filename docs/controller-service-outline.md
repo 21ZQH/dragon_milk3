@@ -23,9 +23,10 @@ Current repository wrappers:
 - `DeadlineRepository` -> `TxtDeadlineRepositoryImpl` -> `DeadlineStore`
 - `ApplicationFormRepository` -> `TxtApplicationFormRepositoryImpl` -> `ApplicationFormStore`
 
-At the time of writing, the `service` package no longer imports or directly
-calls store classes. Some controller code still calls `CourseStore` and
-`DeadlineStore` directly; those are good candidates for the next cleanup pass.
+At the time of writing, the main workflows go through controller -> service ->
+repository -> store. Some legacy compatibility paths and startup/reset helpers
+still touch store classes directly; those are good candidates for a later
+cleanup pass.
 
 ## Controllers
 
@@ -57,6 +58,8 @@ Actions:
 - `LoginMo`
   - Reads MO account and password.
   - Calls `AccountService.loginBuiltInMo(email, password)`.
+  - The method name is retained for compatibility, but MO accounts are created
+    by Admin rather than seeded automatically.
   - On success, stores user in session and redirects to MO dashboard.
   - On failure, redirects to `/mo` with an error.
 
@@ -281,17 +284,24 @@ POST actions:
   - Checks MO modification deadline.
   - Checks profile completeness.
   - Resolves assigned course from MO owned courses.
-  - Builds an updated `Course` and marks recruitment as published.
+  - Requires a positive `TA Positions` value.
+  - Builds an updated `Course`, stores TA Positions, and marks recruitment as published.
+  - Updates current MO session course copy.
+  - Redirects to project detail.
+
+- `update_published`
+  - Checks MO modification deadline.
+  - Checks profile completeness.
+  - Resolves selected owned course.
+  - Builds updated `Course` with new job title, TA Positions, hours,
+    description, and requirement.
+  - If TA Positions is left blank, the existing value is preserved.
+  - Keeps recruitment marked as published.
   - Updates current MO session course copy.
   - Redirects to project detail.
 
 - `save_course_changes`
-  - Checks MO modification deadline.
-  - Checks profile completeness.
-  - Resolves selected owned course.
-  - Builds updated `Course` with new job title, hours, description, and requirement.
-  - Updates current MO session course copy.
-  - Redirects to project detail.
+  - Kept as a compatibility alias for `update_published`.
 
 - `save_personal_information`
   - Updates MO name, degree, and college.
@@ -303,6 +313,8 @@ POST actions:
   - Checks review stage deadline.
   - Resolves course for review.
   - Calls `ApplicationReviewService.saveReviewPicks(course, pickedEmails)`.
+  - Saves a shortlist only; this action can exceed TA Positions.
+  - Saved picks are rendered first on the review page for follow-up review.
   - Syncs current MO course copy.
   - Redirects back to review page.
 
@@ -310,12 +322,13 @@ POST actions:
   - Checks review stage deadline.
   - Resolves course for review.
   - Calls `ApplicationReviewService.publishReview(course, pickedEmails)`.
+  - Enforces TA Positions so final approved candidates cannot exceed the limit.
   - Syncs current MO course copy.
   - Redirects back to review page.
 
 Current direct store use:
 
-- Uses `CourseStore.updateCourse(...)` in `publish_course` and `save_course_changes`.
+- Course updates flow through `MOProjectService`, `CourseService`, `CourseRepository`, then `CourseStore`.
 - Uses `CourseStore.getCourseList()` when refreshing MO owned courses.
 - Uses `DeadlineStore.getMoModifyDeadline()` and `DeadlineStore.getDeadline()`.
 
@@ -413,8 +426,8 @@ Responsibilities:
 - Generate TA access keys.
 - Login TA by access key.
 - Login MO/Admin accounts.
-- Ensure built-in MO/Admin accounts exist.
-- Ensure built-in MO courses exist and are assigned to the built-in MO accounts.
+- Ensure built-in Admin accounts exist.
+- MO accounts and assigned courses are created by Admin.
 
 ### `CourseService` / `CourseServiceImpl`
 
@@ -484,7 +497,9 @@ Responsibilities:
 - Load submitted forms for a course.
 - Exclude draft forms from MO review.
 - Save MO picked applicant emails.
+- Allow saved review picks to act as a shortlist, even above the final approval quota.
 - Publish review results.
+- Reject review publication when the number of picked applicants exceeds TA Positions.
 - Mark picked applicants as approved.
 - Mark unpicked submitted applicants as rejected.
 - Mark review result as unread for TA.
@@ -568,7 +583,7 @@ Dependencies:
 
 Responsibilities:
 
-- Publish a new course recruitment.
+- Publish a new course recruitment with a manually configured TA Positions value.
 - Update course recruitment information.
 - Update MO profile.
 - Refresh MO owned courses from current course list.
@@ -577,7 +592,7 @@ Responsibilities:
 - Resolve review course index.
 - Resolve valid picked applicant emails.
 - Save review picks.
-- Publish review result.
+- Publish review result while enforcing the TA Positions approval limit.
 - Update applicant statuses during review publication.
 
 ## AI Services
@@ -595,7 +610,10 @@ Responsibilities:
 - Build prompt from TA, course, and resume text.
 - Call Groq chat completions API.
 - Parse the model output into `ApplicationForm`.
-- Uses the current PowerShell transport fallback strategy.
+- Uses the current PowerShell transport strategy.
+- On macOS/Linux, real Groq generation depends on PowerShell Core or a future
+  Java HTTP client implementation. If the transport is unavailable, the system
+  falls back locally.
 
 ### `MockApplicationFormAiClient`
 
@@ -621,19 +639,11 @@ Older/simple PDF text extraction implementation retained as an alternative.
 
 ## Main Remaining Coupling
 
-The service layer is now clean from direct store calls. The main remaining
-coupling is in controllers:
-
-- `MOClassController` still directly uses `CourseStore` and `DeadlineStore`.
-- `AdminController` still directly uses `CourseStore` and `DeadlineStore`.
-- `EntryController` still directly uses `DeadlineStore`.
+The service layer is mostly clean from direct store calls. Remaining coupling is
+mainly in legacy compatibility paths and application startup/reset helpers.
 
 Recommended next refactor:
 
-1. Inject `CourseService` and `DeadlineService` into `MOClassController`.
-2. Move MO publish/edit course logic into `MOProjectService`.
-3. Inject `CourseService` and `DeadlineService` into `AdminController`.
-4. Replace `EntryController` deadline lookup with `DeadlineService`.
-5. adjust the jsp style, especially the mo admin looks like the same as TA's 
-6. mo's account create, admin only need to set the account, password, name other information is not need, and can provide the each class a template using AI
-
+1. Replace the PowerShell Groq transport with Java `HttpClient` for full cross-platform AI support.
+2. Add consistent HTML escaping to JSP output.
+3. Replace text-file persistence with a database if the system is expanded beyond coursework/demo use.

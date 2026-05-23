@@ -1,31 +1,55 @@
-# Testing Setup
+# Testing Notes
 
-This project now includes a basic Maven + JUnit testing setup for the Java classes under `webapp/WEB-INF/src`.
+The project uses Maven, JUnit 5, and Mockito for automated tests. Tests live in
+the standard Maven test directory and are also copied into `test_programs/` for
+coursework submission inspection.
 
-## Added Test Coverage
+## Test Locations
 
-- `store.UserStoreTest`
-  Verifies saving users, validating login credentials, and duplicate email checks with isolated test files.
-- `store.CourseStoreTest`
-  Verifies saving courses, loading course lists, and ignoring malformed rows.
-- `controller.AccountControllerTest`
-  Covers register, login, duplicate registration, and invalid action flows.
-- `controller.MOClassControllerTest`
-  Covers create project navigation, personal centre navigation, and publishing a course.
-- `controller.TAClassControllerTest`
-  Covers loading the course list into session and forwarding to the TA job list page.
+- Primary test source: `src/test/java/`
+- Submission copy: `test_programs/java/`
+- Test-program instructions: `test_programs/README.txt`
+
+## Current Coverage
+
+- Controller tests for Account, Entry, Admin, MO, and TA workflows.
+- Service tests for account registration, deadlines, TA applications, review publication, resume storage, and AI fallback behavior.
+- Store tests for CSV-safe persistence, deadlines, users, courses, and application forms.
+- Repository tests for text-file-backed repository adapters.
+- Listener tests for ServletContext initialization.
+
+Recent regression coverage includes:
+
+- CSV fields containing commas and quotes are preserved.
+- Built-in MO seed accounts/courses are not recreated automatically.
+- Published MO courses show `Save Changes` instead of `Save Draft`.
+- MO review `Save Changes` can save a shortlist above the TA position limit.
+- MO review `Publish` cannot approve more applicants than the configured TA Positions.
+- TA review notification dots are shown only for logged-in TAs and are cleared when Personal Centre is opened.
 
 ## How To Run
 
-Run the Maven test phase from the repository root:
+Run from the repository root:
 
 ```bash
 mvn test
 ```
 
-If Maven is not installed globally on your machine, use any local Maven distribution and run its `mvn` or `mvn.cmd` executable against this project root.
+Expected latest result:
 
-## Notes
+```text
+Tests run: 138, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
 
-- `UserStore` and `CourseStore` now support test-only file overrides through system properties so tests do not touch Tomcat data.
-- This setup is a clean starting point for the unit-test part of the coursework. You can extend it later with manual system tests and acceptance-test tables in `docs/`.
+The web application compilation helper can also be checked on Windows:
+
+```bat
+cmd /c webapp\command2.bat
+```
+
+Expected output:
+
+```text
+Compilation completed.
+```

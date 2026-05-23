@@ -15,7 +15,7 @@ import service.ai.MOCourseDraftAiClient;
  * This client constructs a structured prompt from the course name, sends it
  * to Groq's chat completions endpoint via a PowerShell child process, and
  * parses the returned JSON into a {@link MOCourseDraft}.
- * </p>
+ *
  *
  * @author TA Recruitment Team
  * @version 1.0
@@ -26,6 +26,7 @@ import service.ai.MOCourseDraftAiClient;
 public class GroqMOCourseDraftAiClient implements MOCourseDraftAiClient {
     /** The Groq API chat completions endpoint URL. */
     private static final String ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
+    private static final String DEFAULT_MODEL = "llama-3.3-70b-versatile";
 
     /**
      * Generates a TA recruitment draft for the specified course by calling
@@ -45,7 +46,7 @@ public class GroqMOCourseDraftAiClient implements MOCourseDraftAiClient {
             throw new IOException("GROQ_API_KEY is not configured.");
         }
 
-        String model = readConfig("GROQ_MODEL", "llama-3.1-8b-instant");
+        String model = readConfig("GROQ_MODEL", DEFAULT_MODEL);
         String responseBody = sendWithPowerShell(apiKey, buildRequestBody(model, courseName));
         System.out.println("[Groq] mo-course-draft transport=powershell");
         String content = extractMessageContent(responseBody);
@@ -103,7 +104,7 @@ public class GroqMOCourseDraftAiClient implements MOCourseDraftAiClient {
     /**
      * Builds the JSON request body for the Groq chat completions API.
      *
-     * @param model      the model identifier (e.g., {@code llama-3.1-8b-instant})
+     * @param model      the model identifier (e.g., {@code llama-3.3-70b-versatile})
      * @param courseName the name of the course for the draft
      * @return a JSON string suitable for the Groq API
      */
