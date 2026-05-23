@@ -611,9 +611,8 @@ Responsibilities:
 - Call Groq chat completions API.
 - Parse the model output into `ApplicationForm`.
 - Uses the current PowerShell transport strategy.
-- On macOS/Linux, real Groq generation depends on PowerShell Core or a future
-  Java HTTP client implementation. If the transport is unavailable, the system
-  falls back locally.
+- On macOS/Linux, real Groq generation depends on PowerShell Core. If the
+  transport is unavailable, the system falls back locally.
 
 ### `MockApplicationFormAiClient`
 

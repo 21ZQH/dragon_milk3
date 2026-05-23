@@ -1,7 +1,17 @@
-﻿TA Recruitment System
+﻿# BUPT-TA-Recruitment-Group33
+
+![Java](https://img.shields.io/badge/Java-17%2B-orange)
+![Servlet](https://img.shields.io/badge/Jakarta%20Servlet-6.0-blue)
+![JSP](https://img.shields.io/badge/JSP-Views-green)
+![Tomcat](https://img.shields.io/badge/Tomcat-11-yellow)
+![Maven](https://img.shields.io/badge/Maven-Build%20%26%20Test-red)
+![JUnit](https://img.shields.io/badge/JUnit-138%20Tests-brightgreen)
+![Storage](https://img.shields.io/badge/Storage-Text%20Files-lightgrey)
+![AI](https://img.shields.io/badge/AI-Groq%20Optional-purple)
+
 BUPT Teaching Assistant Recruitment Platform
 
-1. Project Summary
+## 1. Project Summary
 
 This project is a role-based teaching assistant recruitment system for BUPT International School.
 It is built with Java Servlet, JSP, Maven, JUnit 5, Mockito, Apache PDFBox, and file-based persistence.
@@ -15,7 +25,7 @@ The system supports three independent entry pages and three roles:
 The project intentionally uses text files instead of a database so that it is easy to deploy, inspect, reset, and demonstrate for coursework.
 
 
-2. Software ZIP Contents
+## 2. Software ZIP Contents
 
 According to the coursework requirement, the software ZIP should include the following items:
 
@@ -28,18 +38,16 @@ According to the coursework requirement, the software ZIP should include the fol
   - src/test/java/ contains JUnit 5 and Mockito tests for controllers, services, repositories, stores, models, AI fallback behavior, and listener initialization.
   - test_programs/java/ is a submission copy of the same test source files, provided so the marker can find the test programs immediately after unzipping.
   - test_programs/pom.xml lets the marker run the tests directly from the test_programs folder.
-  - test_programs/README.txt explains how to inspect and run the tests.
+  - test_programs/README.md explains how to inspect and run the tests.
 - Code documentation
   - JavaDoc comments are included in the Java source files.
   - Generate JavaDocs with: mvn javadoc:javadoc
   - Generated entry page: target/reports/apidocs/index.html
-- User manual with screenshots
-  - user manual.docx is the Word user manual and includes key screenshots for the main TA, MO, and Admin frames.
 - Readme
   - README.md explains setup, configuration, testing, JavaDocs, running, data reset, and demo workflows.
 
 
-3. Technology Stack
+## 3. Technology Stack
 
 - Java 17 source target, tested locally with JDK 21
 - Jakarta Servlet API 6.0
@@ -51,12 +59,12 @@ According to the coursework requirement, the software ZIP should include the fol
 - Optional Groq API integration for AI-generated TA application forms and MO course drafts
 
 
-4. Main Project Structure
+## 4. Main Project Structure
 
+```text
 .
 |-- pom.xml
 |-- README.md
-|-- user manual.docx
 |-- test_programs/
 |-- start_SE.bat
 |-- start_se.sh
@@ -81,13 +89,16 @@ According to the coursework requirement, the software ZIP should include the fol
         |   |-- mo/
         |   `-- ta/
         `-- web.xml
+```
 
 
-5. Architecture
+## 5. Architecture
 
 The current architecture is:
 
+```text
 JSP page -> Servlet Controller -> Service -> Repository -> Store -> text file
+```
 
 Important design rule:
 
@@ -140,17 +151,21 @@ Review selection state:
 - Publish enforces the TA Positions limit, so the final number of approved applicants cannot exceed the configured quota.
 
 
-6. Runtime Data and Reset Instructions
+## 6. Runtime Data and Reset Instructions
 
 Source template data files are located at:
 
+```text
 webapp/WEB-INF/file/
+```
 
 After deployment, Tomcat uses:
 
+```text
 TOMCAT_HOME/webapps/SE/WEB-INF/file/
+```
 
-Important runtime files:
+### Important Runtime Files
 
 - users.txt: TA, MO, and Admin accounts.
 - courses.txt: course information, recruitment text, TA positions, draft/published status, picked applicants, and review status.
@@ -159,7 +174,7 @@ Important runtime files:
 - application-forms.txt: generated, saved, and submitted TA application forms.
 - resume/: uploaded PDF resumes.
 
-Manual reset for testing:
+### Manual Reset for Testing
 
 Usually, clear the deployed Tomcat runtime folder, not the source template folder.
 
@@ -176,7 +191,7 @@ Keep the file names and folder names. Empty file contents instead of deleting th
 
 For normal yearly reuse, prefer Admin Dashboard -> Reset Recruitment Cycle. It clears application-cycle data while preserving accounts, MO-course ownership, course names, and previous recruitment text.
 
-CSV persistence note:
+### CSV Persistence Note
 
 The project previously split users.txt and courses.txt rows directly by commas, which could corrupt values such as Java, Python, SQL. The Store layer now uses standard CSV escaping:
 
@@ -185,17 +200,25 @@ The project previously split users.txt and courses.txt rows directly by commas, 
 
 Example:
 
+```text
 Java, Python, SQL
+```
 
 is saved as:
 
+```text
 "Java, Python, SQL"
+```
 
+```text
 TA "Lead"
+```
 
 is saved as:
 
+```text
 "TA ""Lead"""
+```
 
 Files involved:
 
@@ -206,9 +229,9 @@ Files involved:
 - src/test/java/store/UserStoreTest.java
 
 
-7. Accounts
+## 7. Accounts
 
-Admin accounts:
+### Admin Accounts
 
 - admin1@bupt.edu.cn / admin123456
 - admin2@bupt.edu.cn / admin223456
@@ -216,73 +239,143 @@ Admin accounts:
 - admin4@bupt.edu.cn / admin423456
 - admin5@bupt.edu.cn / admin523456
 
-MO accounts:
+### MO Accounts
 
 MO accounts are created by Admin from the MO Accounts page. When Admin creates an MO, Admin assigns one or more courses. Existing course names are reused case-insensitively. New course names are created as Draft courses and can receive an AI-generated or fallback recruitment draft.
 
-TA accounts:
+### TA Accounts
 
 TA accounts are registered from the TA login/register page with an email ending in @bupt.edu.cn. After registration, the system generates a TA access key. The TA uses that access key to log in later.
 
 
-8. Build and Test
+## 8. Build and Test
 
 Test program locations:
 
 - Primary Maven test source directory: src/test/java/
 - Submission-friendly copy: test_programs/java/
 - Standalone test-program Maven file: test_programs/pom.xml
-- Test program instructions: test_programs/README.txt
+- Test program instructions: test_programs/README.md
 
 The copy in test_programs/java/ is provided for the coursework requirement.
 The tests can be run from the project root or directly from test_programs/.
 
-Run all Maven tests from the project root:
+### 8.1 Run Tests from the Project Root
 
+How to run all tests from the project root:
+
+1. Open a terminal in the project root.
+2. Run:
+
+```cmd
 mvn test
+```
 
-Run the same test programs from the test_programs folder:
-
-cd test_programs
-mvn test
-
-Recommended clean verification:
-
-mvn clean test
-
-Current verified result:
+Expected result:
 
 - Tests run: 138
 - Failures: 0
 - Errors: 0
+- Skipped: 0
+- BUILD SUCCESS
 
-Manual compile/deployment compilation check:
+### 8.2 Run Tests from test_programs
 
-Windows:
+How to run the submitted test programs from test_programs:
 
-cmd /c webapp\command2.bat
+1. Open a terminal in the test_programs folder.
+2. Run:
+
+```cmd
+mvn test
+```
+
+Alternative from the project root:
+
+```cmd
+cd test_programs
+mvn test
+```
 
 Expected result:
 
-Compilation completed.
+- Tests run: 138
+- Failures: 0
+- Errors: 0
+- Skipped: 0
+- BUILD SUCCESS
 
-macOS/Linux:
+### 8.3 Clean Verification
 
+Recommended clean verification:
+
+1. Open a terminal in the project root.
+2. Run:
+
+```cmd
+mvn clean test
+```
+
+Expected result:
+
+- BUILD SUCCESS
+
+### 8.4 Manual Compile Check
+
+Manual compile/deployment compilation check:
+
+#### Windows
+
+1. Open a terminal in the project root.
+2. Run:
+
+```cmd
+cmd /c webapp\command2.bat
+```
+
+Expected result:
+
+- Compilation completed.
+
+#### macOS/Linux
+
+1. Open a terminal in the project root.
+2. Run:
+
+```bash
 cd webapp
 ./command2.sh
+```
+
+Expected result:
+
+- Compilation completed.
 
 
-9. JavaDocs
+## 9. JavaDocs
 
 JavaDocs are included in the Java source code and package-level documentation.
 
+### 9.1 Generate JavaDocs
+
 Generate JavaDocs:
 
+1. Open a terminal in the project root.
+2. Run:
+
+```cmd
 mvn javadoc:javadoc
+```
 
-Open:
+Expected result:
 
+- BUILD SUCCESS
+
+Open the generated documentation:
+
+```text
 target/reports/apidocs/index.html
+```
 
 Important documented packages:
 
@@ -298,7 +391,7 @@ Important documented packages:
 - store
 
 
-10. Optional AI Configuration
+## 10. Optional AI Configuration
 
 The system can use Groq API for two optional AI-assisted features:
 
@@ -307,33 +400,105 @@ The system can use Groq API for two optional AI-assisted features:
 
 If no API key is configured, the system still works. It uses local fallback generation, so TA application and MO course creation workflows are not blocked.
 
-Platform note:
+### Platform Note
 
 - The current Groq transport uses PowerShell. It works best on Windows.
-- On macOS/Linux, real Groq generation requires PowerShell Core (`pwsh`) or a future Java HttpClient implementation.
+- On macOS/Linux, real Groq generation requires PowerShell Core (`pwsh`).
 - If the transport or API key is unavailable, the system automatically uses local fallback generation, so the application remains usable.
+
+### 10.1 Environment Variables
 
 Environment variables:
 
+```text
 GROQ_API_KEY=your_groq_api_key_here
 GROQ_MODEL=llama-3.3-70b-versatile
+```
 
 GROQ_MODEL is optional. If it is not set, the default model is llama-3.3-70b-versatile.
 
+### 10.2 Windows User-Level Setup
+
 Windows user-level setup:
 
+1. Open PowerShell.
+2. Run:
+
+```powershell
 [Environment]::SetEnvironmentVariable("GROQ_API_KEY", "your_groq_api_key_here", "User")
 [Environment]::SetEnvironmentVariable("GROQ_MODEL", "llama-3.3-70b-versatile", "User")
+```
 
 Then close and reopen the terminal or IDE that starts Tomcat, and restart Tomcat or rerun start_SE.bat.
 
+### 10.3 Temporary PowerShell Setup
+
 Temporary PowerShell setup:
 
+1. Open PowerShell in the project root.
+2. Run:
+
+```powershell
 $env:GROQ_API_KEY="your_groq_api_key_here"
 $env:GROQ_MODEL="llama-3.3-70b-versatile"
 .\start_SE.bat
+```
 
-Security notes:
+### 10.4 macOS/Linux Temporary Setup
+
+macOS/Linux temporary setup:
+
+1. Open a terminal in the project root.
+2. Run:
+
+```bash
+export GROQ_API_KEY="your_groq_api_key_here"
+export GROQ_MODEL="llama-3.3-70b-versatile"
+./start_se.sh
+```
+
+### 10.5 Persistent zsh Setup
+
+Persistent zsh setup:
+
+1. Open a terminal.
+2. Run:
+
+```bash
+echo 'export GROQ_API_KEY="your_groq_api_key_here"' >> ~/.zshrc
+echo 'export GROQ_MODEL="llama-3.3-70b-versatile"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+### 10.6 Persistent bash Setup
+
+Persistent bash setup:
+
+1. Open a terminal.
+2. Run:
+
+```bash
+echo 'export GROQ_API_KEY="your_groq_api_key_here"' >> ~/.bashrc
+echo 'export GROQ_MODEL="llama-3.3-70b-versatile"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### 10.7 AI Setup Check
+
+AI setup check:
+
+1. Start or restart Tomcat after setting the environment variables.
+2. Log in as a TA.
+3. Upload a PDF resume.
+4. Open a published course.
+5. Click Generate Standard Form.
+
+Expected result:
+
+- With a valid API key, the generated form uses Groq-assisted content.
+- Without a valid API key or transport support, the system uses fallback generation and the workflow still completes.
+
+### Security Notes
 
 - Do not commit a real API key to Git.
 - Do not paste the API key into users.txt, courses.txt, JSP pages, or Java source files.
@@ -341,15 +506,18 @@ Security notes:
 - If a key is exposed, revoke it from the Groq dashboard and create a new one.
 
 
-11. Local Deployment
+## 11. Local Deployment
 
-Windows:
+### 11.1 Windows Startup
 
 1. Install Tomcat 11.
-2. Set TOMCAT_HOME or CATALINA_HOME, or place Tomcat at G:\Tomcat.
-3. Run from the project root:
+2. Set TOMCAT_HOME or CATALINA_HOME to your own Tomcat folder. G:\Tomcat is only an example path; the program can run from C:, D:, or any other drive.
+3. Open a terminal in the project root.
+4. Run:
 
+```cmd
 start_SE.bat
+```
 
 The script will:
 
@@ -361,16 +529,31 @@ The script will:
 6. Start Tomcat.
 7. Open http://localhost:8081/SE/ta.
 
-macOS/Linux:
+### 11.2 macOS/Linux Startup
 
 1. Install Tomcat 11.
-2. Set TOMCAT_HOME or CATALINA_HOME.
-3. Run:
+2. Set TOMCAT_HOME or CATALINA_HOME to your own Tomcat folder. The project does not require a G drive.
+3. Open a terminal in the project root.
+4. If needed, make the script executable:
 
+```bash
+chmod +x start_se.sh
+```
+
+5. Run:
+
+```bash
 ./start_se.sh
+```
+
+Expected result:
+
+- Tomcat starts.
+- The application is deployed under the SE context path.
+- The TA entry page is available at http://localhost:8081/SE/ta.
 
 
-12. Application URLs
+## 12. Application URLs
 
 Default local URLs:
 
@@ -387,37 +570,10 @@ Main servlet mappings:
 - /AdminController: Admin actions
 
 
-13. User Manual and Screenshots
 
-The user manual is:
+## 13. User Workflows
 
-user manual.docx
-
-It includes key screenshots for the main application frames, including:
-
-- TA home/job list
-- TA login and registration
-- TA course detail
-- TA generated application form
-- TA personal centre and review result status
-- MO login
-- MO dashboard
-- MO personal centre
-- MO my project
-- MO project detail in Draft and Published states
-- MO review candidates
-- MO published review result
-- Admin login
-- Admin dashboard
-- Admin MO management
-- Admin candidate management
-- Admin deadline pages
-- Admin reset recruitment cycle
-
-
-14. User Workflows
-
-TA workflow:
+### TA Workflow
 
 1. Open /SE/ta.
 2. Check the public recruitment timeline, including TA application deadline, MO course information deadline, and current open/locked status.
@@ -432,7 +588,7 @@ TA workflow:
 11. Use Personal Centre to view submitted courses, modify applications before the deadline, withdraw applications before the deadline, and check review results after publication.
 12. If review results have just been published, check the red notification dot on Personal Center and on the updated course in Personal Centre.
 
-MO workflow:
+### MO Workflow
 
 1. Open /SE/mo.
 2. Log in with an MO account created by Admin.
@@ -450,7 +606,7 @@ MO workflow:
 14. Publish final review results. The final approved count cannot exceed TA Positions.
 15. Publishing final review results triggers unread result notifications for affected TAs.
 
-Admin workflow:
+### Admin Workflow
 
 1. Open /SE/admin.
 2. Log in with a built-in Admin account.
@@ -461,7 +617,7 @@ Admin workflow:
 7. Open Reset Recruitment Cycle to start a new yearly recruitment cycle while preserving accounts and course draft text.
 
 
-15. Demonstration and Validation Checklist
+## 14. Demonstration and Validation Checklist
 
 Before a demo:
 
@@ -485,7 +641,7 @@ Before a demo:
 18. Optionally run Admin Reset Recruitment Cycle and confirm courses return to Draft while course text remains.
 
 
-16. Recent Validation Workflow
+## 15. Recent Validation Workflow
 
 The recent validation workflow included:
 
@@ -507,12 +663,11 @@ The recent validation workflow included:
 16. Verify Published course update flow and Draft course publish flow.
 
 
-17. Known Limitations and Suggested Future Work
+## 16. Known Limitations
 
-- JSP pages still output some values directly. For a production-grade system, use HTML escaping consistently.
-- Passwords are stored in text files. For a real deployment, use password hashing and remove password display from Admin pages.
-- Runtime file paths are configured from ServletContext real paths at application startup. The deployment scripts still use the SE context path for the coursework demo.
-- Groq API transport currently uses PowerShell on Windows. A Java HttpClient implementation would be more portable.
-- This is a prototype without a database and without full browser automation tests. The current JUnit suite is good for service, store, controller, and regression coverage, but manual UI smoke testing is still recommended before demonstrations.
+- Passwords are stored in text files because this coursework prototype uses file-based persistence instead of a database.
+- Runtime file paths are configured from ServletContext real paths at application startup. The deployment scripts deploy the application under the SE context path for the coursework demo.
+- Groq API transport currently works best on Windows PowerShell. If the API key or transport is unavailable, fallback generation is used automatically.
+- The current JUnit suite covers controller, service, repository, store, model, listener, and AI fallback logic. Manual UI smoke testing is still recommended before demonstrations.
 - Notification dots depend on the TA session being refreshed from file storage. The current TA entry and TA controller paths refresh the logged-in TA object before rendering TA pages.
 
