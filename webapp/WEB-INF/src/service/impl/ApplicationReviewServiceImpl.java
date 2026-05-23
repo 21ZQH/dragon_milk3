@@ -99,12 +99,14 @@ public class ApplicationReviewServiceImpl implements ApplicationReviewService {
      * @param pickedEmails  an array of applicant email addresses that were picked
      */
     @Override
-    public void saveReviewPicks(Course course, String[] pickedEmails) {
+    public boolean saveReviewPicks(Course course, String[] pickedEmails) {
         if (course == null || course.isReviewPublished()) {
-            return;
+            return false;
         }
-        course.setPickedApplicantEmails(resolvePickedApplicantEmails(course, pickedEmails));
+        Set<String> resolvedPickedEmails = resolvePickedApplicantEmails(course, pickedEmails);
+        course.setPickedApplicantEmails(resolvedPickedEmails);
         courseRepository.updateCourse(course);
+        return true;
     }
 
     /**
@@ -115,14 +117,19 @@ public class ApplicationReviewServiceImpl implements ApplicationReviewService {
      * @param pickedEmails  an array of applicant email addresses that were picked
      */
     @Override
-    public void publishReview(Course course, String[] pickedEmails) {
+    public boolean publishReview(Course course, String[] pickedEmails) {
         if (course == null || course.isReviewPublished()) {
-            return;
+            return false;
         }
-        course.setPickedApplicantEmails(resolvePickedApplicantEmails(course, pickedEmails));
+        Set<String> resolvedPickedEmails = resolvePickedApplicantEmails(course, pickedEmails);
+        if (exceedsTaPositions(course, resolvedPickedEmails.size())) {
+            return false;
+        }
+        course.setPickedApplicantEmails(resolvedPickedEmails);
         applyPublishedStatuses(course);
         course.setReviewPublished(true);
         courseRepository.updateCourse(course);
+        return true;
     }
 
     /**
@@ -147,6 +154,17 @@ public class ApplicationReviewServiceImpl implements ApplicationReviewService {
             }
         }
         return resolvedPickedEmails;
+    }
+
+    /**
+     * Checks whether the selected applicant count exceeds the configured TA quota.
+     *
+     * @param course the course being reviewed
+     * @param pickedCount the number of selected applicants
+     * @return {@code true} if the configured limit is exceeded
+     */
+    private boolean exceedsTaPositions(Course course, int pickedCount) {
+        return course != null && course.getTaPositions() > 0 && pickedCount > course.getTaPositions();
     }
 
     /**

@@ -18,6 +18,7 @@
     boolean reviewPublished = course != null && course.isReviewPublished();
     String saved = request.getParameter("saved");
     String published = request.getParameter("published");
+    String error = request.getParameter("error");
 %>
 <!DOCTYPE html>
 <html>
@@ -340,6 +341,10 @@
                     Picked:
                     <span id="pickedCount"><%= course.getPickedApplicantEmails().size() %></span>
                 </div>
+                <div class="summary-pill">
+                    TA Positions:
+                    <span id="taPositionLimit"><%= course.getTaPositions() > 0 ? String.valueOf(course.getTaPositions()) : "Not set" %></span>
+                </div>
                 <div class="summary-pill <%= reviewPublished ? "published" : "pending" %>">
                     <%= reviewPublished ? "Published" : "Pending Review" %>
                 </div>
@@ -350,6 +355,9 @@
             <% } %>
             <% if ("1".equals(published)) { %>
                 <div class="message published">Review has been published. This page is now read-only.</div>
+            <% } %>
+            <% if ("quota".equals(error)) { %>
+                <div class="message saved">The number of picked applicants cannot exceed the TA positions for this course.</div>
             <% } %>
 
             <div class="table-wrap">
@@ -369,12 +377,16 @@
                     <tbody>
                         <%
                             boolean hasVisibleApplicant = false;
+                            for (int pass = 0; pass < 2; pass++) {
                             for (int i = 0; i < course.getTaApplicants().size(); i++) {
                                 TA applicant = course.getTaApplicants().get(i);
                                 if (applicant == null) {
                                     continue;
                                 }
                                 boolean picked = course.isApplicantPicked(applicant.getEmail());
+                                if ((pass == 0 && !picked) || (pass == 1 && picked)) {
+                                    continue;
+                                }
                                 if (reviewPublished && !picked) {
                                     continue;
                                 }
@@ -414,7 +426,8 @@
                             <td class="form-cell"><%= applicationForm == null ? "-" : displayValue(applicationForm.getProjectExperience()) %></td>
                             <td><span class="status-badge <%= statusClass %>"><%= statusLabel %></span></td>
                         </tr>
-                        <% } %>
+                        <% }
+                           } %>
                         <% if (!hasVisibleApplicant) { %>
                         <tr>
                             <td colspan="8" class="empty">

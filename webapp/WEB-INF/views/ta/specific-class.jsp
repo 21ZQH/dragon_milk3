@@ -152,6 +152,10 @@
                 <div class="value"><%= course.getJobTitle() %></div>
             </div>
             <div class="detail-box">
+                <div class="label">TA Positions</div>
+                <div class="value"><%= course.getTaPositions() > 0 ? course.getTaPositions() : "Not set" %></div>
+            </div>
+            <div class="detail-box">
                 <div class="label">Job Requirement</div>
                 <div class="value"><%= course.getJobRequirement() %></div>
             </div>

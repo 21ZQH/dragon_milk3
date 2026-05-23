@@ -18,7 +18,7 @@ import service.ai.ApplicationFormAiClient;
  * provider is explicitly set to a non-Groq value. It scans the resume text
  * for common section headers and keywords to populate form fields, providing
  * reasonable defaults for local development and testing.
- * </p>
+ *
  *
  * @author TA Recruitment Team
  * @version 1.0

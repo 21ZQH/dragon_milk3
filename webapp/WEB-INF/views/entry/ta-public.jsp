@@ -130,6 +130,7 @@
         <a class="course" href="<%= request.getContextPath() %>/ta?action=detail&courseIndex=<%= i %>">
             <div class="name"><%= c.getCourseName() %></div>
             <div class="meta"><%= c.getJobTitle() %></div>
+            <div class="meta">TA Positions: <%= c.getTaPositions() > 0 ? c.getTaPositions() : "Not set" %></div>
         </a>
     <%  }
     } else { %>

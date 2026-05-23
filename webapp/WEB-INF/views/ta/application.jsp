@@ -173,6 +173,7 @@
                 <div class="sub-title">Applying For</div>
                 <div><strong>Course:</strong> <%= course.getCourseName() %></div>
                 <div><strong>Job Title:</strong> <%= course.getJobTitle() %></div>
+                <div><strong>TA Positions:</strong> <%= course.getTaPositions() > 0 ? course.getTaPositions() : "Not set" %></div>
             </div>
             <% if (hasMasterResume) { %>
                 <div class="button-row">

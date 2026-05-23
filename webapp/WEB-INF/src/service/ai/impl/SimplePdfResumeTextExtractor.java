@@ -21,7 +21,7 @@ import service.ai.ResumeTextExtractor;
  * by zlib inflation), extracting text from PDF text-showing operators
  * ({@code Tj}), and falling back to printable-ASCII scanning for simple or
  * corrupted PDFs.
- * </p>
+ *
  *
  * @author TA Recruitment Team
  * @version 1.0

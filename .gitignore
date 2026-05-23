@@ -4,6 +4,9 @@
 # Log file
 *.log
 
+# Office temporary lock files
+~$*
+
 # BlueJ files
 *.ctxt
 
@@ -25,3 +28,6 @@ replay_pid*
 
 # Maven build output
 target/
+
+# Test-program runner temporary runtime data
+test_programs/webapp/

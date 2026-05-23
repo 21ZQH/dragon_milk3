@@ -13,13 +13,13 @@ import model.TA;
  * to produce tailored {@link ApplicationForm} instances based on a
  * {@link TA}'s profile, a target {@link Course}, and the applicant's
  * resume text.
- * </p>
+ *
  *
  * @author TA Recruitment Team
  * @version 1.0
  * @since 2025-03-01
- * @see GroqApplicationFormAiClient
- * @see MockApplicationFormAiClient
+ * @see service.ai.impl.GroqApplicationFormAiClient
+ * @see service.ai.impl.MockApplicationFormAiClient
  */
 public interface ApplicationFormAiClient {
     /**

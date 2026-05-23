@@ -29,7 +29,7 @@ import service.impl.DeadlineServiceImpl;
  * This controller manages MO workflows including course management, recruitment
  * publishing, applicant review, course draft saving, and project management.
  * It ensures all requests come from an authenticated MO session before processing.
- * </p>
+ *
  *
  * <p>Supported actions in GET requests:
  * <ul>
@@ -40,7 +40,7 @@ import service.impl.DeadlineServiceImpl;
  *   <li>{@code my_project} - view the MO's assigned courses</li>
  *   <li>{@code project_detail} - view details of a specific course project</li>
  * </ul>
- * </p>
+ *
  *
  * <p>Supported actions in POST requests:
  * <ul>
@@ -48,9 +48,10 @@ import service.impl.DeadlineServiceImpl;
  *   <li>{@code save_course_draft} - save course information as a draft</li>
  *   <li>{@code save_review_picks} - save selected TA candidates</li>
  *   <li>{@code publish_review} - publish review results</li>
- *   <li>{@code save_course_changes} - update existing course information</li>
+ *   <li>{@code update_published} - update published course information</li>
+ *   <li>{@code save_course_changes} - compatibility alias for updating published course information</li>
  * </ul>
- * </p>
+ *
  *
  * @author BUPT TA Recruitment Team
  * @version 1.0
@@ -204,8 +205,8 @@ public class MOClassController extends HttpServlet {
         } else if ("publish_review".equals(action)) {
             publish_review(request, response);
 
-        } else if ("save_course_changes".equals(action)) {
-            save_course_changes(request, response);
+        } else if ("update_published".equals(action) || "save_course_changes".equals(action)) {
+            update_published_course(request, response);
 
         } else {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Unknown action");
@@ -362,6 +363,12 @@ public class MOClassController extends HttpServlet {
         }
 
         Mo mo = getCurrentMo(request);
+        int taPositions = parseTaPositions(request.getParameter("taPositions"));
+        if (taPositions <= 0) {
+            response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex="
+                    + courseIndexParam + "&error=positions");
+            return;
+        }
         moProjectService.updateCourse(
                 mo,
                 assignedCourse,
@@ -369,7 +376,8 @@ public class MOClassController extends HttpServlet {
                 request.getParameter("jobTitle"),
                 "",
                 request.getParameter("jobDescription"),
-                request.getParameter("jobRequirement"));
+                request.getParameter("jobRequirement"),
+                taPositions);
         refreshCurrentMoSession(request, mo);
 
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex="
@@ -398,6 +406,12 @@ public class MOClassController extends HttpServlet {
             return;
         }
 
+        if (assignedCourse.isRecruitmentPublished()) {
+            response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex="
+                    + courseIndexParam + "&error=published");
+            return;
+        }
+
         Mo mo = getCurrentMo(request);
         moProjectService.saveCourseDraft(
                 mo,
@@ -405,7 +419,8 @@ public class MOClassController extends HttpServlet {
                 assignedCourse.getCourseName(),
                 request.getParameter("jobTitle"),
                 request.getParameter("jobDescription"),
-                request.getParameter("jobRequirement"));
+                request.getParameter("jobRequirement"),
+                parseTaPositions(request.getParameter("taPositions")));
         refreshCurrentMoSession(request, mo);
 
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=project_detail&courseIndex="
@@ -413,15 +428,16 @@ public class MOClassController extends HttpServlet {
     }
 
     /**
-     * Saves changes to existing course information. If MO modification is locked,
-     * an error is displayed on the project detail page instead.
+     * Updates an already published course's recruitment information. If MO
+     * modification is locked, an error is displayed on the project detail page
+     * instead.
      *
      * @param request  the {@link HttpServletRequest}
      * @param response the {@link HttpServletResponse}
      * @throws IOException      if redirection fails
      * @throws ServletException if forwarding fails
      */
-    private void save_course_changes(HttpServletRequest request, HttpServletResponse response)throws IOException, ServletException {
+    private void update_published_course(HttpServletRequest request, HttpServletResponse response)throws IOException, ServletException {
         if (!isMoModifyOpen(request)) {
             List<Course> courseList = getCurrentMoCourseList(request);
             String courseIndexParam = request.getParameter("courseIndex");
@@ -461,15 +477,22 @@ public class MOClassController extends HttpServlet {
                 return;
             }
 
+            Course oldCourse = courseList.get(courseIndex);
+            int taPositions = parseTaPositions(request.getParameter("taPositions"));
+            if (taPositions <= 0) {
+                taPositions = oldCourse.getTaPositions();
+            }
+
             Mo mo = getCurrentMo(request);
             moProjectService.updateCourse(
                     mo,
-                    courseList.get(courseIndex),
+                    oldCourse,
                     courseName,
                     jobTitle,
                     "",
                     jobDescription,
-                    jobRequirement);
+                    jobRequirement,
+                    taPositions);
             refreshCurrentMoSession(request, mo);
 
             response.sendRedirect(
@@ -567,8 +590,13 @@ public class MOClassController extends HttpServlet {
 
         String courseIndex = request.getParameter("courseIndex");
         if (!course.isReviewPublished()) {
-            applicationReviewService.publishReview(course, request.getParameterValues("pickedEmail"));
+            boolean published = applicationReviewService.publishReview(course, request.getParameterValues("pickedEmail"));
             syncCurrentMoCourse(request, course);
+            if (!published) {
+                response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=review_candidates&courseIndex="
+                        + courseIndex + "&error=quota");
+                return;
+            }
         }
 
         response.sendRedirect(request.getContextPath() + "/MOclasscontroller?action=review_candidates&courseIndex="
@@ -730,6 +758,23 @@ public class MOClassController extends HttpServlet {
     private boolean isReviewStageOpen(HttpServletRequest request) {
         LocalDateTime deadline = resolveApplicationDeadline(request);
         return deadlineService.isReviewStageOpen(deadline);
+    }
+
+    /**
+     * Parses a positive TA position count from a request parameter.
+     *
+     * @param value the raw request parameter
+     * @return a positive integer, or {@code 0} if missing/invalid
+     */
+    private int parseTaPositions(String value) {
+        if (value == null || value.isBlank()) {
+            return 0;
+        }
+        try {
+            return Math.max(0, Integer.parseInt(value.trim()));
+        } catch (NumberFormatException e) {
+            return 0;
+        }
     }
 
     /**

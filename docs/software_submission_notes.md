@@ -7,10 +7,18 @@ This file maps the required `Software_groupXXX.zip` contents to the current proj
 | Requirement | Current Draft Status | Project Location |
 |---|---|---|
 | Source code | Ready as project source | `webapp/WEB-INF/src/`, `webapp/WEB-INF/views/`, `webapp/css/`, `pom.xml` |
-| Test programs | Ready as JUnit tests | `src/test/java/` |
+| Test programs | Ready as JUnit tests, with a submission copy and standalone Maven runner for easy inspection | `src/test/java/`, `test_programs/pom.xml`, `test_programs/java/`, `test_programs/README.txt` |
 | Code documentation, such as JavaDocs | Initial JavaDoc generated successfully | `target/reports/apidocs/`, `docs/controller-service-outline.md` |
-| User manual with key screenshots | User manual draft is ready; screenshots still need final capture from the running app | `用户使用手册.md`, `docs/images/` |
+| User manual with key screenshots | English Word user manual is ready; screenshots should be checked against the final running app | `user manual.docx`, `docs/images/` |
 | README setup/config/run instructions | Ready as text README | `readme.txt` |
+
+## Current Feature Notes
+
+- MOs manually set `TA Positions` in the project detail page; AI draft generation does not set the approval quota.
+- TAs can see `TA Positions` on the public job list, course detail page, and application pages.
+- MO review `Save Changes` stores a shortlist and can exceed `TA Positions`; saved picks appear first the next time the review page is opened.
+- MO review `Publish` enforces `TA Positions`, so final approved applicants cannot exceed the configured quota.
+- AI features are optional. If Groq configuration or the current PowerShell transport is unavailable, local fallback generation is used so TA and MO workflows remain usable.
 
 ## Current Verification
 
@@ -25,7 +33,7 @@ mvn -q -DskipTests javadoc:javadoc
 Latest verified unit-test result:
 
 ```text
-Tests run: 134, Failures: 0, Errors: 0
+Tests run: 138, Failures: 0, Errors: 0
 ```
 
 Generated JavaDoc entry page:
@@ -57,5 +65,6 @@ The user manual asks for key screenshots. At least one screenshot should be capt
 - Use the required filename pattern: `Software_groupXXX.zip`.
 - Replace `XXX` with the actual group number.
 - Do not include real API keys.
+- AI keys should be configured through `GROQ_API_KEY`; do not store them in source files or data files.
 - Runtime test data can be cleared before packaging if a clean demonstration state is preferred.
-- Keep `readme.txt` and `用户使用手册.md` at the project root so they are easy to find after unzip.
+- Keep `readme.txt` and `user manual.docx` at the project root so they are easy to find after unzip.

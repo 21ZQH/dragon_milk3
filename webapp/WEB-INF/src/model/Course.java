@@ -33,6 +33,8 @@ public class Course {
     private String jobDescription;
     /** The requirements for the TA position. */
     private String jobRequirement;
+    /** The maximum number of TA applicants that can be approved for this course. */
+    private int taPositions;
     /** The list of TA applicants who have applied to this course. */
     private List<TA> taApplicants;
     /** The list of application form identifiers associated with each applicant. */
@@ -77,6 +79,7 @@ public class Course {
         this.salary = salary;
         this.jobDescription = jobDescription;
         this.jobRequirement = jobRequirement;
+        this.taPositions = 0;
         this.taApplicants = new ArrayList<>();
         this.applicantFormIds = new ArrayList<>();
         this.pickedApplicantEmails = new ArrayList<>();
@@ -199,6 +202,25 @@ public class Course {
      */
     public void setJobRequirement(String jobRequirement) {
         this.jobRequirement = jobRequirement;
+    }
+
+    /**
+     * Returns the maximum number of TA positions available for this course.
+     *
+     * @return the number of TA positions, or {@code 0} if not configured
+     */
+    public int getTaPositions() {
+        return taPositions;
+    }
+
+    /**
+     * Sets the maximum number of TA positions available for this course.
+     * Non-positive values are treated as not configured.
+     *
+     * @param taPositions the maximum number of TA positions
+     */
+    public void setTaPositions(int taPositions) {
+        this.taPositions = Math.max(0, taPositions);
     }
 
     /**

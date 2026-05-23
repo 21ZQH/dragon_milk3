@@ -31,7 +31,7 @@ import service.impl.DeadlineServiceImpl;
  * candidate (TA) management, deadline configuration for both TA applications and
  * MO course modifications, recruitment cycle resets, and resume viewing.
  * All actions require an authenticated Admin session with the "Admin" role.
- * </p>
+ *
  *
  * <p>Supported actions in GET requests:
  * <ul>
@@ -43,7 +43,7 @@ import service.impl.DeadlineServiceImpl;
  *   <li>{@code set_mo_deadline} - display the MO modification deadline configuration page</li>
  *   <li>{@code reset_cycle} - display the recruitment cycle reset page</li>
  * </ul>
- * </p>
+ *
  *
  * <p>Supported actions in POST requests:
  * <ul>
@@ -52,7 +52,7 @@ import service.impl.DeadlineServiceImpl;
  *   <li>{@code create_mo} - create a new MO account with course assignments</li>
  *   <li>{@code reset_cycle_confirm} - confirm and execute the recruitment cycle reset</li>
  * </ul>
- * </p>
+ *
  *
  * @author BUPT TA Recruitment Team
  * @version 1.0
