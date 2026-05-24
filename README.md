@@ -671,3 +671,14 @@ The recent validation workflow included:
 - The current JUnit suite covers controller, service, repository, store, model, listener, and AI fallback logic. Manual UI smoke testing is still recommended before demonstrations.
 - Notification dots depend on the TA session being refreshed from file storage. The current TA entry and TA controller paths refresh the logged-in TA object before rendering TA pages.
 
+
+## 17. Group Name-List
+
+- Github ID: qrsikno2         QMID: 190898878 (Support TA)
+- Github ID: ZQH-21           QMID: 231222442 (Lead)
+- Github ID: Aether0623       QMID: 231220839 (Member)
+- Github ID: DLZDC            QMID: 231220046 (Member)
+- Github ID: Anoyo36          QMID: 231220596 (Member)
+- Github ID: sha7dow18        QMID: 231221294 (Member)
+- Github ID: Junwei-Lee-0713  QMID: 231221858 (Member)
+
